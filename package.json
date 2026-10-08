@@ -1,0 +1,38 @@
+{
+  "name": "greesal-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "backend": "python backend/run.py",
+    "db": "node scripts/start-mongo.js",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@auth/mongodb-adapter": "^3.11.3",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.11.9",
+    "lucide-react": "^0.453.0",
+    "mongodb": "^6.10.0",
+    "next": "14.2.15",
+    "next-auth": "^4.24.15",
+    "nodemailer": "^6.9.16",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@types/nodemailer": "^6.4.16",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "mongodb-memory-server": "^10.1.4",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.6.3"
+  }
+}
+
