@@ -87,7 +87,7 @@ export default function AdminLoginPage() {
       }
 
       setSuccessMessage('Authentication verified! Redirecting to Admin Console...');
-      
+
       // Smooth redirect
       setTimeout(() => {
         router.push('/admin');
@@ -141,7 +141,7 @@ export default function AdminLoginPage() {
       {/* Main Content Card */}
       <main className="flex-1 flex items-center justify-center px-4 py-8 relative z-10">
         <div className="w-full max-w-md bg-white rounded-3xl p-8 sm:p-10 shadow-[0_20px_50px_rgba(12,42,32,0.08)] border border-[#EBE2D3]/80 relative backdrop-blur-sm">
-          
+
           {/* Top Badge & Icon */}
           <div className="flex flex-col items-center text-center mb-7">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#0C2A20] to-[#1A5C45] flex items-center justify-center shadow-md mb-4 ring-4 ring-emerald-50 relative group">
@@ -197,7 +197,7 @@ export default function AdminLoginPage() {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. admin"
+                  placeholder="Enter Your Username"
                   autoComplete="username"
                   className="w-full pl-10 pr-4 py-3 bg-[#FAF6F0]/60 border border-[#EBE2D3] rounded-xl text-sm font-medium text-[#0C2A20] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition-all duration-200"
                 />
@@ -221,7 +221,7 @@ export default function AdminLoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="e.g. admin123"
+                  placeholder="Enter Your Password"
                   autoComplete="current-password"
                   className="w-full pl-10 pr-11 py-3 bg-[#FAF6F0]/60 border border-[#EBE2D3] rounded-xl text-sm font-medium text-[#0C2A20] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition-all duration-200"
                 />
