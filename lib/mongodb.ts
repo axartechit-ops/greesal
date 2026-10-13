@@ -1,37 +1,51 @@
 import { MongoClient, MongoClientOptions } from 'mongodb';
 
-if (!process.env.MONGODB_URI) {
-  throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
-}
+const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/greesal';
+const options: MongoClientOptions = {
+  serverSelectionTimeoutMS: 5000,
+  connectTimeoutMS: 5000,
+};
 
-const uri = process.env.MONGODB_URI;
-const options: MongoClientOptions = {};
+let client: MongoClient | null = null;
+let clientPromiseInstance: Promise<MongoClient> | null = null;
 
-let client: MongoClient;
-let clientPromise: Promise<MongoClient>;
-
-if (process.env.NODE_ENV === 'development') {
-  // In development mode, use a global variable so that the value
-  // is preserved across module reloads caused by HMR (Hot Module Replacement).
-  const globalWithMongo = global as typeof globalThis & {
-    _mongoClientPromise?: Promise<MongoClient>;
-  };
-
-  if (!globalWithMongo._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    globalWithMongo._mongoClientPromise = client.connect().catch((err) => {
-      console.warn('MongoDB connection warning:', err?.message || err);
-      delete globalWithMongo._mongoClientPromise;
-      throw err;
-    });
+export async function getMongoClient(): Promise<MongoClient> {
+  if (client && clientPromiseInstance) {
+    try {
+      const c = await clientPromiseInstance;
+      return c;
+    } catch {
+      clientPromiseInstance = null;
+      client = null;
+    }
   }
-  clientPromise = globalWithMongo._mongoClientPromise;
-} else {
-  // In production mode, it's best to not use a global variable.
+
   client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+  clientPromiseInstance = client.connect().catch((err) => {
+    console.warn('MongoDB connection error (will retry on next request):', err?.message || err);
+    clientPromiseInstance = null;
+    client = null;
+    throw err;
+  });
+  return clientPromiseInstance;
 }
 
-// Export a module-scoped MongoClient promise. By doing this in a
-// separate module, the client can be shared across functions.
+// Thenable export compatible with NextAuth and direct `await clientPromise`
+const clientPromise = {
+  then<TResult1 = MongoClient, TResult2 = never>(
+    onfulfilled?: ((value: MongoClient) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): Promise<TResult1 | TResult2> {
+    return getMongoClient().then(onfulfilled, onrejected);
+  },
+  catch<TResult = never>(
+    onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null
+  ): Promise<MongoClient | TResult> {
+    return getMongoClient().catch(onrejected);
+  },
+  finally(onfinally?: (() => void) | null): Promise<MongoClient> {
+    return getMongoClient().finally(onfinally);
+  },
+} as unknown as Promise<MongoClient>;
+
 export default clientPromise;

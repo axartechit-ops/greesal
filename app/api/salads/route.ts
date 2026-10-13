@@ -8,7 +8,16 @@ export async function GET() {
   try {
     const client = await clientPromise;
     const db = client.db();
-    const dbSalads = await db.collection('salads').find({}).toArray();
+    let dbSalads = await db.collection('salads').find({}).toArray();
+
+    // Auto-seed default salads if collection is fresh or empty
+    if (!dbSalads || dbSalads.length === 0) {
+      await db.collection('salads').insertMany(DEFAULT_SALADS.map((s) => {
+        const { _id, ...rest } = s as any;
+        return { ...rest, createdAt: new Date() };
+      }));
+      dbSalads = await db.collection('salads').find({}).toArray();
+    }
 
     if (dbSalads && dbSalads.length > 0) {
       const formatted = dbSalads.map((s) => ({

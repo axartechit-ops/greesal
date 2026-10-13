@@ -61,6 +61,8 @@ import {
 
 interface Salad {
   _id?: string;
+  id?: string;
+  slug?: string;
   name: string;
   calories: string;
   protein: string;
@@ -342,11 +344,12 @@ export default function AdminPage() {
   const fetchData = async () => {
     setIsLoading(true);
     setErrorMessage(null);
+
+    // 1. Fetch Store & Banner Settings
     try {
-      // 1. Fetch Store & Banner Settings
       const settingsRes = await fetch('/api/admin/settings');
-      const settingsData = await settingsRes.json();
       if (settingsRes.ok) {
+        const settingsData = await settingsRes.json();
         setFullSiteSettings(settingsData);
         if (Array.isArray(settingsData.categories) && settingsData.categories.length > 0) {
           setCategoriesState(settingsData.categories);
@@ -409,25 +412,33 @@ export default function AdminPage() {
         if (settingsData.ctaText) setBannerCtaText(settingsData.ctaText);
         if (settingsData.ctaLink) setBannerCtaLink(settingsData.ctaLink);
       }
+    } catch (err: any) {
+      console.warn('Failed to load settings:', err);
+    }
 
-      // 2. Fetch Salads list
+    // 2. Fetch Salads list
+    try {
       const saladsRes = await fetch('/api/admin/salads');
-      const saladsData = await saladsRes.json();
       if (saladsRes.ok) {
-        setSalads(saladsData || []);
+        const saladsData = await saladsRes.json();
+        setSalads(Array.isArray(saladsData) ? saladsData : []);
       }
+    } catch (err: any) {
+      console.warn('Failed to load salads:', err);
+    }
 
-      // 3. Fetch Orders list
+    // 3. Fetch Orders list
+    try {
       const ordersRes = await fetch('/api/admin/orders');
-      const ordersData = await ordersRes.json();
       if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
         setOrders(Array.isArray(ordersData) ? ordersData : []);
       }
     } catch (err: any) {
-      setErrorMessage('Failed to load page data. Please verify database connection.');
-    } finally {
-      setIsLoading(false);
+      console.warn('Failed to load orders:', err);
     }
+
+    setIsLoading(false);
   };
 
   const fetchOrdersOnly = async () => {
@@ -705,7 +716,7 @@ export default function AdminPage() {
   // Open modal to edit salad
   const handleOpenEditModal = (salad: Salad) => {
     setFormTab('general');
-    setEditingSaladId(salad._id || null);
+    setEditingSaladId(salad._id || salad.id || null);
     setImageSourceType(salad.image && !salad.image.startsWith('data:') ? 'url' : 'file');
     setNewAddOnName('');
     setNewAddOnPrice('');
@@ -2630,7 +2641,7 @@ export default function AdminPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => salad._id && handleDeleteSalad(salad._id)}
+                      onClick={() => (salad._id || salad.id) && handleDeleteSalad((salad._id || salad.id)!)}
                       className="p-2 rounded-xl text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors border border-gray-200 cursor-pointer"
                       title="Delete Salad"
                     >

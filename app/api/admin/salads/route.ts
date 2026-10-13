@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
+import { slugify } from '@/lib/salads';
+
+export const dynamic = 'force-dynamic';
 
 // Default salads data containing 7 premium salads from the brochure
 const defaultSalads = [
@@ -285,10 +288,12 @@ export async function GET() {
       salads = await db.collection('salads').find().toArray();
     }
 
-    // Map _id to string
+    // Map _id to string and ensure id & slug exist
     const formattedSalads = salads.map(s => ({
       ...s,
       _id: s._id.toString(),
+      id: s.id || s._id.toString(),
+      slug: s.slug || slugify(s.name || ''),
     }));
 
     return NextResponse.json(formattedSalads);
@@ -298,6 +303,8 @@ export async function GET() {
       defaultSalads.map((s, idx) => ({
         ...s,
         _id: `fallback-${idx + 1}`,
+        id: `fallback-${idx + 1}`,
+        slug: slugify(s.name || ''),
       }))
     );
   }
@@ -329,8 +336,10 @@ export async function POST(request: Request) {
     const client = await clientPromise;
     const db = client.db();
 
+    const generatedSlug = slugify(name);
     const newSalad = {
       name,
+      slug: generatedSlug,
       calories,
       protein,
       price,
@@ -347,10 +356,15 @@ export async function POST(request: Request) {
     };
 
     const result = await db.collection('salads').insertOne(newSalad);
+    const insertedId = result.insertedId.toString();
 
     return NextResponse.json({
       message: 'Salad added successfully',
-      salad: { ...newSalad, _id: result.insertedId.toString() },
+      salad: {
+        ...newSalad,
+        _id: insertedId,
+        id: insertedId,
+      },
     });
   } catch (error: any) {
     console.error('Add salad error:', error);

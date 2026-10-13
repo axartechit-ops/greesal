@@ -284,6 +284,25 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
       setIsSubmitting(false);
     }
 
+    // Save locally into order history for immediate display in Profile Modal
+    try {
+      const existingHistoryStr = localStorage.getItem('greesal_orders_history');
+      const existingHistory = existingHistoryStr ? JSON.parse(existingHistoryStr) : [];
+      const historyRecord = {
+        id: orderNumber,
+        date: `Today, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        timestamp: Date.now(),
+        status: 'Placed',
+        items: orderPayload.items,
+        subtotal: totalAmount,
+        deliveryFee: 0,
+        total: totalAmount,
+        deliveryAddress: address.trim() || 'Surat Doorstep',
+        paymentMethod: 'Cash on Delivery / UPI',
+      };
+      localStorage.setItem('greesal_orders_history', JSON.stringify([historyRecord, ...(Array.isArray(existingHistory) ? existingHistory : [])]));
+    } catch (e) {}
+
     // 4. Construct WhatsApp Message and Open in Background
     let itemsList = cartItems
       .map(

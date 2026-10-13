@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
+export const dynamic = 'force-dynamic';
+
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
@@ -29,8 +31,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const client = await clientPromise;
     const db = client.db();
 
+    const query: any = ObjectId.isValid(id)
+      ? { $or: [{ _id: new ObjectId(id) }, { _id: id }, { id }, { slug: id }] }
+      : { $or: [{ _id: id }, { id }, { slug: id }] };
+
     const result = await db.collection('salads').updateOne(
-      { _id: new ObjectId(id) },
+      query,
       {
         $set: {
           name,
@@ -73,7 +79,11 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     const client = await clientPromise;
     const db = client.db();
 
-    const result = await db.collection('salads').deleteOne({ _id: new ObjectId(id) });
+    const query: any = ObjectId.isValid(id)
+      ? { $or: [{ _id: new ObjectId(id) }, { _id: id }, { id }, { slug: id }] }
+      : { $or: [{ _id: id }, { id }, { slug: id }] };
+
+    const result = await db.collection('salads').deleteOne(query);
 
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: 'Salad not found' }, { status: 404 });

@@ -209,15 +209,36 @@ export function ProfileModal({
         const parsed = JSON.parse(storedOrders);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setOrders(parsed);
-          return;
+        } else {
+          setOrders(INITIAL_DEMO_ORDERS);
         }
       } catch (e) {
-        console.error('Failed to parse orders:', e);
+        setOrders(INITIAL_DEMO_ORDERS);
       }
+    } else {
+      setOrders(INITIAL_DEMO_ORDERS);
+      localStorage.setItem('greesal_orders_history', JSON.stringify(INITIAL_DEMO_ORDERS));
     }
 
-    setOrders(INITIAL_DEMO_ORDERS);
-    localStorage.setItem('greesal_orders_history', JSON.stringify(INITIAL_DEMO_ORDERS));
+    // Also fetch live orders from API to reflect status updates (e.g. Preparing -> On the Way -> Delivered)
+    const fetchLiveOrders = async () => {
+      try {
+        const cleanMobile = (displayMobile || '').replace(/\D/g, '').slice(-10);
+        if (cleanMobile) {
+          const res = await fetch(`/api/orders?mobile=${cleanMobile}`);
+          if (res.ok) {
+            const liveOrders = await res.json();
+            if (Array.isArray(liveOrders) && liveOrders.length > 0) {
+              setOrders(liveOrders);
+              localStorage.setItem('greesal_orders_history', JSON.stringify(liveOrders));
+            }
+          }
+        }
+      } catch (err) {
+        // Safe fallback to local state
+      }
+    };
+    fetchLiveOrders();
   }, [isOpen, displayName, displayMobile]);
 
   if (!isOpen) return null;

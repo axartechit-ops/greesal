@@ -58,18 +58,21 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
 
   const matchesCategoryForSalad = (salad: Salad, categoryId: string) => {
     if (categoryId === 'all') return true;
-    const catLower = categoryId.toLowerCase().trim();
-    const tagLower = (salad.tag || '').toLowerCase().trim();
-    const nameLower = (salad.name || '').toLowerCase().trim();
+    const cat = displayCategories.find((c) => c.id === categoryId);
+    const catIdNorm = categoryId.toLowerCase().trim().replace(/[-_]/g, ' ');
+    const catLabelNorm = (cat?.label || '').toLowerCase().trim().replace(/[-_]/g, ' ');
+    const tagNorm = (salad.tag || '').toLowerCase().trim().replace(/[-_]/g, ' ');
+    const nameNorm = (salad.name || '').toLowerCase().trim();
 
-    if (tagLower === catLower) return true;
-    if (tagLower.includes(catLower)) return true;
+    if (tagNorm === catIdNorm || (catLabelNorm && tagNorm === catLabelNorm)) return true;
+    if (tagNorm.includes(catIdNorm) || (catLabelNorm && tagNorm.includes(catLabelNorm))) return true;
+    if (catIdNorm.includes(tagNorm) || (catLabelNorm && catLabelNorm.includes(tagNorm))) return true;
 
-    if (catLower.includes('protein') && (tagLower.includes('protein') || nameLower.includes('protein'))) return true;
-    if (catLower.includes('veggie') && (tagLower.includes('veggie') || tagLower.includes('sprout') || tagLower.includes('detox'))) return true;
-    if (catLower.includes('paneer') && (tagLower.includes('paneer') || nameLower.includes('paneer'))) return true;
-    if (catLower.includes('rice') && (tagLower.includes('rice') || nameLower.includes('rice') || nameLower.includes('burrito'))) return true;
-    if (catLower.includes('exotic') && (tagLower.includes('exotic') || nameLower.includes('bundle') || nameLower.includes('mais'))) return true;
+    if (catIdNorm.includes('protein') && (tagNorm.includes('protein') || nameNorm.includes('protein'))) return true;
+    if (catIdNorm.includes('veggie') && (tagNorm.includes('veggie') || tagNorm.includes('sprout') || tagNorm.includes('detox'))) return true;
+    if (catIdNorm.includes('paneer') && (tagNorm.includes('paneer') || nameNorm.includes('paneer'))) return true;
+    if (catIdNorm.includes('rice') && (tagNorm.includes('rice') || nameNorm.includes('rice') || nameNorm.includes('burrito'))) return true;
+    if (catIdNorm.includes('exotic') && (tagNorm.includes('exotic') || nameNorm.includes('bundle') || nameNorm.includes('mais') || tagNorm.includes('superfood'))) return true;
 
     return false;
   };

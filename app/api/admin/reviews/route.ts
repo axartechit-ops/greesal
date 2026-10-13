@@ -26,7 +26,13 @@ export async function GET() {
       .sort({ isPinned: -1, order: 1, createdAt: -1 })
       .toArray();
 
-    return NextResponse.json(reviews);
+    const formatted = reviews.map((r) => ({
+      ...r,
+      _id: r._id.toString(),
+      id: r.id ? String(r.id) : r._id.toString(),
+    }));
+
+    return NextResponse.json(formatted);
   } catch (error: any) {
     console.error('Admin GET reviews error:', error);
     return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 });
@@ -62,7 +68,13 @@ export async function POST(req: Request) {
         .sort({ isPinned: -1, order: 1, createdAt: -1 })
         .toArray();
 
-      return NextResponse.json({ success: true, reviews: updated });
+      const formatted = updated.map((r) => ({
+        ...r,
+        _id: r._id.toString(),
+        id: r.id ? String(r.id) : r._id.toString(),
+      }));
+
+      return NextResponse.json({ success: true, reviews: formatted });
     }
 
     // 2. Update specific review
@@ -95,7 +107,13 @@ export async function POST(req: Request) {
         .sort({ isPinned: -1, order: 1, createdAt: -1 })
         .toArray();
 
-      return NextResponse.json({ success: true, reviews: updated });
+      const formatted = updated.map((r) => ({
+        ...r,
+        _id: r._id.toString(),
+        id: r.id ? String(r.id) : r._id.toString(),
+      }));
+
+      return NextResponse.json({ success: true, reviews: formatted });
     }
 
     // 3. Create new review as Admin
@@ -114,7 +132,11 @@ export async function POST(req: Request) {
       };
 
       const result = await db.collection('reviews').insertOne(newReview as any);
-      return NextResponse.json({ success: true, review: { ...newReview, _id: result.insertedId } });
+      const insertedId = result.insertedId.toString();
+      return NextResponse.json({
+        success: true,
+        review: { ...newReview, _id: insertedId, id: insertedId }
+      });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
@@ -136,12 +158,12 @@ export async function DELETE(req: Request) {
     const client = await clientPromise;
     const db = client.db();
 
-    let query: any = { id };
+    const queryList: any[] = [{ id }, { _id: id }];
     if (ObjectId.isValid(id)) {
-      query = { $or: [{ _id: new ObjectId(id) }, { id }] };
+      queryList.push({ _id: new ObjectId(id) });
     }
 
-    await db.collection('reviews').deleteOne(query);
+    await db.collection('reviews').deleteOne({ $or: queryList });
 
     return NextResponse.json({ success: true, message: 'Review deleted successfully' });
   } catch (error: any) {

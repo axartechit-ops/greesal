@@ -25,33 +25,8 @@ function sanitizeBrandSlogans(settings: any): SiteSettings {
   if (isOld(settings.heroStoryP3)) {
     settings.heroStoryP3 = settings.heroStoryP3.replace(/a?apka salad a?apke dwar/gi, 'Farm-Fresh Organic Salad Bowls');
   }
-  if (typeof settings.heroStatBadge === 'string' && settings.heroStatBadge.toLowerCase().includes('surat health')) {
-    settings.heroStatBadge = settings.heroStatBadge.replace(/surat\s*health/gi, 'Health').trim();
-  }
-  if (typeof settings.highlight3Subtitle === 'string' && settings.highlight3Subtitle.toLowerCase().includes('surat health')) {
-    settings.highlight3Subtitle = settings.highlight3Subtitle.replace(/surat\s*health/gi, 'Health').trim();
-  }
-  if (typeof settings.heroBadge === 'string' && (settings.heroBadge.toLowerCase().includes('surat') || settings.heroBadge.toLowerCase().includes('fresh & organic'))) {
-    settings.heroBadge = '';
-  }
-  if (typeof settings.badgeText === 'string' && (settings.badgeText.toLowerCase().includes('surat') || settings.badgeText.toLowerCase().includes('fresh & organic'))) {
-    settings.badgeText = '';
-  }
-  if (settings.differenceImage2 === '/images/reference_ui.png' || settings.differenceImage2 === '/images/reference_ui_retina.png') {
-    settings.differenceImage2 = '';
-  }
   if (!settings.differenceImage1) {
     settings.differenceImage1 = '/images/premium_fresh_ingredients.png';
-  }
-  if (settings.servicesCards && Array.isArray(settings.servicesCards)) {
-    settings.servicesCards = settings.servicesCards
-      .filter((card: any) => card.id !== 2)
-      .map((card: any) => {
-        if (card.id === 1 && (!card.image || card.image.includes('photo-1540420773420-3366772f4999'))) {
-          return { ...card, image: '/images/salad_single_order.jpg' };
-        }
-        return card;
-      });
   }
   return settings;
 }
@@ -60,7 +35,18 @@ export async function GET() {
   try {
     const client = await clientPromise;
     const db = client.db();
-    const settings = await db.collection('settings').findOne({ _id: 'homepage' as any });
+    let settings = await db.collection('settings').findOne({ _id: 'homepage' as any });
+
+    if (!settings) {
+      // Seed initial homepage settings into MongoDB so database is populated
+      const { _id, ...initialData } = DEFAULT_SITE_SETTINGS as any;
+      await db.collection('settings').updateOne(
+        { _id: 'homepage' as any },
+        { $setOnInsert: initialData },
+        { upsert: true }
+      );
+      settings = await db.collection('settings').findOne({ _id: 'homepage' as any });
+    }
 
     if (settings) {
       const merged: SiteSettings = sanitizeBrandSlogans({ ...DEFAULT_SITE_SETTINGS, ...settings });
@@ -78,34 +64,51 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // Deep merge incoming updates with current settings
+    // Query DB first for existing stored settings so partial updates don't overwrite other tabs
+    let existingSettings: Partial<SiteSettings> = inMemorySettings;
+    try {
+      const client = await clientPromise;
+      const db = client.db();
+      const dbSettings = await db.collection('settings').findOne({ _id: 'homepage' as any });
+      if (dbSettings) {
+        existingSettings = { ...DEFAULT_SITE_SETTINGS, ...inMemorySettings, ...dbSettings };
+      }
+    } catch (e) {
+      // Fallback to in-memory if DB is offline
+    }
+
+    // Deep merge incoming updates with existing settings
     const updatedData: SiteSettings = {
-      ...inMemorySettings,
+      ...DEFAULT_SITE_SETTINGS,
+      ...existingSettings,
       ...body,
     };
 
     // Bidirectional sync between Hero Banner studio fields and Homepage Hero settings
-    if (body.title && !body.heroSlogan) updatedData.heroSlogan = body.title;
-    if (body.heroSlogan && !body.title) updatedData.title = body.heroSlogan;
-    if (body.badgeText && !body.heroBadge) updatedData.heroBadge = body.badgeText;
-    if (body.heroBadge && !body.badgeText) updatedData.badgeText = body.heroBadge;
-    if (body.pill1Text && !body.heroPill1) updatedData.heroPill1 = body.pill1Text;
-    if (body.heroPill1 && !body.pill1Text) updatedData.pill1Text = body.heroPill1;
-    if (body.pill2Text && !body.heroPill2) updatedData.heroPill2 = body.pill2Text;
-    if (body.heroPill2 && !body.pill2Text) updatedData.pill2Text = body.heroPill2;
-    if (body.highlight3Title && !body.heroStatDelivered) updatedData.heroStatDelivered = body.highlight3Title;
-    if (body.highlight3Subtitle && !body.heroStatBadge) updatedData.heroStatBadge = body.highlight3Subtitle;
-    if (body.description && !body.heroStoryP1) updatedData.heroStoryP1 = body.description;
+    if (body.title !== undefined) updatedData.heroSlogan = body.title;
+    if (body.heroSlogan !== undefined) updatedData.title = body.heroSlogan;
+    if (body.badgeText !== undefined) updatedData.heroBadge = body.badgeText;
+    if (body.heroBadge !== undefined) updatedData.badgeText = body.heroBadge;
+    if (body.pill1Text !== undefined) updatedData.heroPill1 = body.pill1Text;
+    if (body.heroPill1 !== undefined) updatedData.pill1Text = body.heroPill1;
+    if (body.pill2Text !== undefined) updatedData.heroPill2 = body.pill2Text;
+    if (body.heroPill2 !== undefined) updatedData.pill2Text = body.heroPill2;
+    if (body.highlight3Title !== undefined) updatedData.heroStatDelivered = body.highlight3Title;
+    if (body.heroStatDelivered !== undefined) updatedData.highlight3Title = body.heroStatDelivered;
+    if (body.highlight3Subtitle !== undefined) updatedData.heroStatBadge = body.highlight3Subtitle;
+    if (body.heroStatBadge !== undefined) updatedData.highlight3Subtitle = body.heroStatBadge;
+    if (body.description !== undefined) updatedData.heroStoryP1 = body.description;
+    if (body.heroStoryP1 !== undefined) updatedData.description = body.heroStoryP1;
 
-    // Ensure array objects are preserved if not provided
+    // Ensure array objects are preserved if not provided in partial updates
     if (!body.categories || !Array.isArray(body.categories)) {
-      updatedData.categories = inMemorySettings.categories || DEFAULT_SITE_SETTINGS.categories;
+      updatedData.categories = existingSettings.categories || DEFAULT_SITE_SETTINGS.categories;
     }
     if (!body.differenceCards || !Array.isArray(body.differenceCards)) {
-      updatedData.differenceCards = inMemorySettings.differenceCards || DEFAULT_SITE_SETTINGS.differenceCards;
+      updatedData.differenceCards = existingSettings.differenceCards || DEFAULT_SITE_SETTINGS.differenceCards;
     }
     if (!body.servicesCards || !Array.isArray(body.servicesCards)) {
-      updatedData.servicesCards = inMemorySettings.servicesCards || DEFAULT_SITE_SETTINGS.servicesCards;
+      updatedData.servicesCards = existingSettings.servicesCards || DEFAULT_SITE_SETTINGS.servicesCards;
     }
 
     inMemorySettings = updatedData;

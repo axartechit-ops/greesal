@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
+export const dynamic = 'force-dynamic';
+
 // Initial seed orders if database is fresh
 const defaultOrders = [
   {
@@ -82,19 +84,34 @@ const defaultOrders = [
   }
 ];
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const mobile = searchParams.get('mobile')?.trim();
+    const email = searchParams.get('email')?.trim();
+
     const client = await clientPromise;
     const db = client.db();
 
     const ordersCollection = db.collection('orders');
-    let orders = await ordersCollection.find({}).sort({ timestamp: -1 }).toArray();
-
+    
     // If no orders exist yet in database, seed initial demo orders
-    if (orders.length === 0) {
+    const count = await ordersCollection.countDocuments();
+    if (count === 0) {
       await ordersCollection.insertMany(defaultOrders);
-      orders = await ordersCollection.find({}).sort({ timestamp: -1 }).toArray();
     }
+
+    const filter: any = {};
+    if (mobile) {
+      const cleanDigits = mobile.replace(/\D/g, '').slice(-10);
+      if (cleanDigits) {
+        filter.customerMobile = { $regex: cleanDigits, $options: 'i' };
+      }
+    } else if (email) {
+      filter.customerEmail = { $regex: `^${email}$`, $options: 'i' };
+    }
+
+    const orders = await ordersCollection.find(filter).sort({ timestamp: -1 }).toArray();
 
     const formattedOrders = orders.map((o) => ({
       ...o,
@@ -198,17 +215,32 @@ export async function PUT(request: Request) {
     const client = await clientPromise;
     const db = client.db();
 
-    const query: any = {};
-    if (_id && ObjectId.isValid(_id)) {
-      query._id = new ObjectId(_id);
-    } else if (id) {
-      query.$or = [{ orderNumber: id }, { id: id }];
+    const queryList: any[] = [];
+    if (_id) {
+      if (ObjectId.isValid(_id)) queryList.push({ _id: new ObjectId(_id) });
+      queryList.push({ _id: _id });
+      queryList.push({ id: _id });
+      queryList.push({ orderNumber: _id });
+    }
+    if (id) {
+      if (ObjectId.isValid(id)) queryList.push({ _id: new ObjectId(id) });
+      queryList.push({ _id: id });
+      queryList.push({ id: id });
+      queryList.push({ orderNumber: id });
+    }
+
+    if (queryList.length === 0) {
+      return NextResponse.json({ error: 'Valid Order ID is required' }, { status: 400 });
     }
 
     const updateResult = await db.collection('orders').updateOne(
-      query,
+      { $or: queryList },
       { $set: { status, updatedAt: new Date() } }
     );
+
+    if (updateResult.matchedCount === 0) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
 
     return NextResponse.json({
       message: 'Order status updated successfully',
@@ -232,14 +264,16 @@ export async function DELETE(request: Request) {
     const client = await clientPromise;
     const db = client.db();
 
-    let query: any = {};
+    const queryList: any[] = [{ id }, { orderNumber: id }, { _id: id }];
     if (ObjectId.isValid(id)) {
-      query._id = new ObjectId(id);
-    } else {
-      query.$or = [{ orderNumber: id }, { id: id }];
+      queryList.push({ _id: new ObjectId(id) });
     }
 
-    await db.collection('orders').deleteOne(query);
+    const result = await db.collection('orders').deleteOne({ $or: queryList });
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ message: 'Order deleted successfully' });
   } catch (error: any) {

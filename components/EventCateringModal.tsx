@@ -19,14 +19,50 @@ export const EventCateringModal: React.FC<EventCateringModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) {
       alert('Please fill in your name and phone number');
       return;
     }
 
+    const orderNumber = `CAT-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    // Store catering inquiry into database via /api/orders
+    try {
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderNumber,
+          customerName: name.trim(),
+          customerMobile: phone.trim(),
+          deliveryAddress: 'Surat Event Venue',
+          deliverySlot: date || 'Upcoming Event',
+          notes: `Event: ${eventType} | Guests: ${guestCount} | Date: ${date || 'TBD'} | Req: ${notes || 'Catering Salad Counter'}`,
+          items: [
+            {
+              id: 'catering-pkg',
+              name: `${eventType} (${guestCount})`,
+              price: 'Custom Quote',
+              image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
+              quantity: 1,
+            },
+          ],
+          subtotal: 0,
+          deliveryFee: 0,
+          total: 0,
+          orderType: 'catering',
+          paymentMethod: 'Custom Event Quote / UPI',
+          status: 'Placed',
+        }),
+      });
+    } catch (err) {
+      console.warn('Failed to save catering inquiry to database:', err);
+    }
+
     const message = `🎉 *EVENT & CATERING INQUIRY - GREESAL* 🎉\n\n` +
+      `🆔 *Inquiry ID:* ${orderNumber}\n` +
       `👤 *Name:* ${name}\n` +
       `📞 *Mobile:* ${phone}\n` +
       `🎊 *Event Type:* ${eventType}\n` +

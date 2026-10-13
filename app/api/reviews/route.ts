@@ -28,7 +28,13 @@ export async function GET() {
       .sort({ isPinned: -1, order: 1, createdAt: -1 })
       .toArray();
 
-    return NextResponse.json(reviews);
+    const formatted = reviews.map((r) => ({
+      ...r,
+      _id: r._id.toString(),
+      id: r.id ? String(r.id) : r._id.toString(),
+    }));
+
+    return NextResponse.json(formatted);
   } catch (error: any) {
     console.error('Error fetching reviews:', error);
     return NextResponse.json(DEFAULT_REVIEWS);

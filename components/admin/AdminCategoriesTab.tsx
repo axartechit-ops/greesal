@@ -19,6 +19,12 @@ export const AdminCategoriesTab: React.FC<AdminCategoriesTabProps> = ({
     categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES
   );
 
+  React.useEffect(() => {
+    if (categories && categories.length > 0) {
+      setLocalCategories(categories);
+    }
+  }, [categories]);
+
   // New Category Form state
   const [isAdding, setIsAdding] = useState(false);
   const [newId, setNewId] = useState('');

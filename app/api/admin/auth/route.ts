@@ -7,6 +7,8 @@ import {
   ADMIN_COOKIE_NAME,
 } from '@/lib/admin-auth';
 
+export const dynamic = 'force-dynamic';
+
 // GET: Check admin authentication status
 export async function GET(request: NextRequest) {
   try {
