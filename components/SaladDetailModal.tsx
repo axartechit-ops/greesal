@@ -48,7 +48,7 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
       `City: *Surat (Free Delivery)*\n\n` +
       `Please confirm order delivery slot!`
     );
-    window.open(`https://wa.me/919825144321?text=${text}`, '_blank');
+    window.open(`https://wa.me/919925836117?text=${text}`, '_blank');
   };
 
   return (

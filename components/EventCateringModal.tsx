@@ -72,7 +72,7 @@ export const EventCateringModal: React.FC<EventCateringModalProps> = ({
       `🥗 *Please share custom menu options & pricing quote.*`;
 
     const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/919825144321?text=${encoded}`, '_blank');
+    window.open(`https://wa.me/919925836117?text=${encoded}`, '_blank');
     onClose();
   };
 

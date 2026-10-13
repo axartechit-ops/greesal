@@ -74,7 +74,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
       `💰 *Grand Total:* ₹${order.total} (Free Delivery)\n\n` +
       `✨ *Farm-Fresh Organic Salad Bowls! Please confirm preparation and rider assignment.*`;
 
-    window.open(`https://wa.me/919825144321?text=${encodeURIComponent(message)}`, '_blank');
+    window.open(`https://wa.me/919925836117?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const invoiceOrderData: InvoiceOrder = {

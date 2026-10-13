@@ -324,7 +324,7 @@ export default function SaladsPage() {
         onClose={() => setIsProfileModalOpen(false)}
         displayName={userName || 'Greesal Member'}
         displayEmail={session?.user?.email || 'customer@greesal.in'}
-        displayMobile={customMobile || '+91 98251 44321'}
+        displayMobile={customMobile || '+91 99258 36117'}
         userImage={userImage}
         onUpdateProfile={(name, mobile, address) => {
           setCustomName(name);

@@ -33,9 +33,9 @@ export interface Salad {
   price: string;
   tag: string;
   image: string;
-  ingredients: string[];
-  gravy: string[];
-  healthBenefits: string[];
+  ingredients?: string[];
+  gravy?: string[];
+  healthBenefits?: string[];
   additionalBenefits?: string[];
   perfectFor?: string[];
   nutrition?: NutritionInfo;

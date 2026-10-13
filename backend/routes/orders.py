@@ -6,38 +6,8 @@ from backend.database import get_db
 
 orders_bp = Blueprint('orders', __name__)
 
-DEFAULT_ORDERS = [
-    {
-        "orderNumber": "GRS-84920",
-        "customerName": "Sanket Maru",
-        "customerEmail": "sanketmaru.50@gmail.com",
-        "customerMobile": "9595866352",
-        "date": "Today, 1:15 PM",
-        "timestamp": int(time.time() * 1000) - 7200000,
-        "status": "Delivered",
-        "items": [
-            {
-                "id": "1",
-                "name": "Premium High Protein Salad",
-                "price": "₹349",
-                "image": "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80",
-                "quantity": 1
-            },
-            {
-                "id": "2",
-                "name": "Premium Burrito Salad",
-                "price": "₹369",
-                "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80",
-                "quantity": 1
-            }
-        ],
-        "subtotal": 718,
-        "deliveryFee": 0,
-        "total": 718,
-        "deliveryAddress": "Flat 402, Green Valley Heights, Katargam, Surat - 395004",
-        "paymentMethod": "Google Pay (UPI)"
-    }
-]
+# No demo orders (deleted GRS-84920, GRS-79214, GRS-61803)
+DEFAULT_ORDERS = []
 
 def format_doc(doc):
     if doc and "_id" in doc:
@@ -54,15 +24,26 @@ def get_orders():
         ]), 200
 
     try:
+        # Purge deleted demo orders if present in database
+        db.orders.delete_many({
+            "$or": [
+                {"orderNumber": {"$in": ["GRS-84920", "GRS-79214", "GRS-61803"]}},
+                {"id": {"$in": ["GRS-84920", "GRS-79214", "GRS-61803"]}}
+            ]
+        })
+
         orders = list(db.orders.find({}).sort("timestamp", -1))
-        if not orders:
+        if not orders and DEFAULT_ORDERS:
             db.orders.insert_many([dict(o) for o in DEFAULT_ORDERS])
             orders = list(db.orders.find({}).sort("timestamp", -1))
 
         formatted = []
         for o in orders:
             doc = format_doc(o)
-            doc["id"] = doc.get("orderNumber") or doc.get("id") or f"GRS-{doc['_id'][-5:].upper()}"
+            order_id = doc.get("orderNumber") or doc.get("id") or f"GRS-{doc['_id'][-5:].upper()}"
+            if order_id in ["GRS-84920", "GRS-79214", "GRS-61803"]:
+                continue
+            doc["id"] = order_id
             formatted.append(doc)
 
         return jsonify(formatted), 200

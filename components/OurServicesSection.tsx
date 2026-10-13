@@ -24,7 +24,7 @@ export const OurServicesSection: React.FC<OurServicesSectionProps> = ({
     return {
       action: () => {
         window.open(
-          'https://wa.me/919825144321?text=Hi%20Greesal!%20I%20would%20like%20to%20place%20an%20instant%20fresh%20salad%20order.',
+          'https://wa.me/919925836117?text=Hi%20Greesal!%20I%20would%20like%20to%20place%20an%20instant%20fresh%20salad%20order.',
           '_blank'
         );
       },

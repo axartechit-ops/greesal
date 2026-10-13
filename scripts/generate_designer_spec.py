@@ -1247,7 +1247,7 @@ class OrderInDB(BaseModel):
 
 <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 7.5pt; color: #64748b;">
   <div><strong>Greesal Healthy Living Private Limited</strong> • Surat, Gujarat, India</div>
-  <div>contact@greesal.in • +91 98251 44321</div>
+  <div>contact@greesal.in • +91 99258 36117</div>
 </div>
 
 </body>

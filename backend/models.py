@@ -1,5 +1,6 @@
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
+
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 
 def get_utc_now() -> datetime:
@@ -183,7 +184,7 @@ class StoreSettings(BaseModel):
     freeDeliveryThreshold: int = 499
     openingTime: str = "08:00 AM"
     closingTime: str = "10:30 PM"
-    contactPhone: str = "+91 98251 44321"
+    contactPhone: str = "+91 99258 36117"
     contactEmail: str = "contact@greesal.in"
     address: str = "Katargam & Vesu, Surat, Gujarat 395004"
 

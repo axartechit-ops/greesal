@@ -12,7 +12,7 @@ DEFAULT_SETTINGS = {
     "kitchenStatus": "open",
     "kitchenAddress": "Katargam, Surat, Gujarat 395004",
     "kitchenCoords": {"lat": 21.2266, "lng": 72.8311},
-    "supportPhone": "+91 95958 66352",
+    "supportPhone": "+91 99258 36117",
     "supportEmail": "contact@greesal.com",
     "operatingHours": "9:00 AM - 10:00 PM"
 }

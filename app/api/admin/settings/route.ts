@@ -28,6 +28,9 @@ function sanitizeBrandSlogans(settings: any): SiteSettings {
   if (!settings.differenceImage1) {
     settings.differenceImage1 = '/images/premium_fresh_ingredients.png';
   }
+  if (!settings.contactPhone || settings.contactPhone.includes('98251') || settings.contactPhone.includes('95958')) {
+    settings.contactPhone = '+91 99258 36117';
+  }
   return settings;
 }
 

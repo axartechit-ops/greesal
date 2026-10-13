@@ -20,6 +20,8 @@ import { ProfileModal } from '@/components/ProfileModal';
 import { LoginModal } from '@/components/LoginModal';
 import { InvoiceModal, InvoiceOrder } from '@/components/InvoiceModal';
 import { TermsModal } from '@/components/TermsModal';
+import { TopItemSlider } from '@/components/TopItemSlider';
+import { SaladDetailModal } from '@/components/SaladDetailModal';
 
 import { DEFAULT_SITE_SETTINGS, SiteSettings } from '@/lib/siteSettings';
 
@@ -48,6 +50,7 @@ export default function SaladIndiaHome() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [selectedSalad, setSelectedSalad] = useState<Salad | null>(null);
 
   // User details from localStorage
   const [customName, setCustomName] = useState<string>('');
@@ -210,6 +213,23 @@ export default function SaladIndiaHome() {
     }, 0);
   }, [drawerCartItems]);
 
+  // Compute salads selected by admin for top slider
+  const sliderSalads = useMemo(() => {
+    if (!salads || salads.length === 0) return [];
+    const selectedIds = siteSettings.topSliderSaladIds;
+    if (Array.isArray(selectedIds) && selectedIds.length > 0) {
+      const filtered = salads.filter((s) => {
+        const key = s._id || s.id || s.slug || s.name;
+        return selectedIds.some(
+          (id) => id === key || id === s._id || id === s.id || id === s.slug || id === s.name
+        );
+      });
+      if (filtered.length > 0) return filtered;
+    }
+    // Default fallback to first 6 salads if none selected
+    return salads.slice(0, 6);
+  }, [salads, siteSettings.topSliderSaladIds]);
+
   const userName = session?.user?.name || customName || null;
   const userImage = session?.user?.image || null;
   const isLoggedIn = status === 'authenticated' || Boolean(customName);
@@ -263,6 +283,16 @@ export default function SaladIndiaHome() {
 
       {/* Main Content Area */}
       <main className="flex-1">
+        {/* Top Featured Salad Items Slider (Admin Configurable) */}
+        <TopItemSlider
+          salads={sliderSalads}
+          onAddToCart={handleAddToCart}
+          title={siteSettings.topSliderTitle}
+          subtitle={siteSettings.topSliderSubtitle}
+          badge={siteSettings.topSliderBadge}
+          showSlider={siteSettings.showTopSlider ?? true}
+        />
+
         {/* 3. Hero Section ("Farm-Fresh Organic Salad Bowls" & Story) */}
         <SaladHeroSection
           badge={siteSettings.heroBadge || siteSettings.badgeText}
@@ -370,12 +400,21 @@ export default function SaladIndiaHome() {
         onClose={() => setIsCateringModalOpen(false)}
       />
 
+      <SaladDetailModal
+        salad={selectedSalad}
+        isOpen={Boolean(selectedSalad)}
+        onClose={() => setSelectedSalad(null)}
+        quantityInCart={selectedSalad ? cartQuantities[selectedSalad.id || selectedSalad._id || selectedSalad.slug || selectedSalad.name] || 0 : 0}
+        onAddToCart={handleAddToCart}
+        onRemoveFromCart={(id) => handleRemoveFromCart(id)}
+      />
+
       <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         displayName={userName || 'Greesal Member'}
         displayEmail={session?.user?.email || 'customer@greesal.in'}
-        displayMobile={customMobile || '+91 98251 44321'}
+        displayMobile={customMobile || '+91 99258 36117'}
         userImage={userImage}
         onUpdateProfile={(name, mobile, address) => {
           setCustomName(name);

@@ -4,85 +4,8 @@ import { ObjectId } from 'mongodb';
 
 export const dynamic = 'force-dynamic';
 
-// Initial seed orders if database is fresh
-const defaultOrders = [
-  {
-    orderNumber: 'GRS-84920',
-    customerName: 'Sanket Maru',
-    customerEmail: 'sanketmaru.50@gmail.com',
-    customerMobile: '9595866352',
-    date: 'Today, 1:15 PM',
-    timestamp: Date.now() - 1000 * 60 * 60 * 2,
-    status: 'Delivered',
-    items: [
-      {
-        id: '1',
-        name: 'Premium High Protein Salad',
-        price: '₹349',
-        image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
-        quantity: 1
-      },
-      {
-        id: '2',
-        name: 'Premium Burrito Salad',
-        price: '₹369',
-        image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
-        quantity: 1
-      }
-    ],
-    subtotal: 718,
-    deliveryFee: 0,
-    total: 718,
-    deliveryAddress: 'Flat 402, Green Valley Heights, Katargam, Surat - 395004',
-    paymentMethod: 'Google Pay (UPI)'
-  },
-  {
-    orderNumber: 'GRS-79214',
-    customerName: 'Pooja Patel',
-    customerEmail: 'pooja.patel@gmail.com',
-    customerMobile: '9825144321',
-    date: 'Yesterday, 7:45 PM',
-    timestamp: Date.now() - 1000 * 60 * 60 * 26,
-    status: 'Delivered',
-    items: [
-      {
-        id: '3',
-        name: 'Crunchy Peanut Butter Salad',
-        price: '₹329',
-        image: 'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=600&q=80',
-        quantity: 2
-      }
-    ],
-    subtotal: 658,
-    deliveryFee: 0,
-    total: 658,
-    deliveryAddress: '302, Royal Residency, Adajan, Surat - 395009',
-    paymentMethod: 'Online UPI'
-  },
-  {
-    orderNumber: 'GRS-61803',
-    customerName: 'Rahul Sharma',
-    customerEmail: 'rahul.sharma@yahoo.com',
-    customerMobile: '9925836117',
-    date: '22 Aug 2026, 12:30 PM',
-    timestamp: Date.now() - 1000 * 60 * 60 * 24 * 5,
-    status: 'Preparing',
-    items: [
-      {
-        id: '4',
-        name: 'Super Sprout Salad Bowl',
-        price: '₹299',
-        image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
-        quantity: 1
-      }
-    ],
-    subtotal: 299,
-    deliveryFee: 0,
-    total: 299,
-    deliveryAddress: 'Katargam, Surat - 395004',
-    paymentMethod: 'Cash on Delivery'
-  }
-];
+// No demo orders (deleted GRS-84920, GRS-79214, GRS-61803)
+const defaultOrders: any[] = [];
 
 export async function GET(request: Request) {
   try {
@@ -95,11 +18,13 @@ export async function GET(request: Request) {
 
     const ordersCollection = db.collection('orders');
     
-    // If no orders exist yet in database, seed initial demo orders
-    const count = await ordersCollection.countDocuments();
-    if (count === 0) {
-      await ordersCollection.insertMany(defaultOrders);
-    }
+    // Purge deleted demo orders if present in database
+    await ordersCollection.deleteMany({
+      $or: [
+        { orderNumber: { $in: ['GRS-84920', 'GRS-79214', 'GRS-61803'] } },
+        { id: { $in: ['GRS-84920', 'GRS-79214', 'GRS-61803'] } }
+      ]
+    }).catch(() => {});
 
     const filter: any = {};
     if (mobile) {
@@ -113,11 +38,13 @@ export async function GET(request: Request) {
 
     const orders = await ordersCollection.find(filter).sort({ timestamp: -1 }).toArray();
 
-    const formattedOrders = orders.map((o) => ({
-      ...o,
-      _id: o._id.toString(),
-      id: o.orderNumber || o.id || `GRS-${o._id.toString().slice(-5).toUpperCase()}`
-    }));
+    const formattedOrders = orders
+      .filter((o) => !['GRS-84920', 'GRS-79214', 'GRS-61803'].includes(o.orderNumber || o.id))
+      .map((o) => ({
+        ...o,
+        _id: o._id.toString(),
+        id: o.orderNumber || o.id || `GRS-${o._id.toString().slice(-5).toUpperCase()}`
+      }));
 
     return NextResponse.json(formattedOrders);
   } catch (error: any) {

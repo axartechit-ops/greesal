@@ -1016,7 +1016,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                 type="text"
                 value={formData.contactPhone}
                 onChange={(e) => handleChange('contactPhone', e.target.value)}
-                placeholder="+91 98251 44321"
+                placeholder="+91 99258 36117"
                 className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold text-[#20493c]"
               />
             </div>

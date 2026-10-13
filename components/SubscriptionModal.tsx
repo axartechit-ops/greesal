@@ -155,7 +155,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       // ignore
     }
 
-    const slotNames = {
+    const slotNames: Record<string, string> = {
+      immediate: 'Immediate Delivery (30-45 Mins)',
       lunch: 'Lunch Slot (11:00 AM - 2:00 PM)',
       evening: 'Evening Slot (4:00 PM - 7:00 PM)',
       pickup: 'Self PickUp (10:00 AM - 6:30 PM)',
@@ -228,7 +229,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       `✨ *Farm-Fresh Organic Salad Bowls! Please confirm my subscription details.*`;
 
     const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/919825144321?text=${encoded}`, '_blank');
+    window.open(`https://wa.me/919925836117?text=${encoded}`, '_blank');
 
     // Open confirmation modal
     setConfirmedOrder(orderPayload);

@@ -54,7 +54,7 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
   isStoreOpen = true,
   closedMessage = '',
 }) => {
-  const [slot, setSlot] = useState<'lunch' | 'evening' | 'pickup'>('lunch');
+  const [slot, setSlot] = useState<'immediate' | 'lunch' | 'evening' | 'pickup'>('immediate');
   const [customerName, setCustomerName] = useState(userName || '');
   const [customerPhone, setCustomerPhone] = useState(userPhone || '');
   const [address, setAddress] = useState('');
@@ -225,6 +225,7 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
     }
 
     const slotNames = {
+      immediate: 'Immediate Delivery (30-45 Mins)',
       lunch: 'Lunch Slot (11:00 AM - 2:00 PM)',
       evening: 'Evening Slot (4:00 PM - 7:00 PM)',
       pickup: 'Self PickUp (10:00 AM - 6:30 PM)',
@@ -327,7 +328,7 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
       `✨ *Farm-Fresh Organic Salad Bowls! Please confirm and schedule my delivery.*`;
 
     const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/919825144321?text=${encoded}`, '_blank');
+    window.open(`https://wa.me/919925836117?text=${encoded}`, '_blank');
 
     // 5. Open Order Confirmation Modal and Clear Cart
     setConfirmedOrder(orderPayload);
@@ -467,8 +468,9 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
                   <label className="block text-xs font-bold uppercase tracking-wider text-[#20493c] mb-2">
                     Delivery Slot in Surat
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-1.5">
                     {[
+                      { id: 'immediate', label: 'Immediate', time: '30-45 min' },
                       { id: 'lunch', label: 'Lunch', time: '11am-2pm' },
                       { id: 'evening', label: 'Evening', time: '4pm-7pm' },
                       { id: 'pickup', label: 'PickUp', time: '10am-6:30pm' },
@@ -477,14 +479,14 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
                         key={s.id}
                         type="button"
                         onClick={() => setSlot(s.id as any)}
-                        className={`py-2 px-1.5 rounded-xl border text-center transition-all ${
+                        className={`py-2 px-1 rounded-xl border text-center transition-all ${
                           slot === s.id
                             ? 'border-[#20493c] bg-[#20493c] text-white shadow-sm'
                             : 'border-gray-200 bg-gray-50 text-[#1a1a1a] hover:bg-gray-100'
                         }`}
                       >
-                        <div className="text-xs font-bold">{s.label}</div>
-                        <div className="text-[10px] opacity-80">{s.time}</div>
+                        <div className="text-[11px] sm:text-xs font-bold leading-tight">{s.label}</div>
+                        <div className="text-[9px] sm:text-[10px] opacity-80 mt-0.5 leading-tight">{s.time}</div>
                       </button>
                     ))}
                   </div>
@@ -544,7 +546,7 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
                         type="tel"
                         required
                         maxLength={15}
-                        placeholder="e.g. 9825144321"
+                        placeholder="e.g. 9925836117"
                         value={customerPhone}
                         onChange={(e) => {
                           setCustomerPhone(e.target.value);

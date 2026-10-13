@@ -1,4 +1,5 @@
 import logging
+# pyrefly: ignore [missing-import]
 from flask import Flask, jsonify
 from flask_cors import CORS
 from backend.config import FRONTEND_URL, PORT
@@ -42,17 +43,17 @@ def create_app():
     # Register Route Blueprints (both root & /api prefixes for flexibility)
     app.register_blueprint(health_bp)
     app.register_blueprint(salads_bp)
-    app.register_blueprint(salads_bp, url_prefix='/api')
+    app.register_blueprint(salads_bp, url_prefix='/api', name ='salads_api')
     app.register_blueprint(orders_bp)
-    app.register_blueprint(orders_bp, url_prefix='/api')
+    app.register_blueprint(orders_bp, url_prefix='/api',name='orders_api')
     app.register_blueprint(reviews_bp)
-    app.register_blueprint(reviews_bp, url_prefix='/api')
+    app.register_blueprint(reviews_bp, url_prefix='/api',name='reviews_api')
     app.register_blueprint(settings_bp)
-    app.register_blueprint(settings_bp, url_prefix='/api')
+    app.register_blueprint(settings_bp, url_prefix='/api',name='settings_api')
     app.register_blueprint(auth_bp)
-    app.register_blueprint(auth_bp, url_prefix='/api')
+    app.register_blueprint(auth_bp, url_prefix='/api',name='auth_api')
     app.register_blueprint(location_bp)
-    app.register_blueprint(location_bp, url_prefix='/api')
+    app.register_blueprint(location_bp, url_prefix='/api',name='location_api')
 
     @app.route("/")
     def index():
@@ -91,3 +92,5 @@ app = create_app()
 if __name__ == "__main__":
     logger.info(f"Starting Greesal Flask server on port {PORT}...")
     app.run(host="0.0.0.0", port=PORT, debug=True)
+
+

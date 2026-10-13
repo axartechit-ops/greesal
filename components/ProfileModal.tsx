@@ -76,76 +76,8 @@ interface ProfileModalProps {
   onReorder: (items: OrderItem[]) => void;
 }
 
-// Realistic initial demo orders
-const INITIAL_DEMO_ORDERS: Order[] = [
-  {
-    id: 'GRS-84920',
-    date: 'Today, 1:15 PM',
-    timestamp: Date.now() - 1000 * 60 * 60 * 2,
-    status: 'Delivered',
-    items: [
-      {
-        id: '1',
-        name: 'Premium High Protein Salad',
-        price: '₹349',
-        image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
-        quantity: 1
-      },
-      {
-        id: '2',
-        name: 'Premium Burrito Salad',
-        price: '₹369',
-        image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
-        quantity: 1
-      }
-    ],
-    subtotal: 718,
-    deliveryFee: 0,
-    total: 718,
-    deliveryAddress: 'Flat 402, Green Valley Heights, Katargam, Surat - 395004',
-    paymentMethod: 'Google Pay (UPI)'
-  },
-  {
-    id: 'GRS-79214',
-    date: 'Yesterday, 7:45 PM',
-    timestamp: Date.now() - 1000 * 60 * 60 * 26,
-    status: 'Delivered',
-    items: [
-      {
-        id: '3',
-        name: 'Crunchy Peanut Butter Salad',
-        price: '₹329',
-        image: 'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=600&q=80',
-        quantity: 2
-      }
-    ],
-    subtotal: 658,
-    deliveryFee: 0,
-    total: 658,
-    deliveryAddress: 'Flat 402, Green Valley Heights, Katargam, Surat - 395004',
-    paymentMethod: 'Online UPI'
-  },
-  {
-    id: 'GRS-61803',
-    date: '22 Aug 2026, 12:30 PM',
-    timestamp: Date.now() - 1000 * 60 * 60 * 24 * 5,
-    status: 'Delivered',
-    items: [
-      {
-        id: '4',
-        name: 'Super Sprout Salad Bowl',
-        price: '₹299',
-        image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
-        quantity: 1
-      }
-    ],
-    subtotal: 299,
-    deliveryFee: 0,
-    total: 299,
-    deliveryAddress: 'Katargam, Surat - 395004',
-    paymentMethod: 'Cash on Delivery'
-  }
-];
+// No demo orders (deleted GRS-84920, GRS-79214, GRS-61803)
+const INITIAL_DEMO_ORDERS: Order[] = [];
 
 export function ProfileModal({
   isOpen,
@@ -207,17 +139,23 @@ export function ProfileModal({
     if (storedOrders) {
       try {
         const parsed = JSON.parse(storedOrders);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setOrders(parsed);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter(
+            (o: any) => !['GRS-84920', 'GRS-79214', 'GRS-61803'].includes(o.id || o.orderNumber)
+          );
+          setOrders(cleaned);
+          localStorage.setItem('greesal_orders_history', JSON.stringify(cleaned));
         } else {
-          setOrders(INITIAL_DEMO_ORDERS);
+          setOrders([]);
+          localStorage.setItem('greesal_orders_history', JSON.stringify([]));
         }
       } catch (e) {
-        setOrders(INITIAL_DEMO_ORDERS);
+        setOrders([]);
+        localStorage.setItem('greesal_orders_history', JSON.stringify([]));
       }
     } else {
-      setOrders(INITIAL_DEMO_ORDERS);
-      localStorage.setItem('greesal_orders_history', JSON.stringify(INITIAL_DEMO_ORDERS));
+      setOrders([]);
+      localStorage.setItem('greesal_orders_history', JSON.stringify([]));
     }
 
     // Also fetch live orders from API to reflect status updates (e.g. Preparing -> On the Way -> Delivered)
@@ -228,9 +166,12 @@ export function ProfileModal({
           const res = await fetch(`/api/orders?mobile=${cleanMobile}`);
           if (res.ok) {
             const liveOrders = await res.json();
-            if (Array.isArray(liveOrders) && liveOrders.length > 0) {
-              setOrders(liveOrders);
-              localStorage.setItem('greesal_orders_history', JSON.stringify(liveOrders));
+            if (Array.isArray(liveOrders)) {
+              const cleanedLive = liveOrders.filter(
+                (o: any) => !['GRS-84920', 'GRS-79214', 'GRS-61803'].includes(o.id || o.orderNumber)
+              );
+              setOrders(cleanedLive);
+              localStorage.setItem('greesal_orders_history', JSON.stringify(cleanedLive));
             }
           }
         }
@@ -611,11 +552,11 @@ export function ProfileModal({
                         customerName: displayName,
                         customerEmail: displayEmail,
                         customerMobile: displayMobile
-                      }, '9825144321')}
+                      }, '9925836117')}
                       className="py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white text-xs font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
                     >
                       <WhatsAppIcon className="w-4 h-4 text-white" />
-                      <span>WhatsApp (9825144321)</span>
+                      <span>WhatsApp (+91 99258 36117)</span>
                     </button>
 
                     <button
@@ -748,9 +689,9 @@ export function ProfileModal({
                                   customerName: displayName,
                                   customerEmail: displayEmail,
                                   customerMobile: displayMobile
-                                }, '9825144321')}
+                                }, '9925836117')}
                                 className="px-3 py-1.5 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                                title="Send Order to Greesal WhatsApp 9825144321"
+                                title="Send Order to Greesal WhatsApp +91 99258 36117"
                               >
                                 <WhatsAppIcon className="w-3.5 h-3.5 text-white" />
                                 <span className="hidden sm:inline">WhatsApp</span>

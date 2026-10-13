@@ -451,7 +451,7 @@ export function LoginModal({
                     required
                     value={mobileNumber}
                     onChange={(e) => setMobileNumber(e.target.value)}
-                    placeholder="e.g. 9825144321"
+                    placeholder="e.g. 9925836117"
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#123B2B]/40 focus:border-[#123B2B]"
                   />
                 </div>

@@ -288,12 +288,12 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <button
               type="button"
-              onClick={() => sendOrderToWhatsApp(order, '9825144321')}
+              onClick={() => sendOrderToWhatsApp(order, '9925836117')}
               className="flex items-center gap-1.5 px-3.5 py-2 bg-[#25D366] hover:bg-[#20BD5A] text-white text-xs font-extrabold rounded-xl shadow-xs transition-all cursor-pointer"
-              title="Send to Greesal WhatsApp 9825144321"
+              title="Send to Greesal WhatsApp +91 99258 36117"
             >
               <MessageSquare className="w-4 h-4" />
-              <span>WhatsApp (9825144321)</span>
+              <span>WhatsApp (+91 99258 36117)</span>
             </button>
 
             <button

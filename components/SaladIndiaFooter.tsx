@@ -29,7 +29,7 @@ interface SaladIndiaFooterProps {
 }
 
 export const SaladIndiaFooter: React.FC<SaladIndiaFooterProps> = ({
-  phone = '+91 98251 44321',
+  phone = '+91 99258 36117',
   email = 'support@greesal.in',
   kitchenAddress = 'Katargam, Surat - 395004, Gujarat',
   kitchenTiming = '8:00 AM – 10:30 PM (Daily)',
@@ -66,7 +66,7 @@ export const SaladIndiaFooter: React.FC<SaladIndiaFooterProps> = ({
 
           <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
             <a
-              href={`https://wa.me/${waPhone || '919825144321'}?text=Hi%20Greesal!%20I%20would%20like%20to%20order%20salad%20bowls.`}
+              href={`https://wa.me/${waPhone || '919925836117'}?text=Hi%20Greesal!%20I%20would%20like%20to%20order%20salad%20bowls.`}
               target="_blank"
               rel="noreferrer"
               className="flex-1 sm:flex-none bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold px-4 py-2 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-md"
@@ -143,7 +143,7 @@ export const SaladIndiaFooter: React.FC<SaladIndiaFooterProps> = ({
                     <span>Event &amp; Bulk Catering</span>
                   </button>
                 ) : (
-                  <a href={`https://wa.me/${waPhone || '919825144321'}?text=Hi%20Greesal,%20I%20am%20interested%20in%20Bulk%20Catering`} className="hover:text-[#fbce45] transition-colors flex items-center gap-1.5">
+                  <a href={`https://wa.me/${waPhone || '919925836117'}?text=Hi%20Greesal,%20I%20am%20interested%20in%20Bulk%20Catering`} className="hover:text-[#fbce45] transition-colors flex items-center gap-1.5">
                     <ChevronRight className="w-3 h-3 text-[#fbce45]" />
                     <span>Event &amp; Bulk Catering</span>
                   </a>
@@ -208,12 +208,12 @@ export const SaladIndiaFooter: React.FC<SaladIndiaFooterProps> = ({
               <div className="flex items-center gap-1.5">
                 <WhatsAppIcon className="w-3.5 h-3.5 text-[#25d366] shrink-0" />
                 <a
-                  href={`https://wa.me/${waPhone || '919825144321'}?text=Hi%20Greesal!`}
+                  href={`https://wa.me/${waPhone || '919925836117'}?text=Hi%20Greesal!`}
                   target="_blank"
                   rel="noreferrer"
                   className="text-[#25d366] hover:text-[#46e683] font-medium transition-colors"
                 >
-                  WhatsApp: +91 {waPhone ? waPhone.replace(/^91/, '') : '98251 44321'}
+                  WhatsApp: +91 {waPhone ? waPhone.replace(/^91/, '') : '99258 36117'}
                 </a>
               </div>
               <div className="flex items-center gap-1.5">

@@ -4,7 +4,7 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 export const FloatingWhatsAppBubble: React.FC = () => {
   const handleClick = () => {
     const text = encodeURIComponent('Hi Greesal! I would like to order fresh healthy salads.');
-    window.open(`https://wa.me/919825144321?text=${text}`, '_blank');
+    window.open(`https://wa.me/919925836117?text=${text}`, '_blank');
   };
 
   return (

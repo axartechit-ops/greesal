@@ -83,7 +83,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
     const matchesSearch =
       searchQuery.trim() === '' ||
       salad.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      salad.ingredients.some((ing) => ing.toLowerCase().includes(searchQuery.toLowerCase()));
+      (salad.ingredients && salad.ingredients.some((ing) => ing.toLowerCase().includes(searchQuery.toLowerCase())));
 
     return matchesCategory && matchesSearch;
   });
@@ -96,7 +96,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
       `Delivery City: *Surat (Free Delivery)*\n\n` +
       `Please confirm availability for the next slot!`
     );
-    window.open(`https://wa.me/919825144321?text=${text}`, '_blank');
+    window.open(`https://wa.me/919925836117?text=${text}`, '_blank');
   };
 
   return (

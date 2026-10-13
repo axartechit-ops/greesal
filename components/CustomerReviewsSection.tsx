@@ -237,7 +237,7 @@ export const CustomerReviewsSection: React.FC = () => {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Top decorative stripe */}
-            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#20493c] via-[#6ac6ac] to-[#fbce45]" />
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#20493c] via-[#56aa52] to-[#fbce45]" />
 
             {/* Close Button */}
             <button

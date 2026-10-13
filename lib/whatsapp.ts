@@ -40,7 +40,11 @@ ${itemsList}
 Freshly prepared upon order and delivered in 30 mins across Surat.`;
 }
 
-export function sendOrderToWhatsApp(order: WhatsAppOrder, targetMobile: string = '9825144321') {
+export const GREESAL_WHATSAPP_NUMBER = '9925836117';
+export const GREESAL_WHATSAPP_FULL = '919925836117';
+export const GREESAL_WHATSAPP_DISPLAY = '+91 99258 36117';
+
+export function sendOrderToWhatsApp(order: WhatsAppOrder, targetMobile: string = GREESAL_WHATSAPP_NUMBER) {
   const cleanNumber = targetMobile.replace(/\D/g, '');
   // Default to India country code 91 if 10 digits
   const fullNumber = cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber;

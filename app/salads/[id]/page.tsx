@@ -313,7 +313,7 @@ export default function SaladDetailPage() {
 
     const customerName = userData?.name || customName || session?.user?.name || 'Valued Salad Customer';
     const customerEmail = userData?.email || session?.user?.email || 'customer@greesal.in';
-    const customerMobile = userData?.mobile || customMobile || '9825144321';
+    const customerMobile = userData?.mobile || customMobile || '9925836117';
     const finalAddress = deliveryNote ? `${deliveryAddress} (Note: ${deliveryNote})` : deliveryAddress;
 
     const orderId = `GRS-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -353,7 +353,7 @@ export default function SaladDetailPage() {
     saveCart([]);
     setIsCartOpen(false);
     setIsCheckoutSuccess(true);
-    sendOrderToWhatsApp(newOrder, '9825144321');
+    sendOrderToWhatsApp(newOrder, '9925836117');
   };
 
   const handleProceedToCheckout = () => {
@@ -423,13 +423,13 @@ export default function SaladDetailPage() {
       )}
 
       {/* Main Sticky Navigation Header */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#EBE3D5] shadow-xs px-3.5 sm:px-8 py-2.5 sm:py-3.5 transition-all">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#EBE3D5] shadow-xs px-3.5 sm:px-8 py-3.5 sm:py-4.5 transition-all">
 
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 sm:gap-4">
 
           <div className="flex items-center gap-3 sm:gap-6">
             <Link href="/" className="flex items-center group">
-              <GreesalLogo size="md" />
+              <GreesalLogo size="lg" />
             </Link>
 
             <Link
@@ -758,13 +758,13 @@ export default function SaladDetailPage() {
                 </button>
 
                 <a
-                  href={`https://wa.me/919825144321?text=Hi%20Greesal!%20I%20would%20like%20to%20order%20${quantity}x%20${encodeURIComponent(salad.name)}${selectedAddOns.length > 0 ? encodeURIComponent(` (with Add-ons: ${selectedAddOns.map(a => `${a.name} +₹${a.price}`).join(', ')})`) : ''}%20(Total:%20₹${mainItemTotalPrice}).`}
+                  href={`https://wa.me/919925836117?text=Hi%20Greesal!%20I%20would%20like%20to%20order%20${quantity}x%20${encodeURIComponent(salad.name)}${selectedAddOns.length > 0 ? encodeURIComponent(` (with Add-ons: ${selectedAddOns.map(a => `${a.name} +₹${a.price}`).join(', ')})`) : ''}%20(Total:%20₹${mainItemTotalPrice}).`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full py-3 px-5 rounded-2xl bg-[#25D366] hover:bg-[#20BD5A] text-white font-black text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                 >
                   <MessageSquare className="w-4 h-4 fill-white" />
-                  <span>Instant Order on WhatsApp (9825144321)</span>
+                  <span>Instant Order on WhatsApp (+91 99258 36117)</span>
                 </a>
               </div>
 
@@ -1017,13 +1017,13 @@ export default function SaladDetailPage() {
 
               <div className="flex flex-wrap items-center justify-center gap-3 flex-shrink-0">
                 <a
-                  href="https://wa.me/919825144321?text=Hi%20Greesal!%20I%20would%20like%20to%20order%20fresh%20organic%20salads."
+                  href="https://wa.me/919925836117?text=Hi%20Greesal!%20I%20would%20like%20to%20order%20fresh%20organic%20salads."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 sm:px-5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white font-black text-xs shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <MessageSquare className="w-4 h-4 fill-white" />
-                  <span>Order via WhatsApp (9825144321)</span>
+                  <span>Order via WhatsApp (+91 99258 36117)</span>
                 </a>
                 <Link
                   href="/#menu"
@@ -1171,7 +1171,7 @@ export default function SaladDetailPage() {
                 <span>&rarr;</span>
               </Link>
               <span className="text-white/20">•</span>
-              <a href="https://wa.me/919825144321" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+              <a href="https://wa.me/919925836117" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
                 Support
               </a>
             </div>

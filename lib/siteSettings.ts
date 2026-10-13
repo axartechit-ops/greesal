@@ -24,6 +24,13 @@ export interface ServiceCard {
 }
 
 export interface SiteSettings {
+  // Top Featured Slider (placed between Navbar and Hero Section)
+  showTopSlider?: boolean;
+  topSliderTitle?: string;
+  topSliderSubtitle?: string;
+  topSliderBadge?: string;
+  topSliderSaladIds?: string[];
+
   // Sticky Bar
   stickyBarOffer: string;
   stickyBarText: string;
@@ -122,6 +129,20 @@ export const DEFAULT_CATEGORIES: SiteCategory[] = [
 ];
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
+  // Top Featured Slider (Between Navbar and Hero)
+  showTopSlider: true,
+  topSliderTitle: "Chef's Handcrafted Picks",
+  topSliderSubtitle: 'Fresh daily organic bowls prepared fresh & delivered in 30 mins',
+  topSliderBadge: 'TRENDING BOWLS',
+  topSliderSaladIds: [
+    'chickpea-sprout-fusion-bowl',
+    'rich-protein-salad',
+    'paneer-garden-salad',
+    '1',
+    '2',
+    '3'
+  ],
+
   // Sticky Bar
   stickyBarOffer: 'Special Offer',
   stickyBarText: 'Weekly Salad At ₹200/- | Monthly Salad At ₹175/- • Free Daily Delivery in Surat',
@@ -215,7 +236,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   categories: DEFAULT_CATEGORIES,
 
   // Footer & Contact
-  contactPhone: '+91 98251 44321',
+  contactPhone: '+91 99258 36117',
   contactEmail: 'support@greesal.in',
   kitchenAddress: 'Greesal Gourmet Cloud Kitchen, VIP Road, Vesu, Surat, Gujarat 395007',
   kitchenTiming: '9:00 AM - 8:30 PM (Mon to Sat)',

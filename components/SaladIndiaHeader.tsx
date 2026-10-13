@@ -66,13 +66,13 @@ export const SaladIndiaHeader: React.FC<SaladIndiaHeaderProps> = ({
           scrolled ? 'shadow-md' : 'shadow-2xs'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4 lg:py-4.5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4.5 lg:py-5">
           <div className="flex items-center justify-between">
             
-            {/* Left: Clean Brand Logo without any cluttering pills */}
+            {/* Left: Clean Brand Logo with optimal sizing */}
             <div className="flex items-center flex-shrink-0">
               <Link href="/" className="flex items-center group focus:outline-none flex-shrink-0" aria-label="Greesal Home">
-                <GreesalLogo size="md" className="sm:scale-105" />
+                <GreesalLogo size="lg" />
               </Link>
             </div>
 
@@ -150,7 +150,7 @@ export const SaladIndiaHeader: React.FC<SaladIndiaHeaderProps> = ({
                   <img
                     src={userImage}
                     alt={userName || 'User'}
-                    className="w-5 h-5 rounded-full object-cover border border-[#6ac6ac]"
+                    className="w-5 h-5 rounded-full object-cover border border-[#56aa52]"
                   />
                 ) : (
                   <User className="w-4.5 h-4.5 text-[#1a1a1a] group-hover:text-[#20493c]" strokeWidth={1.75} />
@@ -164,7 +164,7 @@ export const SaladIndiaHeader: React.FC<SaladIndiaHeaderProps> = ({
               {/* Quick Jump to All Salads */}
               <Link
                 href="/salads"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#e8f7f2] hover:bg-[#d5f0e6] text-[#20493c] font-bold text-xs border border-[#6ac6ac]/40 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#e8f7f2] hover:bg-[#d5f0e6] text-[#20493c] font-bold text-xs border border-[#56aa52]/40 transition-all shadow-2xs active:scale-95 cursor-pointer"
                 aria-label="Browse All Salads"
               >
                 <UtensilsCrossed className="w-3.5 h-3.5 text-[#20493c]" />
@@ -198,8 +198,8 @@ export const SaladIndiaHeader: React.FC<SaladIndiaHeaderProps> = ({
           </div>
         </div>
 
-        {/* Decorative Mint Stripe Directly Under Header Matching Salad India Reference */}
-        <div className="h-2 sm:h-2.5 bg-[#6ac6ac] w-full" />
+        {/* Decorative Brand Leaf Stripe Directly Under Header Matching Greesal Logo Secondary Color */}
+        <div className="h-2 sm:h-2.5 bg-[#56aa52] w-full" />
       </header>
 
       {/* Mobile Drawer Menu */}
@@ -340,13 +340,13 @@ export const SaladIndiaHeader: React.FC<SaladIndiaHeaderProps> = ({
               </button>
 
               <a
-                href="https://wa.me/919825144321"
+                href="https://wa.me/919925836117"
                 target="_blank"
                 rel="noreferrer"
                 className="w-full py-2.5 px-4 rounded-xl bg-[#20493c] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm"
               >
                 <Phone className="w-4 h-4 text-[#fbce45]" />
-                <span>Call / WhatsApp Order (+91 98251 44321)</span>
+                <span>Call / WhatsApp Order (+91 99258 36117)</span>
               </a>
             </div>
           </div>
