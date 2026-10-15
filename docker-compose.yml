@@ -8,18 +8,23 @@ services:
     container_name: greesal-backend
     restart: always
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - MONGODB_URL=${MONGODB_URL:-${MONGODB_URI:-mongodb://localhost:27017/greesal}}
-      - DATABASE_NAME=greesal
+      - MONGODB_URL=${MONGODB_URL:-${MONGODB_URI:-mongodb+srv://info_db_user:E50Uk0B0scjdJEXV@cluster0.9gjtwsn.mongodb.net/greesal?retryWrites=true&w=majority}}
+      - DATABASE_NAME=${DATABASE_NAME:-greesal}
       - PORT=8000
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
       - INTERNAL_API_KEY=${INTERNAL_API_KEY:-}
     env_file:
       - .env
-      - .env.local
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8000/health\")' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   frontend:
     build:
@@ -28,7 +33,7 @@ services:
     container_name: greesal-frontend
     restart: always
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -37,7 +42,7 @@ services:
       - HOSTNAME=0.0.0.0
       - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-greesal_auth_super_secret_session_key_2026}
-      - MONGODB_URI=${MONGODB_URI:-${MONGODB_URL:-mongodb://localhost:27017/greesal}}
+      - MONGODB_URI=${MONGODB_URI:-${MONGODB_URL:-mongodb+srv://info_db_user:E50Uk0B0scjdJEXV@cluster0.9gjtwsn.mongodb.net/greesal?retryWrites=true&w=majority}}
       - BACKEND_URL=http://backend:8000
       - INTERNAL_API_KEY=${INTERNAL_API_KEY:-}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
@@ -47,8 +52,9 @@ services:
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASS=${SMTP_PASS:-}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     env_file:
       - .env
-      - .env.local
+
 

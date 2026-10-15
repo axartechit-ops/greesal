@@ -1,17 +1,20 @@
 import logging
-# pyrefly: ignore [missing-import]
-from flask import Flask, jsonify
-from flask_cors import CORS
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+
 from backend.config import FRONTEND_URL, PORT
 from backend.database import connect_to_mongo, close_mongo_connection
 from backend.routes import (
-    health_bp,
-    salads_bp,
-    orders_bp,
-    reviews_bp,
-    settings_bp,
-    auth_bp,
-    location_bp
+    health_router,
+    salads_router,
+    orders_router,
+    reviews_router,
+    settings_router,
+    auth_router,
+    location_router,
+    users_router,
 )
 
 # Configure logging
@@ -21,76 +24,100 @@ logging.basicConfig(
 )
 logger = logging.getLogger("greesal")
 
-def create_app():
-    app = Flask(__name__)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Starting Greesal FastAPI Backend...")
+    connect_to_mongo()
+    yield
+    logger.info("Shutting down Greesal FastAPI Backend...")
+    close_mongo_connection()
 
-    # Enable CORS
-    CORS(
-        app,
-        origins=[
-            FRONTEND_URL,
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            "http://localhost:3001",
-            "http://127.0.0.1:3001"
-        ],
-        supports_credentials=True
+def create_app() -> FastAPI:
+    app = FastAPI(
+        title="Greesal FastAPI Backend",
+        version="2.0.0",
+        description="Full Python FastAPI backend for Greesal Farm-Fresh Organic Salads & Superbowls",
+        lifespan=lifespan
     )
 
-    # Initialize Database Connection
-    connect_to_mongo()
+    # Enable CORS
+    origins = [
+        FRONTEND_URL,
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ]
+    # Filter out empty or duplicate origins
+    cors_origins = list(set([o.strip() for o in origins if o and o.strip()]))
 
-    # Register Route Blueprints (both root & /api prefixes for flexibility)
-    app.register_blueprint(health_bp)
-    app.register_blueprint(salads_bp)
-    app.register_blueprint(salads_bp, url_prefix='/api', name ='salads_api')
-    app.register_blueprint(orders_bp)
-    app.register_blueprint(orders_bp, url_prefix='/api',name='orders_api')
-    app.register_blueprint(reviews_bp)
-    app.register_blueprint(reviews_bp, url_prefix='/api',name='reviews_api')
-    app.register_blueprint(settings_bp)
-    app.register_blueprint(settings_bp, url_prefix='/api',name='settings_api')
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(auth_bp, url_prefix='/api',name='auth_api')
-    app.register_blueprint(location_bp)
-    app.register_blueprint(location_bp, url_prefix='/api',name='location_api')
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-    @app.route("/")
+    # Register Routers
+    app.include_router(health_router)
+    app.include_router(salads_router)
+    app.include_router(orders_router)
+    app.include_router(reviews_router)
+    app.include_router(settings_router)
+    app.include_router(auth_router)
+    app.include_router(location_router)
+    app.include_router(users_router)
+
+    @app.get("/")
     def index():
-        return jsonify({
-            "app": "Greesal Flask Backend API",
+        return {
+            "app": "Greesal FastAPI Backend API",
             "status": "online",
-            "framework": "Flask 3.x",
+            "framework": "FastAPI",
+            "docs": "/docs",
             "endpoints": [
                 "/health",
+                "/api/health",
                 "/salads",
+                "/api/salads",
                 "/admin/salads",
+                "/api/admin/salads",
                 "/orders",
+                "/api/orders",
                 "/admin/orders",
+                "/api/admin/orders",
                 "/reviews",
+                "/api/reviews",
                 "/admin/reviews",
+                "/api/admin/reviews",
                 "/settings",
+                "/api/settings",
                 "/admin/settings",
+                "/api/admin/settings",
                 "/auth/send-otp",
+                "/api/auth/send-otp",
                 "/auth/login-verify",
-                "/location/check-delivery"
+                "/api/auth/login-verify",
+                "/auth/register",
+                "/api/auth/register",
+                "/admin/auth",
+                "/api/admin/auth",
+                "/location/check-delivery",
+                "/api/location/check-delivery",
+                "/location/reverse-geocode",
+                "/api/location/reverse-geocode",
+                "/users/sync-google",
+                "/api/users/sync-google"
             ]
-        }), 200
-
-    @app.errorhandler(404)
-    def not_found(e):
-        return jsonify({"error": "Resource not found"}), 404
-
-    @app.errorhandler(500)
-    def server_error(e):
-        return jsonify({"error": "Internal server error"}), 500
+        }
 
     return app
 
 app = create_app()
 
 if __name__ == "__main__":
-    logger.info(f"Starting Greesal Flask server on port {PORT}...")
-    app.run(host="0.0.0.0", port=PORT, debug=True)
-
-
+    import uvicorn
+    logger.info(f"Starting Greesal FastAPI server on port {PORT}...")
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=PORT, reload=True)

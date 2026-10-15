@@ -1,17 +1,19 @@
-from .health import health_bp
-from .salads import salads_bp
-from .orders import orders_bp
-from .reviews import reviews_bp
-from .settings import settings_bp
-from .auth import auth_bp
-from .location import location_bp
+from .health import router as health_router
+from .salads import router as salads_router
+from .orders import router as orders_router
+from .reviews import router as reviews_router
+from .settings import router as settings_router
+from .auth import router as auth_router
+from .location import router as location_router
+from .users import router as users_router
 
 __all__ = [
-    'health_bp',
-    'salads_bp',
-    'orders_bp',
-    'reviews_bp',
-    'settings_bp',
-    'auth_bp',
-    'location_bp'
+    "health_router",
+    "salads_router",
+    "orders_router",
+    "reviews_router",
+    "settings_router",
+    "auth_router",
+    "location_router",
+    "users_router",
 ]

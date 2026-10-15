@@ -14,8 +14,12 @@ const nextConfig = {
     const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:8000';
     return [
       {
+        source: '/api/fastapi/:path*',
+        destination: `${backendUrl}/api/:path*`,
+      },
+      {
         source: '/api/flask/:path*',
-        destination: `${backendUrl}/:path*`,
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },

@@ -1,17 +1,18 @@
 import time
-from flask import Blueprint, jsonify
+from fastapi import APIRouter
 from backend.database import get_db
 
-health_bp = Blueprint('health', __name__)
+router = APIRouter(tags=["Health"])
 
-@health_bp.route('/health', methods=['GET'])
+@router.get("/health")
+@router.get("/api/health")
 def health_check():
     db = get_db()
     db_status = "connected" if db is not None else "disconnected (using fallback)"
-    return jsonify({
+    return {
         "status": "healthy",
-        "service": "Greesal Flask Backend",
-        "framework": "Flask 3.x",
+        "service": "Greesal FastAPI Backend",
+        "framework": "FastAPI",
         "timestamp": int(time.time()),
         "database": db_status
-    }), 200
+    }

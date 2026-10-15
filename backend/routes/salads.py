@@ -1,9 +1,22 @@
-from flask import Blueprint, request, jsonify
+import os
+import re
+import json
+import logging
+from pathlib import Path
+from typing import List, Dict, Any, Optional
+from datetime import datetime, timezone
+from fastapi import APIRouter, HTTPException, Request, Response, status
 from bson import ObjectId
 from backend.database import get_db
-from backend.security import require_internal_key
 
-salads_bp = Blueprint('salads', __name__)
+logger = logging.getLogger("greesal.salads")
+router = APIRouter(tags=["Salads"])
+
+def slugify(text: str) -> str:
+    text = text.lower().strip()
+    text = re.sub(r"[^\w\s-]", "", text)
+    text = re.sub(r"[\s_-]+", "-", text)
+    return text.strip("-")
 
 DEFAULT_SALADS_DATA = [
     {
@@ -267,94 +280,222 @@ DEFAULT_SALADS_DATA = [
     }
 ]
 
-def format_doc(doc):
-    if doc and "_id" in doc:
-        doc["_id"] = str(doc["_id"])
-    return doc
+# Local JSON Store path for persistence across reboots
+LOCAL_STORAGE_FILE = Path(__file__).parent.parent / "local_salads.json"
 
-@salads_bp.route('/salads', methods=['GET'])
-@salads_bp.route('/admin/salads', methods=['GET'])
-def get_salads():
+def load_local_salads() -> List[Dict[str, Any]]:
+    if LOCAL_STORAGE_FILE.exists():
+        try:
+            with open(LOCAL_STORAGE_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list) and len(data) > 0:
+                    return data
+        except Exception as e:
+            logger.error(f"Failed to parse local_salads.json: {e}")
+
+    # Initialize from DEFAULT_SALADS_DATA
+    initial = [
+        {**s, "_id": f"fallback-{idx+1}", "id": f"fallback-{idx+1}", "slug": slugify(s["name"])}
+        for idx, s in enumerate(DEFAULT_SALADS_DATA)
+    ]
+    save_local_salads(initial)
+    return initial
+
+def save_local_salads(salads: List[Dict[str, Any]]):
+    try:
+        with open(LOCAL_STORAGE_FILE, "w", encoding="utf-8") as f:
+            json.dump(salads, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"Warning: Failed saving local salads: {e}")
+
+local_salads_store: List[Dict[str, Any]] = load_local_salads()
+_local_store_synced_from_db = False
+
+def sync_local_store_from_mongodb():
+    """One-time sync: replace local salads store with MongoDB data on first request."""
+    global local_salads_store, _local_store_synced_from_db
+    if _local_store_synced_from_db:
+        return
+    _local_store_synced_from_db = True
+
     db = get_db()
     if db is None:
-        return jsonify([
-            {**s, "_id": f"fallback-{idx+1}"} for idx, s in enumerate(DEFAULT_SALADS_DATA)
-        ]), 200
+        logger.info("MongoDB not available for startup sync — keeping local salads store")
+        return
 
     try:
-        collection = db.salads
-        salads = list(collection.find({}))
-        if not salads:
-            collection.insert_many([dict(s) for s in DEFAULT_SALADS_DATA])
-            salads = list(collection.find({}))
-        return jsonify([format_doc(s) for s in salads]), 200
+        salads = list(db.salads.find({}))
+        if salads:
+            local_salads_store = [format_salad_doc(s) for s in salads]
+            save_local_salads(local_salads_store)
+            logger.info(f"✅ Synced {len(salads)} salads from MongoDB → local store")
+        else:
+            logger.info("MongoDB salads collection is empty — keeping local store as-is")
     except Exception as e:
-        return jsonify([
-            {**s, "_id": f"fallback-{idx+1}"} for idx, s in enumerate(DEFAULT_SALADS_DATA)
-        ]), 200
+        logger.error(f"Failed to sync salads from MongoDB: {e}")
 
-@salads_bp.route('/salads/<salad_id>', methods=['GET'])
-def get_salad(salad_id):
+def format_salad_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
+    if not doc:
+        return doc
+    res = dict(doc)
+    str_id = str(res.get("_id", ""))
+    res["_id"] = str_id
+    res["id"] = res.get("id") or str_id
+    if not res.get("slug") and res.get("name"):
+        res["slug"] = slugify(res["name"])
+    return res
+
+@router.get("/salads")
+@router.get("/api/salads")
+@router.get("/admin/salads")
+@router.get("/api/admin/salads")
+def get_salads():
+    global local_salads_store
+    # One-time sync from MongoDB on first request after startup
+    sync_local_store_from_mongodb()
+
     db = get_db()
     if db is not None:
         try:
-            query = {"_id": ObjectId(salad_id)} if ObjectId.is_valid(salad_id) else {"_id": salad_id}
-            salad = db.salads.find_one(query)
+            salads = list(db.salads.find({}))
+            if salads:
+                logger.info(f"Loaded {len(salads)} salads from MongoDB Atlas")
+                return [format_salad_doc(s) for s in salads]
+            else:
+                logger.info("No salads in MongoDB — returning local store")
+        except Exception as e:
+            logger.error(f"Error reading salads from MongoDB: {e}")
+    else:
+        logger.warning("MongoDB not available — returning local salads store")
+
+    return [format_salad_doc(s) for s in local_salads_store]
+
+@router.get("/salads/{salad_id}")
+@router.get("/api/salads/{salad_id}")
+def get_salad(salad_id: str):
+    global local_salads_store
+    db = get_db()
+    if db is not None:
+        try:
+            query_list = [{"id": salad_id}, {"slug": salad_id}, {"_id": salad_id}]
+            if ObjectId.is_valid(salad_id):
+                query_list.append({"_id": ObjectId(salad_id)})
+            salad = db.salads.find_one({"$or": query_list})
             if salad:
-                return jsonify(format_doc(salad)), 200
+                return format_salad_doc(salad)
         except Exception:
             pass
 
-    # Search in default list by index or name
-    for idx, s in enumerate(DEFAULT_SALADS_DATA):
-        if str(idx + 1) == str(salad_id) or f"fallback-{idx+1}" == str(salad_id):
-            return jsonify({**s, "_id": str(salad_id)}), 200
+    for s in local_salads_store:
+        if s.get("id") == salad_id or s.get("_id") == salad_id or s.get("slug") == salad_id:
+            return format_salad_doc(s)
 
-    return jsonify({"error": "Salad not found"}), 404
+    raise HTTPException(status_code=404, detail="Salad not found")
 
-@salads_bp.route('/admin/salads', methods=['POST'])
-@salads_bp.route('/salads', methods=['POST'])
-def create_salad():
-    data = request.get_json() or {}
-    if not data.get('name') or not data.get('price'):
-        return jsonify({"error": "Salad name and price are required"}), 400
+@router.post("/salads", status_code=status.HTTP_201_CREATED)
+@router.post("/api/salads", status_code=status.HTTP_201_CREATED)
+@router.post("/admin/salads", status_code=status.HTTP_201_CREATED)
+@router.post("/api/admin/salads", status_code=status.HTTP_201_CREATED)
+async def create_salad(request: Request):
+    global local_salads_store
+    data = await request.json()
+    if not data or not data.get("name") or not data.get("price"):
+        raise HTTPException(status_code=400, detail="Salad name and price are required")
+
+    new_salad = dict(data)
+    if "slug" not in new_salad or not new_salad["slug"]:
+        new_salad["slug"] = slugify(new_salad["name"])
+    new_salad["createdAt"] = datetime.now(timezone.utc).isoformat()
 
     db = get_db()
-    if db is None:
-        return jsonify({"error": "Database not available"}), 503
+    if db is not None:
+        try:
+            result = db.salads.insert_one(new_salad)
+            new_salad["_id"] = str(result.inserted_id)
+            new_salad["id"] = new_salad.get("id") or new_salad["_id"]
+            logger.info(f"Salad '{new_salad['name']}' saved to MongoDB Atlas (id={new_salad['_id']})")
+        except Exception as e:
+            logger.error(f"Failed to save salad to MongoDB: {e}")
+            new_salad["_id"] = f"salad-{len(local_salads_store) + 1}"
+            new_salad["id"] = new_salad["_id"]
+    else:
+        logger.warning("MongoDB not available — salad NOT persisted to database!")
+        new_salad["_id"] = f"salad-{len(local_salads_store) + 1}"
+        new_salad["id"] = new_salad["_id"]
 
-    try:
-        result = db.salads.insert_one(data)
-        data["_id"] = str(result.inserted_id)
-        return jsonify({"message": "Salad added successfully", "salad": data}), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    local_salads_store.append(new_salad)
+    save_local_salads(local_salads_store)
 
-@salads_bp.route('/admin/salads/<salad_id>', methods=['PUT'])
-def update_salad(salad_id):
-    data = request.get_json() or {}
+    return {"message": "Salad added successfully", "salad": new_salad}
+
+@router.put("/admin/salads/{salad_id}")
+@router.put("/api/admin/salads/{salad_id}")
+async def update_salad(salad_id: str, request: Request):
+    global local_salads_store
+    data = await request.json()
+    update_data = dict(data)
+    if "_id" in update_data:
+        del update_data["_id"]
+    update_data["updatedAt"] = datetime.now(timezone.utc).isoformat()
+
     db = get_db()
-    if db is None:
-        return jsonify({"error": "Database not available"}), 503
+    db_updated = False
+    if db is not None:
+        try:
+            query_list = [{"id": salad_id}, {"slug": salad_id}, {"_id": salad_id}]
+            if ObjectId.is_valid(salad_id):
+                query_list.append({"_id": ObjectId(salad_id)})
+            result = db.salads.update_one({"$or": query_list}, {"$set": update_data})
+            if result.matched_count > 0:
+                db_updated = True
+                logger.info(f"Salad '{salad_id}' updated in MongoDB Atlas (modified={result.modified_count})")
+            else:
+                logger.warning(f"Salad '{salad_id}' not found in MongoDB for update")
+        except Exception as e:
+            logger.error(f"Error updating salad in MongoDB: {e}")
 
-    try:
-        query = {"_id": ObjectId(salad_id)} if ObjectId.is_valid(salad_id) else {"_id": salad_id}
-        if "_id" in data:
-            del data["_id"]
-        db.salads.update_one(query, {"$set": data})
-        return jsonify({"message": "Salad updated successfully"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    # Update in local store
+    matched_local = False
+    for idx, s in enumerate(local_salads_store):
+        if s.get("id") == salad_id or s.get("_id") == salad_id or s.get("slug") == salad_id:
+            local_salads_store[idx] = {**s, **update_data}
+            matched_local = True
+            break
 
-@salads_bp.route('/admin/salads/<salad_id>', methods=['DELETE'])
-def delete_salad(salad_id):
+    if not db_updated and not matched_local:
+        raise HTTPException(status_code=404, detail="Salad not found")
+
+    save_local_salads(local_salads_store)
+    return {"message": "Salad updated successfully"}
+
+@router.delete("/admin/salads/{salad_id}")
+@router.delete("/api/admin/salads/{salad_id}")
+def delete_salad(salad_id: str):
+    global local_salads_store
     db = get_db()
-    if db is None:
-        return jsonify({"error": "Database not available"}), 503
+    db_deleted = False
 
-    try:
-        query = {"_id": ObjectId(salad_id)} if ObjectId.is_valid(salad_id) else {"_id": salad_id}
-        db.salads.delete_one(query)
-        return jsonify({"message": "Salad deleted successfully"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    if db is not None:
+        try:
+            query_list = [{"id": salad_id}, {"slug": salad_id}, {"_id": salad_id}]
+            if ObjectId.is_valid(salad_id):
+                query_list.append({"_id": ObjectId(salad_id)})
+            result = db.salads.delete_one({"$or": query_list})
+            if result.deleted_count > 0:
+                db_deleted = True
+        except Exception:
+            pass
+
+    # Delete from local store (handles fallback-1, fallback-2, etc.)
+    original_len = len(local_salads_store)
+    local_salads_store = [
+        s for s in local_salads_store
+        if s.get("id") != salad_id and s.get("_id") != salad_id and s.get("slug") != salad_id
+    ]
+    local_deleted = len(local_salads_store) < original_len
+
+    if not db_deleted and not local_deleted:
+        raise HTTPException(status_code=404, detail="Salad not found")
+
+    save_local_salads(local_salads_store)
+    return {"message": "Salad deleted successfully"}

@@ -1,4 +1,20 @@
-export const dynamic = 'force-dynamic';
-import { GET, POST } from '@/app/api/admin/orders/route';
+import { NextRequest } from 'next/server';
+import { proxyToFastAPI } from '@/lib/fastapi';
 
-export { GET, POST };
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: NextRequest) {
+  return proxyToFastAPI(req, '/api/orders');
+}
+
+export async function POST(req: NextRequest) {
+  return proxyToFastAPI(req, '/api/orders');
+}
+
+export async function PUT(req: NextRequest) {
+  return proxyToFastAPI(req, '/api/orders');
+}
+
+export async function DELETE(req: NextRequest) {
+  return proxyToFastAPI(req, '/api/orders');
+}
