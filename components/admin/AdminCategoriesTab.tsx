@@ -29,7 +29,7 @@ export const AdminCategoriesTab: React.FC<AdminCategoriesTabProps> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [newId, setNewId] = useState('');
   const [newLabel, setNewLabel] = useState('');
-  const [newIcon, setNewIcon] = useState('🥗');
+  const [newIcon, setNewIcon] = useState('');
   const [newCount, setNewCount] = useState('');
 
   // Editing state
@@ -72,7 +72,7 @@ export const AdminCategoriesTab: React.FC<AdminCategoriesTabProps> = ({
     const newCat: SiteCategory = {
       id,
       label: newLabel.trim(),
-      icon: newIcon.trim() || '🥗',
+      icon: newIcon.trim() || '',
       count: newCount.trim() || undefined,
     };
 
@@ -80,7 +80,7 @@ export const AdminCategoriesTab: React.FC<AdminCategoriesTabProps> = ({
     setLocalCategories(updated);
     setNewId('');
     setNewLabel('');
-    setNewIcon('🥗');
+    setNewIcon('');
     setNewCount('');
     setIsAdding(false);
     await onSaveCategories(updated);
@@ -89,7 +89,7 @@ export const AdminCategoriesTab: React.FC<AdminCategoriesTabProps> = ({
   const handleStartEdit = (cat: SiteCategory) => {
     setEditingId(cat.id);
     setEditLabel(cat.label);
-    setEditIcon(cat.icon || '🥗');
+    setEditIcon(cat.icon || '');
     setEditCount(cat.count || '');
   };
 
@@ -284,8 +284,8 @@ export const AdminCategoriesTab: React.FC<AdminCategoriesTabProps> = ({
               {!isEditing ? (
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <span className="w-11 h-11 rounded-2xl bg-[#e8f7f2] flex items-center justify-center text-xl shadow-xs">
-                      {cat.icon || '🥗'}
+                    <span className="w-11 h-11 rounded-2xl bg-[#e8f7f2] flex items-center justify-center text-sm font-bold text-[#20493c] shadow-xs">
+                      {cat.icon || <Filter className="w-5 h-5 text-[#20493c]" />}
                     </span>
                     <div>
                       <div className="flex items-center gap-2">

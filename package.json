@@ -9,6 +9,7 @@
     "db": "node scripts/start-mongo.js",
     "test:db": "node scripts/test-mongo.js",
     "seed:db": "tsx scripts/seed-atlas.ts",
+    "prebuild": "node scripts/clean.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

@@ -213,7 +213,6 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
                       : 'bg-white hover:bg-gray-50 text-[#1a1a1a] border-gray-200'
                   }`}
                 >
-                  {cat.icon && <span>{cat.icon}</span>}
                   <span>{cat.label}</span>
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded-full font-normal ${
@@ -290,8 +289,8 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
         ) : filteredSalads.length === 0 ? (
           /* Empty Search / Category State */
           <div className="text-center py-16 px-4 bg-[#FAF6F0] rounded-3xl border border-[#EBE2D3] max-w-lg mx-auto">
-            <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-2xl shadow-xs">
-              🥗
+            <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shadow-xs">
+              <Search className="w-6 h-6" />
             </div>
             <h3 className="text-base sm:text-lg font-bold text-[#123B2B]">
               No Salads Found

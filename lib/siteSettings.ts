@@ -120,12 +120,12 @@ export interface SiteSettings {
 }
 
 export const DEFAULT_CATEGORIES: SiteCategory[] = [
-  { id: 'all', label: 'All Salads', count: '21+ varieties', icon: '🥗' },
-  { id: 'Protein House', label: 'Protein House', count: '05 protein pack', icon: '⚡' },
-  { id: 'Veggies Salad', label: 'Veggies Salad', count: '06 fatloss salad', icon: '🌱' },
-  { id: 'Paneer Salad', label: 'Paneer Salad', count: '05 paneer punch', icon: '🧀' },
-  { id: 'Exotic Salad', label: 'Exotic Salad', count: '06 exotic salad', icon: '✨' },
-  { id: 'Rice Bowl', label: 'Rice Bowl', count: '03 hot rice bowls', icon: '🍚' },
+  { id: 'all', label: 'All Salads', count: '21+ varieties', icon: '' },
+  { id: 'Protein House', label: 'Protein House', count: '05 protein pack', icon: '' },
+  { id: 'Veggies Salad', label: 'Veggies Salad', count: '06 fatloss salad', icon: '' },
+  { id: 'Paneer Salad', label: 'Paneer Salad', count: '05 paneer punch', icon: '' },
+  { id: 'Exotic Salad', label: 'Exotic Salad', count: '06 exotic salad', icon: '' },
+  { id: 'Rice Bowl', label: 'Rice Bowl', count: '03 hot rice bowls', icon: '' },
 ];
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {

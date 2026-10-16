@@ -303,8 +303,13 @@ def load_local_salads() -> List[Dict[str, Any]]:
 
 def save_local_salads(salads: List[Dict[str, Any]]):
     try:
+        def json_serial(obj):
+            if hasattr(obj, "isoformat"):
+                return obj.isoformat()
+            return str(obj)
+
         with open(LOCAL_STORAGE_FILE, "w", encoding="utf-8") as f:
-            json.dump(salads, f, indent=2, ensure_ascii=False)
+            json.dump(salads, f, indent=2, ensure_ascii=False, default=json_serial)
     except Exception as e:
         print(f"Warning: Failed saving local salads: {e}")
 
