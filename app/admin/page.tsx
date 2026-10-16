@@ -69,6 +69,7 @@ interface Salad {
   protein: string;
   price: string;
   tag: string;
+  category?: string;
   image: string;
   ingredients?: string[];
   gravy?: string[];
@@ -266,6 +267,13 @@ export default function AdminPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSaladId, setEditingSaladId] = useState<string | null>(null);
   const [imageSourceType, setImageSourceType] = useState<'file' | 'url'>('file');
+
+  // Category management & quick-add state
+  const [adminSaladCategoryFilter, setAdminSaladCategoryFilter] = useState<string>('all');
+  const [isQuickAddCatOpen, setIsQuickAddCatOpen] = useState(false);
+  const [quickCatLabel, setQuickCatLabel] = useState('');
+  const [quickCatIcon, setQuickCatIcon] = useState('🥗');
+  const [isQuickCatSaving, setIsQuickCatSaving] = useState(false);
 
   const processImageFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -724,6 +732,49 @@ export default function AdminPage() {
     }
   };
 
+  // Quick-add category from inside the Add/Edit Salad modal
+  const handleQuickAddCategory = async () => {
+    if (!quickCatLabel.trim()) return;
+    const trimmed = quickCatLabel.trim();
+    const existing = categoriesState.find(
+      (c) => c.id.toLowerCase() === trimmed.toLowerCase() || c.label.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (existing) {
+      setCurrentSalad((prev) => ({ ...prev, tag: existing.label, category: existing.label }));
+      setIsQuickAddCatOpen(false);
+      setQuickCatLabel('');
+      return;
+    }
+
+    const newCat: SiteCategory = {
+      id: trimmed.toLowerCase().replace(/\s+/g, '-'),
+      label: trimmed,
+      icon: quickCatIcon.trim() || '🥗',
+    };
+
+    const updated = [...categoriesState, newCat];
+    setCategoriesState(updated);
+    setFullSiteSettings((prev) => ({ ...prev, categories: updated }));
+    setCurrentSalad((prev) => ({ ...prev, tag: newCat.label, category: newCat.label }));
+    setIsQuickCatSaving(true);
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categories: updated }),
+      });
+      setSuccessMessage(`Category "${trimmed}" created & selected for salad!`);
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (e) {
+      console.error('Failed to auto-save quick category:', e);
+    } finally {
+      setIsQuickCatSaving(false);
+      setIsQuickAddCatOpen(false);
+      setQuickCatLabel('');
+      setQuickCatIcon('🥗');
+    }
+  };
+
   // Open modal to add salad
   const handleOpenAddModal = () => {
     setFormTab('general');
@@ -731,12 +782,17 @@ export default function AdminPage() {
     setImageSourceType('file');
     setNewAddOnName('');
     setNewAddOnPrice('');
+    setIsQuickAddCatOpen(false);
+    setQuickCatLabel('');
+    setQuickCatIcon('🥗');
+    const defaultCat = categoriesState.find(c => c.id !== 'all')?.label || 'Protein House';
     setCurrentSalad({
       name: '',
       calories: '',
       protein: '',
       price: '',
-      tag: 'Chef Choice',
+      tag: defaultCat,
+      category: defaultCat,
       image: '',
       ingredients: [],
       gravy: [],
@@ -767,8 +823,14 @@ export default function AdminPage() {
     setImageSourceType(salad.image && !salad.image.startsWith('data:') ? 'url' : 'file');
     setNewAddOnName('');
     setNewAddOnPrice('');
+    setIsQuickAddCatOpen(false);
+    setQuickCatLabel('');
+    setQuickCatIcon('🥗');
+    const saladCategory = salad.category || salad.tag || categoriesState.find(c => c.id !== 'all')?.label || 'Protein House';
     setCurrentSalad({ 
       ...salad,
+      tag: saladCategory,
+      category: saladCategory,
       ingredients: salad.ingredients || [],
       gravy: salad.gravy || [],
       healthBenefits: salad.healthBenefits || [],
@@ -2651,91 +2713,200 @@ export default function AdminPage() {
               </button>
             </div>
 
+            {/* Category Filter Pills in Admin */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+              <button
+                type="button"
+                onClick={() => setAdminSaladCategoryFilter('all')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  adminSaladCategoryFilter === 'all'
+                    ? 'bg-[#123B2B] text-white border-[#123B2B] shadow-xs'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                All Salads ({salads.length})
+              </button>
+              {categoriesState
+                .filter((c) => c.id !== 'all')
+                .map((cat) => {
+                  const count = salads.filter((s) => {
+                    const tagLower = (s.tag || '').toLowerCase().trim();
+                    const catLower = (s.category || '').toLowerCase().trim();
+                    const catIdNorm = cat.id.toLowerCase().trim();
+                    const catLabelNorm = cat.label.toLowerCase().trim();
+                    return (
+                      tagLower === catIdNorm ||
+                      tagLower === catLabelNorm ||
+                      catLower === catIdNorm ||
+                      catLower === catLabelNorm ||
+                      tagLower.includes(catLabelNorm) ||
+                      catLower.includes(catLabelNorm)
+                    );
+                  }).length;
+                  const active = adminSaladCategoryFilter === cat.id;
+
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setAdminSaladCategoryFilter(cat.id)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 whitespace-nowrap ${
+                        active
+                          ? 'bg-[#123B2B] text-white border-[#123B2B] shadow-xs'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span>{cat.icon || '🥗'}</span>
+                      <span>{cat.label}</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          active ? 'bg-white/20 text-white' : 'bg-gray-100 text-[#123B2B]'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+
             {/* Salads list grid */}
             <div className="grid grid-cols-1 gap-4 text-left">
-              {salads.map((salad) => (
-                <div
-                  key={salad._id}
-                  className="bg-white rounded-2xl p-4 border border-greesal-beige/60 flex flex-col sm:flex-row items-center justify-between gap-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center gap-4 w-full sm:w-auto">
-                    <img
-                      src={salad.image}
-                      alt={salad.name}
-                      className="w-16 h-16 rounded-xl object-cover border border-gray-100 flex-shrink-0"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=100&q=80';
-                      }}
-                    />
-                    <div>
-                      <span className="text-[10px] font-bold text-[#123B2B] bg-greesal-lightgreen px-2 py-0.5 rounded-full border border-greesal-emerald/10 uppercase tracking-wider">
-                        {salad.tag}
-                      </span>
-                      <h3 className="font-bold text-greesal-dark text-base mt-1">
-                        {salad.name}
-                      </h3>
-                      <div className="flex flex-wrap gap-2 text-xs text-greesal-muted font-semibold mt-1 items-center">
-                        <span>{salad.calories}</span>
-                        <span>•</span>
-                        <span>{salad.protein}</span>
-                        <span>•</span>
-                        <span className="text-[#123B2B] font-extrabold">{salad.price}</span>
-                        <span>•</span>
-                        <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
-                          {salad.addOns && salad.addOns.length > 0 ? `${salad.addOns.length} Extra Add-ons` : '5 Default Add-ons'}
-                        </span>
+              {salads
+                .filter((salad) => {
+                  if (adminSaladCategoryFilter === 'all') return true;
+                  const cat = categoriesState.find((c) => c.id === adminSaladCategoryFilter);
+                  const tagLower = (salad.tag || '').toLowerCase().trim();
+                  const catLower = (salad.category || '').toLowerCase().trim();
+                  const catIdNorm = adminSaladCategoryFilter.toLowerCase().trim();
+                  const catLabelNorm = (cat?.label || '').toLowerCase().trim();
+                  return (
+                    tagLower === catIdNorm ||
+                    tagLower === catLabelNorm ||
+                    catLower === catIdNorm ||
+                    catLower === catLabelNorm ||
+                    tagLower.includes(catLabelNorm) ||
+                    catLower.includes(catLabelNorm)
+                  );
+                })
+                .map((salad) => {
+                  const catItem = categoriesState.find(
+                    (c) =>
+                      c.label.toLowerCase() === (salad.category || salad.tag || '').toLowerCase() ||
+                      c.id.toLowerCase() === (salad.category || salad.tag || '').toLowerCase()
+                  );
+
+                  return (
+                    <div
+                      key={salad._id}
+                      className="bg-white rounded-2xl p-4 border border-greesal-beige/60 flex flex-col sm:flex-row items-center justify-between gap-4 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-center gap-4 w-full sm:w-auto">
+                        <img
+                          src={salad.image}
+                          alt={salad.name}
+                          className="w-16 h-16 rounded-xl object-cover border border-gray-100 flex-shrink-0"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=100&q=80';
+                          }}
+                        />
+                        <div>
+                          <span className="text-[10px] font-bold text-[#123B2B] bg-greesal-lightgreen px-2 py-0.5 rounded-full border border-greesal-emerald/10 uppercase tracking-wider inline-flex items-center gap-1">
+                            <span>{catItem?.icon || '🥗'}</span>
+                            <span>{salad.category || salad.tag}</span>
+                          </span>
+                          <h3 className="font-bold text-greesal-dark text-base mt-1">
+                            {salad.name}
+                          </h3>
+                          <div className="flex flex-wrap gap-2 text-xs text-greesal-muted font-semibold mt-1 items-center">
+                            <span>{salad.calories}</span>
+                            <span>•</span>
+                            <span>{salad.protein}</span>
+                            <span>•</span>
+                            <span className="text-[#123B2B] font-extrabold">{salad.price}</span>
+                            <span>•</span>
+                            <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                              {salad.addOns && salad.addOns.length > 0 ? `${salad.addOns.length} Extra Add-ons` : '5 Default Add-ons'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSaladInSlider(salad)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
+                            (fullSiteSettings.topSliderSaladIds || []).some(
+                              (id) => id === salad._id || id === salad.id || id === salad.slug || id === salad.name
+                            )
+                              ? 'bg-[#56aa52] text-white border-[#56aa52] shadow-xs'
+                              : 'bg-gray-50 hover:bg-[#56aa52]/10 text-gray-600 border-gray-200'
+                          }`}
+                          title="Toggle display in Top Home Slider"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>
+                            {(fullSiteSettings.topSliderSaladIds || []).some(
+                              (id) => id === salad._id || id === salad.id || id === salad.slug || id === salad.name
+                            )
+                              ? 'In Top Slider'
+                              : '+ Add to Slider'}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(salad)}
+                          className="p-2 rounded-xl text-gray-500 hover:text-[#123B2B] hover:bg-gray-50 transition-colors border border-gray-200 cursor-pointer"
+                          title="Edit Salad"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => (salad._id || salad.id) && handleDeleteSalad((salad._id || salad.id)!)}
+                          className="p-2 rounded-xl text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors border border-gray-200 cursor-pointer"
+                          title="Delete Salad"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-                  </div>
+                  );
+                })}
 
-                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleSaladInSlider(salad)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
-                        (fullSiteSettings.topSliderSaladIds || []).some(
-                          (id) => id === salad._id || id === salad.id || id === salad.slug || id === salad.name
-                        )
-                          ? 'bg-[#56aa52] text-white border-[#56aa52] shadow-xs'
-                          : 'bg-gray-50 hover:bg-[#56aa52]/10 text-gray-600 border-gray-200'
-                      }`}
-                      title="Toggle display in Top Home Slider"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>
-                        {(fullSiteSettings.topSliderSaladIds || []).some(
-                          (id) => id === salad._id || id === salad.id || id === salad.slug || id === salad.name
-                        )
-                          ? 'In Top Slider'
-                          : '+ Add to Slider'}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditModal(salad)}
-                      className="p-2 rounded-xl text-gray-500 hover:text-[#123B2B] hover:bg-gray-50 transition-colors border border-gray-200 cursor-pointer"
-                      title="Edit Salad"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => (salad._id || salad.id) && handleDeleteSalad((salad._id || salad.id)!)}
-                      className="p-2 rounded-xl text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors border border-gray-200 cursor-pointer"
-                      title="Delete Salad"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {salads.length === 0 && (
+              {salads.length === 0 ? (
                 <div className="h-48 flex flex-col items-center justify-center bg-white rounded-3xl border border-dashed border-gray-300 text-gray-400">
                   <Utensils className="w-8 h-8 mb-2" />
                   <p className="text-sm font-semibold">No salad items found in database.</p>
                 </div>
-              )}
+              ) : salads.filter((salad) => {
+                  if (adminSaladCategoryFilter === 'all') return true;
+                  const cat = categoriesState.find((c) => c.id === adminSaladCategoryFilter);
+                  const tagLower = (salad.tag || '').toLowerCase().trim();
+                  const catLower = (salad.category || '').toLowerCase().trim();
+                  const catIdNorm = adminSaladCategoryFilter.toLowerCase().trim();
+                  const catLabelNorm = (cat?.label || '').toLowerCase().trim();
+                  return (
+                    tagLower === catIdNorm ||
+                    tagLower === catLabelNorm ||
+                    catLower === catIdNorm ||
+                    catLower === catLabelNorm ||
+                    tagLower.includes(catLabelNorm) ||
+                    catLower.includes(catLabelNorm)
+                  );
+                }).length === 0 ? (
+                <div className="h-40 flex flex-col items-center justify-center bg-white rounded-3xl border border-dashed border-gray-300 text-gray-400">
+                  <p className="text-sm font-semibold">No salads in this category.</p>
+                  <button
+                    type="button"
+                    onClick={() => setAdminSaladCategoryFilter('all')}
+                    className="mt-2 text-xs font-bold text-[#123B2B] hover:underline cursor-pointer"
+                  >
+                    View all salads ({salads.length})
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
         ) : activeTab === 'slider' ? (
@@ -2919,24 +3090,79 @@ export default function AdminPage() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-[#123B2B] block">
-                        Category / Tag
-                      </label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-[#123B2B] block">
+                          Category (Added by Admin) *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setIsQuickAddCatOpen(!isQuickAddCatOpen)}
+                          className="text-[11px] font-bold text-[#20493c] hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3 text-[#fbce45]" />
+                          <span>{isQuickAddCatOpen ? 'Cancel' : '+ New Category'}</span>
+                        </button>
+                      </div>
+
+                      {/* Quick Add Inline Input if toggled */}
+                      {isQuickAddCatOpen && (
+                        <div className="p-3 bg-emerald-50/90 rounded-xl border border-emerald-300/80 space-y-2 mb-2 animate-in fade-in duration-150">
+                          <p className="text-[11px] font-bold text-[#123B2B]">
+                            Create New Category &amp; Assign to Salad:
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={quickCatIcon}
+                              onChange={(e) => setQuickCatIcon(e.target.value)}
+                              placeholder="🥗"
+                              maxLength={4}
+                              className="w-12 text-center px-1.5 py-1.5 rounded-lg border border-gray-300 bg-white text-base font-bold focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
+                            />
+                            <input
+                              type="text"
+                              value={quickCatLabel}
+                              onChange={(e) => setQuickCatLabel(e.target.value)}
+                              placeholder="e.g. Avocado Crunch"
+                              className="flex-1 px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-xs font-bold focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleQuickAddCategory}
+                              disabled={isQuickCatSaving || !quickCatLabel.trim()}
+                              className="px-3 py-1.5 rounded-lg bg-[#123B2B] text-white text-xs font-bold hover:bg-[#1C4D3A] transition-all disabled:opacity-50 cursor-pointer shadow-xs whitespace-nowrap"
+                            >
+                              {isQuickCatSaving ? 'Adding...' : 'Add & Select'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       <select
-                        value={currentSalad.tag}
-                        onChange={(e) => setCurrentSalad({ ...currentSalad, tag: e.target.value })}
+                        value={currentSalad.category || currentSalad.tag}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCurrentSalad({ ...currentSalad, tag: val, category: val });
+                        }}
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#123B2B]/40 focus:border-[#123B2B]"
                       >
-                        <option value="Bestseller">Bestseller</option>
-                        <option value="Chef Choice">Chef Choice</option>
                         {categoriesState
-                          .filter(c => c.id !== 'all')
-                          .map(c => (
+                          .filter((c) => c.id !== 'all')
+                          .map((c) => (
                             <option key={c.id} value={c.label}>
                               {c.icon || '🥗'} {c.label}
                             </option>
-                          ))
-                        }
+                          ))}
+                        {(currentSalad.category || currentSalad.tag) &&
+                          !categoriesState.some(
+                            (c) =>
+                              c.id.toLowerCase() === (currentSalad.category || currentSalad.tag).toLowerCase() ||
+                              c.label.toLowerCase() === (currentSalad.category || currentSalad.tag).toLowerCase()
+                          ) && (
+                            <option value={currentSalad.category || currentSalad.tag}>
+                              🥗 {currentSalad.category || currentSalad.tag}
+                            </option>
+                          )}
                       </select>
                     </div>
                   </div>

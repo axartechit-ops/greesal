@@ -88,7 +88,10 @@ export default function SaladsPage() {
     // 1. Fetch dynamic site content settings from admin API
     const fetchSettings = async () => {
       try {
-        const res = await fetch('/api/admin/settings');
+        let res = await fetch('/api/settings');
+        if (!res.ok) {
+          res = await fetch('/api/admin/settings');
+        }
         if (res.ok) {
           const data = await res.json();
           if (data && typeof data === 'object') {

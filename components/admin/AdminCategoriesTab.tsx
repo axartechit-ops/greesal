@@ -42,20 +42,29 @@ export const AdminCategoriesTab: React.FC<AdminCategoriesTabProps> = ({
 
   const getSaladCount = (catId: string) => {
     if (catId === 'all') return salads.length;
-    const lower = catId.toLowerCase().trim();
+    const cat = localCategories.find(c => c.id === catId);
+    const catIdNorm = catId.toLowerCase().trim();
+    const catLabelNorm = (cat?.label || '').toLowerCase().trim();
     return salads.filter((s) => {
       const tagLower = (s.tag || '').toLowerCase().trim();
+      const catLower = (s.category || '').toLowerCase().trim();
       const nameLower = (s.name || '').toLowerCase().trim();
-      return tagLower === lower || tagLower.includes(lower) || nameLower.includes(lower);
+      return (
+        tagLower === catIdNorm || tagLower === catLabelNorm ||
+        catLower === catIdNorm || catLower === catLabelNorm ||
+        (catLabelNorm && tagLower.includes(catLabelNorm)) ||
+        (catLabelNorm && catLower.includes(catLabelNorm)) ||
+        (catIdNorm && nameLower.includes(catIdNorm))
+      );
     }).length;
   };
 
-  const handleAddCategory = (e: React.FormEvent) => {
+  const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLabel.trim()) return;
 
     const id = (newId.trim() || newLabel.trim()).replace(/\s+/g, ' ');
-    if (localCategories.some((c) => c.id.toLowerCase() === id.toLowerCase())) {
+    if (localCategories.some((c) => c.id.toLowerCase() === id.toLowerCase() || c.label.toLowerCase() === newLabel.trim().toLowerCase())) {
       alert('A category with this ID/Name already exists!');
       return;
     }
@@ -67,12 +76,14 @@ export const AdminCategoriesTab: React.FC<AdminCategoriesTabProps> = ({
       count: newCount.trim() || undefined,
     };
 
-    setLocalCategories([...localCategories, newCat]);
+    const updated = [...localCategories, newCat];
+    setLocalCategories(updated);
     setNewId('');
     setNewLabel('');
     setNewIcon('🥗');
     setNewCount('');
     setIsAdding(false);
+    await onSaveCategories(updated);
   };
 
   const handleStartEdit = (cat: SiteCategory) => {
@@ -82,35 +93,38 @@ export const AdminCategoriesTab: React.FC<AdminCategoriesTabProps> = ({
     setEditCount(cat.count || '');
   };
 
-  const handleSaveEdit = (catId: string) => {
-    setLocalCategories(
-      localCategories.map((c) =>
-        c.id === catId
-          ? {
-              ...c,
-              label: editLabel.trim() || c.label,
-              icon: editIcon.trim() || c.icon,
-              count: editCount.trim() || undefined,
-            }
-          : c
-      )
+  const handleSaveEdit = async (catId: string) => {
+    const updated = localCategories.map((c) =>
+      c.id === catId
+        ? {
+            ...c,
+            label: editLabel.trim() || c.label,
+            icon: editIcon.trim() || c.icon,
+            count: editCount.trim() || undefined,
+          }
+        : c
     );
+    setLocalCategories(updated);
     setEditingId(null);
+    await onSaveCategories(updated);
   };
 
-  const handleDeleteCategory = (catId: string) => {
+  const handleDeleteCategory = async (catId: string) => {
     if (catId === 'all') {
       alert('The "All Salads" category cannot be removed.');
       return;
     }
     if (confirm(`Are you sure you want to remove category "${catId}"?`)) {
-      setLocalCategories(localCategories.filter((c) => c.id !== catId));
+      const updated = localCategories.filter((c) => c.id !== catId);
+      setLocalCategories(updated);
+      await onSaveCategories(updated);
     }
   };
 
-  const handleResetDefaults = () => {
+  const handleResetDefaults = async () => {
     if (confirm('Reset all categories back to default Greesal categories?')) {
       setLocalCategories(DEFAULT_CATEGORIES);
+      await onSaveCategories(DEFAULT_CATEGORIES);
     }
   };
 

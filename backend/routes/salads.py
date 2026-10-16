@@ -343,6 +343,11 @@ def format_salad_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
     res["id"] = res.get("id") or str_id
     if not res.get("slug") and res.get("name"):
         res["slug"] = slugify(res["name"])
+    # Ensure category and tag are always synchronized
+    if not res.get("category") and res.get("tag"):
+        res["category"] = res.get("tag")
+    elif not res.get("tag") and res.get("category"):
+        res["tag"] = res.get("category")
     return res
 
 @router.get("/salads")
@@ -405,6 +410,10 @@ async def create_salad(request: Request):
     new_salad = dict(data)
     if "slug" not in new_salad or not new_salad["slug"]:
         new_salad["slug"] = slugify(new_salad["name"])
+    if new_salad.get("category") and not new_salad.get("tag"):
+        new_salad["tag"] = new_salad["category"]
+    elif new_salad.get("tag") and not new_salad.get("category"):
+        new_salad["category"] = new_salad["tag"]
     new_salad["createdAt"] = datetime.now(timezone.utc).isoformat()
 
     db = get_db()
@@ -436,6 +445,10 @@ async def update_salad(salad_id: str, request: Request):
     update_data = dict(data)
     if "_id" in update_data:
         del update_data["_id"]
+    if update_data.get("category") and not update_data.get("tag"):
+        update_data["tag"] = update_data["category"]
+    elif update_data.get("tag") and not update_data.get("category"):
+        update_data["category"] = update_data["tag"]
     update_data["updatedAt"] = datetime.now(timezone.utc).isoformat()
 
     db = get_db()

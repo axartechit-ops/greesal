@@ -62,17 +62,25 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
     const catIdNorm = categoryId.toLowerCase().trim().replace(/[-_]/g, ' ');
     const catLabelNorm = (cat?.label || '').toLowerCase().trim().replace(/[-_]/g, ' ');
     const tagNorm = (salad.tag || '').toLowerCase().trim().replace(/[-_]/g, ' ');
+    const catPropNorm = (salad.category || '').toLowerCase().trim().replace(/[-_]/g, ' ');
     const nameNorm = (salad.name || '').toLowerCase().trim();
 
-    if (tagNorm === catIdNorm || (catLabelNorm && tagNorm === catLabelNorm)) return true;
-    if (tagNorm.includes(catIdNorm) || (catLabelNorm && tagNorm.includes(catLabelNorm))) return true;
-    if (catIdNorm.includes(tagNorm) || (catLabelNorm && catLabelNorm.includes(tagNorm))) return true;
+    // 1. Direct equality with category id or label
+    if (catPropNorm && (catPropNorm === catIdNorm || catPropNorm === catLabelNorm)) return true;
+    if (tagNorm && (tagNorm === catIdNorm || tagNorm === catLabelNorm)) return true;
 
-    if (catIdNorm.includes('protein') && (tagNorm.includes('protein') || nameNorm.includes('protein'))) return true;
-    if (catIdNorm.includes('veggie') && (tagNorm.includes('veggie') || tagNorm.includes('sprout') || tagNorm.includes('detox'))) return true;
-    if (catIdNorm.includes('paneer') && (tagNorm.includes('paneer') || nameNorm.includes('paneer'))) return true;
-    if (catIdNorm.includes('rice') && (tagNorm.includes('rice') || nameNorm.includes('rice') || nameNorm.includes('burrito'))) return true;
-    if (catIdNorm.includes('exotic') && (tagNorm.includes('exotic') || nameNorm.includes('bundle') || nameNorm.includes('mais') || tagNorm.includes('superfood'))) return true;
+    // 2. Contains match between category id/label and salad category/tag
+    if (catPropNorm && (catPropNorm.includes(catIdNorm) || catIdNorm.includes(catPropNorm))) return true;
+    if (catPropNorm && catLabelNorm && (catPropNorm.includes(catLabelNorm) || catLabelNorm.includes(catPropNorm))) return true;
+    if (tagNorm && (tagNorm.includes(catIdNorm) || catIdNorm.includes(tagNorm))) return true;
+    if (tagNorm && catLabelNorm && (tagNorm.includes(catLabelNorm) || catLabelNorm.includes(tagNorm))) return true;
+
+    // 3. Fallback heuristics for default salads
+    if (catIdNorm.includes('protein') && (tagNorm.includes('protein') || catPropNorm.includes('protein') || nameNorm.includes('protein'))) return true;
+    if (catIdNorm.includes('veggie') && (tagNorm.includes('veggie') || catPropNorm.includes('veggie') || tagNorm.includes('sprout') || tagNorm.includes('detox'))) return true;
+    if (catIdNorm.includes('paneer') && (tagNorm.includes('paneer') || catPropNorm.includes('paneer') || nameNorm.includes('paneer'))) return true;
+    if (catIdNorm.includes('rice') && (tagNorm.includes('rice') || catPropNorm.includes('rice') || nameNorm.includes('rice') || nameNorm.includes('burrito'))) return true;
+    if (catIdNorm.includes('exotic') && (tagNorm.includes('exotic') || catPropNorm.includes('exotic') || nameNorm.includes('bundle') || nameNorm.includes('mais') || tagNorm.includes('superfood'))) return true;
 
     return false;
   };
@@ -190,12 +198,10 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
           <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 no-scrollbar">
             {displayCategories.map((cat) => {
               const active = selectedCategory === cat.id;
-              const countText = isLoading
-                ? '...'
-                : cat.count ||
-                  (cat.id === 'all'
-                    ? `${salads.length} items`
-                    : `${salads.filter((s) => matchesCategoryForSalad(s, cat.id)).length} items`);
+              const count = cat.id === 'all'
+                ? salads.length
+                : salads.filter((s) => matchesCategoryForSalad(s, cat.id)).length;
+              const countText = isLoading ? '...' : `${count} ${count === 1 ? 'item' : 'items'}`;
 
               return (
                 <button
@@ -293,15 +299,27 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
             <p className="text-xs sm:text-sm text-gray-500 mt-1">
               {searchQuery
                 ? `No salads match "${searchQuery}". Try a different keyword or category.`
-                : 'No salads available in this category right now.'}
+                : `No salads available in "${displayCategories.find(c => c.id === selectedCategory)?.label || selectedCategory}" category right now.`}
             </p>
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="mt-4 px-4 py-2 rounded-xl bg-[#20493c] text-white text-xs font-bold hover:bg-[#15342a] transition-all cursor-pointer shadow-xs"
-              >
-                Clear Search
-              </button>
+            {(searchQuery || selectedCategory !== 'all') && (
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="px-4 py-2 rounded-xl bg-gray-200 text-gray-800 text-xs font-bold hover:bg-gray-300 transition-all cursor-pointer"
+                  >
+                    Clear Search
+                  </button>
+                )}
+                {selectedCategory !== 'all' && (
+                  <button
+                    onClick={() => setSelectedCategory('all')}
+                    className="px-4 py-2 rounded-xl bg-[#20493c] text-white text-xs font-bold hover:bg-[#15342a] transition-all cursor-pointer shadow-xs"
+                  >
+                    View All Salads
+                  </button>
+                )}
+              </div>
             )}
           </div>
         ) : (
@@ -331,10 +349,10 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
                       }}
                     />
 
-                  {/* Top Badge: Tag */}
+                  {/* Top Badge: Tag / Category */}
                   <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-white/95 backdrop-blur-sm px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[11px] font-bold text-[#20493c] shadow-xs border border-[#6ac6ac]/30 flex items-center gap-0.5 sm:gap-1 max-w-[70%] sm:max-w-none truncate">
                     <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#fbce45] flex-shrink-0" />
-                    <span className="truncate">{salad.tag || 'Greesal Special'}</span>
+                    <span className="truncate">{salad.category || salad.tag || 'Greesal Special'}</span>
                   </div>
 
                   {/* Top Right: Calories */}

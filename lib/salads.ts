@@ -32,6 +32,7 @@ export interface Salad {
   protein: string;
   price: string;
   tag: string;
+  category?: string;
   image: string;
   ingredients?: string[];
   gravy?: string[];

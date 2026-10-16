@@ -33,6 +33,7 @@ class SaladBase(BaseModel):
     name: str
     slug: Optional[str] = None
     tag: str = "Chef Choice"
+    category: Optional[str] = None
     price: str = "₹299"
     originalPrice: Optional[str] = "₹349"
     description: Optional[str] = ""
@@ -66,6 +67,7 @@ class SaladUpdate(BaseModel):
     name: Optional[str] = None
     slug: Optional[str] = None
     tag: Optional[str] = None
+    category: Optional[str] = None
     price: Optional[str] = None
     originalPrice: Optional[str] = None
     description: Optional[str] = None
