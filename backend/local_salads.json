@@ -1,6 +1,6 @@
 [
   {
-    "_id": "6acfb18297dd385b9bca356b",
+    "_id": "paneer-garden-salad",
     "id": "paneer-garden-salad",
     "slug": "paneer-garden-salad",
     "name": "Paneer Garden Salad",
@@ -38,11 +38,91 @@
       "Paneer Lovers",
       "Evening Dinner"
     ],
-    "createdAt": "2026-10-14T16:44:50.020000",
     "category": "Paneer Salad"
   },
   {
-    "_id": "6acfb18297dd385b9bca356e",
+    "_id": "summer-garden-salad",
+    "id": "summer-garden-salad",
+    "slug": "summer-garden-salad",
+    "name": "Summer Garden Salad",
+    "calories": "280 Kcal",
+    "protein": "16g Protein",
+    "price": "₹220",
+    "tag": "Veggies Salad",
+    "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=800&q=80",
+    "ingredients": [
+      "Exotic Veggies Fusion",
+      "Fresh Paneer",
+      "Broccoli Florets",
+      "Cherry Tomatoes",
+      "Boiled Chickpeas",
+      "Fresh Sprouts",
+      "Sweet American Corn",
+      "Crisp Romaine Lettuce"
+    ],
+    "gravy": [
+      "Homemade Greek Yogurt Dip",
+      "Mint-Coriander Dressing",
+      "Lemon Vinaigrette"
+    ],
+    "healthBenefits": [
+      "Cooling and refreshing gut-friendly Greek yogurt base.",
+      "Rich in hydration with high-water veggies.",
+      "Balanced macro ratio for everyday lunch."
+    ],
+    "additionalBenefits": [
+      "Detoxification",
+      "Hydration",
+      "Light on Stomach"
+    ],
+    "perfectFor": [
+      "Summer Wellness",
+      "Fat Loss",
+      "Office Lunch"
+    ],
+    "category": "Veggies Salad"
+  },
+  {
+    "_id": "healthy-sprout-bowl",
+    "id": "healthy-sprout-bowl",
+    "slug": "healthy-mixed-sprout-salad",
+    "name": "Healthy Sprout Bowl",
+    "calories": "260 Kcal",
+    "protein": "15g Protein",
+    "price": "₹200",
+    "tag": "Veggies Salad",
+    "image": "https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?auto=format&fit=crop&w=800&q=80",
+    "ingredients": [
+      "Multi-sprout Blend (Moong, Methi, Chana)",
+      "Sweet Pomegranate Arils",
+      "Crisp Organic Greens",
+      "Cucumber and Diced Carrots",
+      "Roasted Sesame & Chia"
+    ],
+    "gravy": [
+      "Zesty Spicy Handmade Dipping Sauce",
+      "Fresh Lime Wedge",
+      "Rock Salt Blend"
+    ],
+    "healthBenefits": [
+      "Live enzymes and high active fiber for digestive vitality.",
+      "Iron and folate rich for hemoglobin elevation.",
+      "Low calorie density for effective weight loss."
+    ],
+    "additionalBenefits": [
+      "Gut Detox",
+      "Hair Strength",
+      "Immunity Boost"
+    ],
+    "perfectFor": [
+      "Fat Loss",
+      "Breakfast/Snack",
+      "Detox"
+    ],
+    "category": "Veggies Salad"
+  },
+  {
+    "_id": "little-bundle",
     "id": "little-bundle",
     "slug": "little-bundle",
     "name": "Little Bundle (5 Salad Platter)",
@@ -78,11 +158,10 @@
       "Party",
       "Variety Lovers"
     ],
-    "createdAt": "2026-10-14T16:44:50.020000",
     "category": "Exotic Salad"
   },
   {
-    "_id": "6acfb18297dd385b9bca356f",
+    "_id": "mexican-rice-bowl",
     "id": "mexican-rice-bowl",
     "slug": "mexican-rice-bowl",
     "name": "Mexican Rice Bowl",
@@ -117,11 +196,10 @@
       "Energy Boost",
       "Post-Workout"
     ],
-    "createdAt": "2026-10-14T16:44:50.020000",
     "category": "Rice Bowl"
   },
   {
-    "_id": "6acfb18297dd385b9bca3570",
+    "_id": "mexican-mais-salad",
     "id": "mexican-mais-salad",
     "slug": "mexican-mais-salad",
     "name": "Mexican Mais Salad",
@@ -152,11 +230,10 @@
       "Snack",
       "Light Meal"
     ],
-    "createdAt": "2026-10-14T16:44:50.020000",
     "category": "Exotic Salad"
   },
   {
-    "_id": "6acfb18297dd385b9bca3571",
+    "_id": "high-protein-salad",
     "id": "high-protein-salad",
     "slug": "premium-high-protein-salad",
     "name": "Premium High Protein Salad",
@@ -244,11 +321,10 @@
       "iron": "6 mg",
       "potassium": "685 mg"
     },
-    "createdAt": "2026-10-14T16:44:50.020000",
     "category": "High Protein"
   },
   {
-    "_id": "6acfb18297dd385b9bca3572",
+    "_id": "burrito-salad",
     "id": "burrito-salad",
     "slug": "premium-burrito-salad",
     "name": "Premium Burrito Salad",
@@ -316,11 +392,10 @@
       "iron": "6 mg",
       "potassium": "785 mg"
     },
-    "createdAt": "2026-10-14T16:44:50.020000",
     "category": "Chef Choice"
   },
   {
-    "_id": "6acfb18297dd385b9bca3573",
+    "_id": "peanut-salad",
     "id": "peanut-salad",
     "slug": "premium-peanut-salad",
     "name": "Premium Peanut Salad",
@@ -389,11 +464,83 @@
       "iron": "4 mg",
       "potassium": "542 mg"
     },
-    "createdAt": "2026-10-14T16:44:50.020000",
     "category": "Bestseller"
   },
   {
-    "_id": "6acfb18297dd385b9bca3575",
+    "_id": "sprout-salad",
+    "id": "sprout-salad",
+    "slug": "premium-sprout-salad",
+    "name": "Premium Sprout Salad",
+    "calories": "379 Kcal",
+    "protein": "21g Protein",
+    "price": "₹339",
+    "tag": "Organic",
+    "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
+    "ingredients": [
+      "Sprouted Moong & Matki",
+      "Organic Soft Paneer",
+      "Cabbage - green + purple",
+      "Crisp Zucchini",
+      "Farm Carrots",
+      "Capsicum",
+      "Beetroot",
+      "Pomegranate Seeds",
+      "Pumpkin Seeds",
+      "Sunflower Seeds",
+      "Flax Seeds"
+    ],
+    "gravy": [
+      "Cashew Puree",
+      "Fresh Parsley",
+      "Mint Leaves",
+      "Honey",
+      "Watermelon Seeds",
+      "Cracked Black Pepper",
+      "Basil",
+      "Chilli Flakes",
+      "Chat Masala"
+    ],
+    "healthBenefits": [
+      "Maximum Protein Density (21g): Sprouting increases amino acid bioavailability for peak strength.",
+      "Active Digestive Enzymes: Live enzymes eliminate bloating and promote seamless digestive transit.",
+      "Natural Detoxification: Chlorophyll and fiber work together to flush toxins naturally.",
+      "Cellular Rejuvenation: High trace minerals (iron, zinc, magnesium) support vibrant hair and skin.",
+      "Immune Defense: Rich in Vitamin C and polyphenols for strong daily immunity."
+    ],
+    "additionalBenefits": [
+      "Controls Blood Sugar",
+      "Supports Hair Growth",
+      "Detoxifies Body",
+      "Improves Immunity"
+    ],
+    "perfectFor": [
+      "Detox",
+      "High Protein Diet",
+      "Clean Eating",
+      "Fitness"
+    ],
+    "nutrition": {
+      "carbs": "66g",
+      "fiber": "15g",
+      "sugarTotal": "5g",
+      "sugarAdded": "3g",
+      "totalFat": "3g",
+      "saturatedFat": "0g",
+      "transFat": "0g",
+      "cholesterol": "0mg",
+      "vitaminA": "118.12 µg",
+      "vitaminC": "12.49 mg",
+      "vitaminD": "0 µg",
+      "vitaminE": "1.86 mg",
+      "sodium": "39 mg",
+      "calcium": "94 mg",
+      "iron": "8 mg",
+      "potassium": "742 mg"
+    },
+    "category": "Organic"
+  },
+  {
+    "_id": "mushroom-fry-salad",
     "id": "mushroom-fry-salad",
     "slug": "premium-mushroom-fry-salad",
     "name": "Premium Mushroom Fry Salad",
@@ -459,7 +606,149 @@
       "iron": "4 mg",
       "potassium": "1245 mg"
     },
-    "createdAt": "2026-10-14T16:44:50.020000",
     "category": "New Item"
+  },
+  {
+    "_id": "mexican-fry-salad",
+    "id": "mexican-fry-salad",
+    "slug": "premium-mexican-fry-salad",
+    "name": "Premium Mexican Fry Salad",
+    "calories": "379 Kcal",
+    "protein": "19g Protein",
+    "price": "₹359",
+    "tag": "Spicy & Tangy",
+    "image": "https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?auto=format&fit=crop&w=600&q=80",
+    "ingredients": [
+      "Seasoned Rajma Beans",
+      "House Salsa",
+      "Sweet Golden Corn",
+      "Cabbage - green + purple",
+      "Zucchini - yellow + green",
+      "Carrots",
+      "Capsicum - yellow + green",
+      "Baked Corn Crisps",
+      "Pumpkin Seeds",
+      "Watermelon Seeds",
+      "Sunflower Seeds",
+      "Flax Seeds"
+    ],
+    "gravy": [
+      "Extra Virgin Olive Oil",
+      "Raw Honey",
+      "Mexican Oregano",
+      "Black Pepper Powder",
+      "Chilli Flakes",
+      "Chat Masala",
+      "Fresh Lemon"
+    ],
+    "healthBenefits": [
+      "Exciting Tangy Flavor: Satisfies fast-food cravings with 100% clean, non-greasy ingredients.",
+      "Fiber Powerhouse (13g): Regulates blood sugar spikes and sustains optimal digestion.",
+      "Natural Carotenoids: Bell peppers and corn provide lutein & zeaxanthin for vision health.",
+      "Metabolic Thermogenesis: Mild chili spices gently stimulate calorie expenditure.",
+      "Hydration & Vitality: Fresh crisp vegetables maintain cellular fluid balance."
+    ],
+    "additionalBenefits": [
+      "Mood Booster",
+      "Hydration Support",
+      "Quick Filling Meal",
+      "Customizable Nutrition"
+    ],
+    "perfectFor": [
+      "Craving Satisfaction",
+      "Lunch Fuel",
+      "Fitness",
+      "Healthy"
+    ],
+    "nutrition": {
+      "carbs": "69g",
+      "fiber": "13g",
+      "sugarTotal": "6g",
+      "sugarAdded": "3g",
+      "totalFat": "3g",
+      "saturatedFat": "0g",
+      "transFat": "0g",
+      "cholesterol": "0mg",
+      "vitaminA": "132.31 µg",
+      "vitaminC": "15.63 mg",
+      "vitaminD": "0 µg",
+      "vitaminE": "1.45 mg",
+      "sodium": "45 mg",
+      "calcium": "82 mg",
+      "iron": "6 mg",
+      "potassium": "815 mg"
+    },
+    "category": "Spicy & Tangy"
+  },
+  {
+    "_id": "quinoa-avocado-salad",
+    "id": "quinoa-avocado-salad",
+    "slug": "premium-quinoa-with-avocado-salad",
+    "name": "Premium Quinoa with Avocado Salad",
+    "calories": "446 Kcal",
+    "protein": "8.54g Protein",
+    "price": "₹399",
+    "tag": "Superfood",
+    "image": "https://images.unsplash.com/photo-1505576399279-565b52d4ac71?auto=format&fit=crop&w=600&q=80",
+    "ingredients": [
+      "Fresh Ripe Hass Avocado",
+      "Fluffy Andean Quinoa",
+      "Organic Paneer",
+      "Sweet Corn",
+      "Cabbage",
+      "Zucchini",
+      "Carrot",
+      "Capsicum - yellow + green",
+      "Beetroot",
+      "Pomegranate Seeds",
+      "Flax Seeds"
+    ],
+    "gravy": [
+      "Cold-Pressed Olive Oil",
+      "Organic Honey",
+      "Wild Oregano",
+      "Black Pepper Powder",
+      "Chilli Flakes",
+      "Chat Masala",
+      "Fresh Lime Juice"
+    ],
+    "healthBenefits": [
+      "Complete Amino Acid Profile: Quinoa supplies all 9 essential amino acids for total cellular wellness.",
+      "Brain & Heart Monounsaturated Fats: Avocado oleic acid supports sharp cognition and heart elasticity.",
+      "Skin Radiance & Glow: High Vitamin E and essential fatty acids nourish skin hydration from within.",
+      "Long-Burning Clean Energy: Complex quinoa starches prevent fatigue and sugar cravings.",
+      "Anti-Inflammatory Defense: Polyphenols and healthy fats calm systemic cellular inflammation."
+    ],
+    "additionalBenefits": [
+      "Brain Function Support",
+      "Cholesterol Control",
+      "Skin Health Improvement",
+      "Bone Strength"
+    ],
+    "perfectFor": [
+      "Superfood Diet",
+      "Anti-Aging",
+      "Wellness",
+      "Clean Nutrition"
+    ],
+    "nutrition": {
+      "carbs": "66g",
+      "fiber": "11g",
+      "sugarTotal": "9g",
+      "sugarAdded": "6g",
+      "totalFat": "18g",
+      "saturatedFat": "3.1g",
+      "transFat": "0g",
+      "cholesterol": "0mg",
+      "vitaminA": "168.42 µg",
+      "vitaminC": "18.9 mg",
+      "vitaminD": "0 µg",
+      "vitaminE": "4.85 mg",
+      "sodium": "38 mg",
+      "calcium": "76 mg",
+      "iron": "5 mg",
+      "potassium": "920 mg"
+    },
+    "category": "Superfood"
   }
 ]

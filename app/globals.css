@@ -7,6 +7,11 @@
   --font-serif: 'Playfair Display', Georgia, serif;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -20,6 +25,14 @@ body {
   font-family: var(--font-sans);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* GPU acceleration helper for butter-smooth animations & card hover transitions */
+.gpu-accel {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
 @keyframes fadeIn {

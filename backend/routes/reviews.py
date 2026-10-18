@@ -58,12 +58,28 @@ def format_review_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
         res["author"] = res["name"]
     return res
 
+_public_reviews_cache: Optional[List[Dict[str, Any]]] = None
+_public_reviews_cache_time: float = 0.0
+REVIEWS_CACHE_TTL: float = 60.0
+
+def invalidate_reviews_cache():
+    global _public_reviews_cache
+    _public_reviews_cache = None
+
 @router.get("/reviews")
 @router.get("/api/reviews")
 def get_public_reviews():
+    global _public_reviews_cache, _public_reviews_cache_time
+    now = time.time()
+    if _public_reviews_cache is not None and (now - _public_reviews_cache_time < REVIEWS_CACHE_TTL):
+        return _public_reviews_cache
+
     db = get_db()
     if db is None:
-        return [format_review_doc({**r, "_id": f"rev-{idx+1}"}) for idx, r in enumerate(DEFAULT_REVIEWS)]
+        formatted = [format_review_doc({**r, "_id": f"rev-{idx+1}"}) for idx, r in enumerate(DEFAULT_REVIEWS)]
+        _public_reviews_cache = formatted
+        _public_reviews_cache_time = now
+        return formatted
 
     try:
         count = db.reviews.count_documents({})
@@ -78,10 +94,16 @@ def get_public_reviews():
         ]))
 
         logger.info(f"Loaded {len(reviews)} public reviews from MongoDB")
-        return [format_review_doc(r) for r in reviews]
+        formatted = [format_review_doc(r) for r in reviews]
+        _public_reviews_cache = formatted
+        _public_reviews_cache_time = now
+        return formatted
     except Exception as e:
         logger.error(f"Error reading reviews from MongoDB: {e}")
-        return [format_review_doc({**r, "_id": f"rev-{idx+1}"}) for idx, r in enumerate(DEFAULT_REVIEWS)]
+        formatted = [format_review_doc({**r, "_id": f"rev-{idx+1}"}) for idx, r in enumerate(DEFAULT_REVIEWS)]
+        _public_reviews_cache = formatted
+        _public_reviews_cache_time = now
+        return formatted
 
 @router.get("/admin/reviews")
 @router.get("/api/admin/reviews")

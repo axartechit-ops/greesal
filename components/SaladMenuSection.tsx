@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Salad, slugify } from '@/lib/salads';
+import { Salad, slugify, SaladPortion, getSaladPortions, getSaladPriceForPortion } from '@/lib/salads';
 import { 
   Plus, 
   Minus, 
@@ -53,6 +53,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedPortions, setSelectedPortions] = useState<Record<string, SaladPortion>>({});
 
   const displayCategories = categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
 
@@ -96,11 +97,14 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
     return matchesCategory && matchesSearch;
   });
 
-  const handleQuickWhatsAppOrder = (salad: Salad) => {
+  const handleQuickWhatsAppOrder = (salad: Salad, portion?: SaladPortion) => {
+    const gramText = portion ? ` (${portion.grams}g)` : '';
+    const priceText = portion ? `₹${portion.price}` : (salad.price.startsWith('₹') ? salad.price : `₹${salad.price}`);
     const text = encodeURIComponent(
       `🥗 *ORDER FROM GREESAL WEBSITE* 🥗\n\n` +
-      `Item: *${salad.name}*\n` +
-      `Price: *${salad.price}*\n` +
+      `Item: *${salad.name}${gramText}*\n` +
+      `Portion Size: *${portion ? `${portion.grams}g (${portion.label || 'Standard'})` : 'Standard Bowl'}*\n` +
+      `Price: *${priceText}*\n` +
       `Delivery City: *Surat (Free Delivery)*\n\n` +
       `Please confirm availability for the next slot!`
     );
@@ -327,6 +331,14 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
             {filteredSalads.map((salad) => {
               const saladId = salad.id || salad._id || salad.slug || salad.name;
               const quantity = cartItems[saladId] || 0;
+              const portions = getSaladPortions(salad);
+              const currentPortion = selectedPortions[saladId] || portions.find(p => p.isDefault) || portions[0];
+              const activePrice = currentPortion ? `₹${currentPortion.price}` : (salad.price.startsWith('₹') ? salad.price : `₹${salad.price}`);
+              const preparedSalad: Salad = {
+                ...salad,
+                price: activePrice,
+                selectedPortion: currentPortion,
+              };
 
               return (
                 <div
@@ -409,12 +421,55 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
                       </p>
                     </div>
 
+                    {/* Gram Portion Selector Buttons */}
+                    <div className="pt-2 mb-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                          Portion / Grams:
+                        </span>
+                        <span className="text-[10px] font-black text-[#20493c] bg-[#e8f7f2] px-1.5 py-0.2 rounded">
+                          {currentPortion?.grams}g
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1">
+                        {portions.map((p) => {
+                          const isSelected = currentPortion?.grams === p.grams;
+                          return (
+                            <button
+                              key={p.grams}
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSelectedPortions((prev) => ({
+                                  ...prev,
+                                  [saladId]: p,
+                                }));
+                              }}
+                              className={`py-1 px-1 rounded-xl text-center transition-all cursor-pointer border flex flex-col items-center justify-center ${
+                                isSelected
+                                  ? 'bg-[#20493c] text-white border-[#20493c] shadow-2xs ring-1 ring-[#fbce45]'
+                                  : 'bg-[#faf6f0] hover:bg-gray-100 text-[#20493c] border-gray-200'
+                              }`}
+                            >
+                              <span className={`text-[10px] sm:text-[11px] font-black leading-tight ${isSelected ? 'text-[#fbce45]' : 'text-[#20493c]'}`}>
+                                {p.grams}g
+                              </span>
+                              <span className={`text-[9px] sm:text-[10px] font-extrabold leading-tight ${isSelected ? 'text-white' : 'text-emerald-700'}`}>
+                                ₹{p.price}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     {/* Bottom Row: Price & Actions */}
                     <div className="pt-2 sm:pt-3 border-t border-gray-100 flex items-center justify-between gap-1 sm:gap-2">
                       <div>
                         <span className="text-[9px] sm:text-[11px] text-gray-400 block font-medium leading-none mb-0.5">Price</span>
                         <span className="font-montserrat font-black text-xs sm:text-xl text-[#20493c] tracking-tight">
-                          {salad.price.startsWith('₹') ? salad.price : `₹${salad.price}`}
+                          {activePrice}
                         </span>
                       </div>
 
@@ -423,15 +478,15 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
                         {quantity === 0 ? (
                           <>
                             <button
-                              onClick={() => onAddToCart(salad)}
-                              className="inline-flex items-center gap-0.5 sm:gap-1.5 bg-[#20493c] hover:bg-[#15342a] text-white px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all active:scale-95 shadow-xs whitespace-nowrap"
+                              onClick={() => onAddToCart(preparedSalad)}
+                              className="inline-flex items-center gap-0.5 sm:gap-1.5 bg-[#20493c] hover:bg-[#15342a] text-white px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all active:scale-95 shadow-xs whitespace-nowrap cursor-pointer"
                             >
                               <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#fbce45]" />
                               <span>Add</span>
                             </button>
                             <button
-                              onClick={() => handleQuickWhatsAppOrder(salad)}
-                              className="p-1.5 sm:p-2 rounded-xl border border-gray-200 hover:border-[#25D366] hover:bg-[#eafaf1] text-[#25D366] transition-colors"
+                              onClick={() => handleQuickWhatsAppOrder(preparedSalad, currentPortion)}
+                              className="p-1.5 sm:p-2 rounded-xl border border-gray-200 hover:border-[#25D366] hover:bg-[#eafaf1] text-[#25D366] transition-colors cursor-pointer"
                               title="Order via WhatsApp"
                             >
                               <Phone className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -441,7 +496,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
                           <div className="flex items-center gap-1 sm:gap-1.5 bg-[#e8f7f2] border border-[#6ac6ac]/40 rounded-xl p-0.5 sm:p-1 shadow-xs">
                             <button
                               onClick={() => onRemoveFromCart(saladId)}
-                              className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-white text-[#20493c] flex items-center justify-center hover:bg-gray-100 active:scale-90"
+                              className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-white text-[#20493c] flex items-center justify-center hover:bg-gray-100 active:scale-90 cursor-pointer"
                             >
                               <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                             </button>
@@ -449,8 +504,8 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
                               {quantity}
                             </span>
                             <button
-                              onClick={() => onAddToCart(salad)}
-                              className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-[#20493c] text-white flex items-center justify-center hover:bg-[#15342a] active:scale-90"
+                              onClick={() => onAddToCart(preparedSalad)}
+                              className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-[#20493c] text-white flex items-center justify-center hover:bg-[#15342a] active:scale-90 cursor-pointer"
                             >
                               <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                             </button>

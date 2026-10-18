@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import FRONTEND_URL, PORT
@@ -71,11 +71,23 @@ def create_app() -> FastAPI:
     app.include_router(users_router)
 
     @app.get("/")
-    def index():
+    def index(request: Request):
+        accept = request.headers.get("accept", "")
+        # If user visits backend root in a web browser, redirect directly to the frontend web app
+        if "text/html" in accept:
+            return RedirectResponse(url=FRONTEND_URL, status_code=307)
+        return get_api_meta()
+
+    @app.get("/api")
+    def api_meta():
+        return get_api_meta()
+
+    def get_api_meta():
         return {
             "app": "Greesal FastAPI Backend API",
             "status": "online",
             "framework": "FastAPI",
+            "frontend_url": FRONTEND_URL,
             "docs": "/docs",
             "endpoints": [
                 "/health",

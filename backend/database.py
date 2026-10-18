@@ -69,12 +69,20 @@ def connect_to_mongo():
     db_manager.client = None
     db_manager.db = None
 
+_last_ping_time: float = 0.0
+
 def _is_connection_alive() -> bool:
-    """Check if the current MongoDB connection is still alive."""
-    if db_manager.client is None:
+    """Check if the current MongoDB connection is alive without blocking every query."""
+    global _last_ping_time
+    if db_manager.client is None or db_manager.db is None:
         return False
+    now = time.time()
+    # Only verify with network ping at most once every 60 seconds
+    if now - _last_ping_time < 60.0:
+        return True
     try:
         db_manager.client.admin.command('ping')
+        _last_ping_time = now
         return True
     except Exception:
         return False
@@ -84,7 +92,6 @@ def get_db() -> Optional[PyMongoDatabase]:
     if db_manager.db is None or not _is_connection_alive():
         if db_manager.db is not None:
             logger.warning("MongoDB connection lost — attempting reconnection...")
-        # Reset stale state and reconnect
         db_manager.client = None
         db_manager.db = None
         connect_to_mongo()

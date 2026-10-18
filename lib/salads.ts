@@ -23,6 +23,13 @@ export interface SaladAddOn {
   price: number;
 }
 
+export interface SaladPortion {
+  grams: number;       // e.g. 250, 350, 500
+  price: number;       // e.g. 190, 240, 320
+  label?: string;      // e.g. "Small (250g)", "Regular (350g)", "Meal / Jumbo (500g)"
+  isDefault?: boolean; // true for standard default portion
+}
+
 export interface Salad {
   _id?: string;
   id?: string;
@@ -41,6 +48,65 @@ export interface Salad {
   perfectFor?: string[];
   nutrition?: NutritionInfo;
   addOns?: SaladAddOn[];
+  portions?: SaladPortion[];
+  selectedPortion?: SaladPortion;
+}
+
+/**
+ * Get all available gram portions for a salad.
+ * If admin has added custom portions, returns those.
+ * Otherwise, generates standard Greesal portion tiers (250g, 350g, 500g) based on the base price.
+ */
+export function getSaladPortions(salad: Salad | null | undefined): SaladPortion[] {
+  if (!salad) {
+    return [
+      { grams: 250, price: 180, label: 'Small (250g)' },
+      { grams: 350, price: 240, label: 'Regular (350g)', isDefault: true },
+      { grams: 500, price: 320, label: 'Jumbo (500g)' },
+    ];
+  }
+
+  if (Array.isArray(salad.portions) && salad.portions.length > 0) {
+    // Return sorted by weight in ascending order
+    return [...salad.portions].sort((a, b) => a.grams - b.grams);
+  }
+
+  const basePrice = parseInt(String(salad.price).replace(/[^\d]/g, ''), 10) || 240;
+  // Calculate standard authentic Greesal portion tiers
+  const p250 = Math.max(99, Math.round((basePrice * 0.8) / 10) * 10);
+  const p350 = basePrice;
+  const p500 = Math.max(basePrice + 50, Math.round((basePrice * 1.35) / 10) * 10);
+
+  return [
+    { grams: 250, price: p250, label: 'Small (250g)' },
+    { grams: 350, price: p350, label: 'Regular (350g)', isDefault: true },
+    { grams: 500, price: p500, label: 'Jumbo (500g)' },
+  ];
+}
+
+/**
+ * Get the formatted price string for a selected portion or default portion.
+ */
+export function getSaladPriceForPortion(salad: Salad, portion?: SaladPortion | null): string {
+  if (portion && typeof portion.price === 'number') {
+    return `₹${portion.price}`;
+  }
+  const portions = getSaladPortions(salad);
+  const def = portions.find((p) => p.isDefault) || portions[0];
+  return def ? `₹${def.price}` : (salad.price?.startsWith('₹') ? salad.price : `₹${salad.price}`);
+}
+
+/**
+ * Get numerical price for a selected portion or default.
+ */
+export function getSaladNumericPrice(salad: Salad, portion?: SaladPortion | null): number {
+  if (portion && typeof portion.price === 'number') {
+    return portion.price;
+  }
+  const portions = getSaladPortions(salad);
+  const def = portions.find((p) => p.isDefault) || portions[0];
+  if (def) return def.price;
+  return parseInt(String(salad.price).replace(/[^\d]/g, ''), 10) || 240;
 }
 
 export function slugify(text: string): string {

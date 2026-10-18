@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Salad, slugify } from '@/lib/salads';
+import { Salad, slugify, SaladPortion, getSaladPortions, getSaladPriceForPortion } from '@/lib/salads';
 import { 
   X, 
   Flame, 
@@ -37,12 +37,31 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
   if (!isOpen || !salad) return null;
 
   const saladId = salad.id || salad._id || salad.slug || salad.name;
+  const portions = getSaladPortions(salad);
+  const [selectedPortion, setSelectedPortion] = useState<SaladPortion>(() => {
+    return portions.find((p) => p.isDefault) || portions[0];
+  });
+
+  useEffect(() => {
+    if (salad) {
+      const pList = getSaladPortions(salad);
+      setSelectedPortion(pList.find((p) => p.isDefault) || pList[0]);
+    }
+  }, [salad]);
+
+  const activePrice = selectedPortion ? `₹${selectedPortion.price}` : (salad.price.startsWith('₹') ? salad.price : `₹${salad.price}`);
+  const preparedSalad: Salad = {
+    ...salad,
+    price: activePrice,
+    selectedPortion,
+  };
 
   const handleWhatsAppOrder = () => {
     const text = encodeURIComponent(
       `🥗 *ORDER FROM GREESAL WEBSITE* 🥗\n\n` +
       `Item: *${salad.name}*\n` +
-      `Price: *${salad.price}*\n` +
+      `Portion Size: *${selectedPortion ? `${selectedPortion.grams}g (${selectedPortion.label || 'Standard'})` : 'Standard Bowl'}*\n` +
+      `Price: *${activePrice}*\n` +
       `Calories: *${salad.calories || 'Balanced'}*\n` +
       `Protein: *${salad.protein || 'High Protein'}*\n` +
       `City: *Surat (Free Delivery)*\n\n` +
@@ -128,20 +147,63 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
               </span>
             </Link>
 
+            {/* Gram Portion Weights */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="font-montserrat font-bold text-xs uppercase tracking-wider text-[#20493c] flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#fbce45]" />
+                  <span>Select Bowl Size / Weight</span>
+                </h4>
+                <span className="text-[11px] font-extrabold text-[#20493c] bg-[#e8f7f2] px-2.5 py-0.5 rounded-full border border-[#6ac6ac]/30">
+                  {selectedPortion?.grams}g Selected
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                {portions.map((portion) => {
+                  const isSelected = selectedPortion?.grams === portion.grams;
+                  return (
+                    <button
+                      key={portion.grams}
+                      type="button"
+                      onClick={() => setSelectedPortion(portion)}
+                      className={`p-3 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                        isSelected
+                          ? 'bg-[#20493c] text-white border-[#20493c] shadow-md ring-2 ring-[#fbce45]'
+                          : 'bg-[#FAF6F0] hover:bg-white text-[#20493c] border-[#E8E1D5]'
+                      }`}
+                    >
+                      <span className={`text-xs font-black ${isSelected ? 'text-[#fbce45]' : 'text-[#20493c]'}`}>
+                        {portion.grams}g
+                      </span>
+                      <span className={`text-xs font-black ${isSelected ? 'text-white' : 'text-emerald-700'}`}>
+                        ₹{portion.price}
+                      </span>
+                      {portion.label && (
+                        <span className={`text-[10px] line-clamp-1 opacity-80 ${isSelected ? 'text-gray-200' : 'text-gray-500'}`}>
+                          {portion.label.replace(`(${portion.grams}g)`, '').trim()}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Price and Add to Cart Bar */}
             <div className="flex items-center justify-between p-4 rounded-2xl bg-[#e8f7f2] border border-[#6ac6ac]/30">
               <div>
                 <span className="text-xs text-[#20493c]/70 font-semibold block">Price (Free Surat Delivery)</span>
                 <span className="font-montserrat font-black text-2xl sm:text-3xl text-[#20493c]">
-                  {salad.price.startsWith('₹') ? salad.price : `₹${salad.price}`}
+                  {activePrice}
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
                 {quantityInCart === 0 ? (
                   <button
-                    onClick={() => onAddToCart(salad)}
-                    className="flex items-center gap-2 bg-[#20493c] hover:bg-[#15342a] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md active:scale-95 transition-all"
+                    onClick={() => onAddToCart(preparedSalad)}
+                    className="flex items-center gap-2 bg-[#20493c] hover:bg-[#15342a] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md active:scale-95 transition-all cursor-pointer"
                   >
                     <Plus className="w-4 h-4 text-[#fbce45]" />
                     <span>Add to Cart</span>
@@ -150,7 +212,7 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
                   <div className="flex items-center gap-2 bg-white rounded-xl p-1.5 shadow-sm border border-[#6ac6ac]/30">
                     <button
                       onClick={() => onRemoveFromCart(saladId)}
-                      className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-[#20493c] flex items-center justify-center font-bold"
+                      className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-[#20493c] flex items-center justify-center font-bold cursor-pointer"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
@@ -158,8 +220,8 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
                       {quantityInCart}
                     </span>
                     <button
-                      onClick={() => onAddToCart(salad)}
-                      className="w-8 h-8 rounded-lg bg-[#20493c] text-white flex items-center justify-center font-bold"
+                      onClick={() => onAddToCart(preparedSalad)}
+                      className="w-8 h-8 rounded-lg bg-[#20493c] text-white flex items-center justify-center font-bold cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -168,7 +230,7 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
 
                 <button
                   onClick={handleWhatsAppOrder}
-                  className="p-2.5 rounded-xl bg-[#25D366] text-white hover:bg-[#20ba59] transition-colors shadow-sm"
+                  className="p-2.5 rounded-xl bg-[#25D366] text-white hover:bg-[#20ba59] transition-colors shadow-sm cursor-pointer"
                   title="Order direct via WhatsApp"
                 >
                   <Phone className="w-4 h-4" />

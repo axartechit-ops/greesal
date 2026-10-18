@@ -11,6 +11,7 @@ import { AdminSiteTextsTab } from '@/components/admin/AdminSiteTextsTab';
 import { AdminReviewsTab } from '@/components/admin/AdminReviewsTab';
 import { AdminSliderTab } from '@/components/admin/AdminSliderTab';
 import { SiteCategory, SiteSettings, DEFAULT_CATEGORIES, DEFAULT_SITE_SETTINGS } from '@/lib/siteSettings';
+import { SaladPortion, getSaladPortions, getSaladPriceForPortion } from '@/lib/salads';
 import { 
   Save, 
   Plus, 
@@ -77,6 +78,7 @@ interface Salad {
   additionalBenefits?: string[];
   perfectFor?: string[];
   addOns?: Array<{ name: string; price: number }>;
+  portions?: SaladPortion[];
   nutrition?: {
     carbs?: string;
     fiber?: string;
@@ -135,7 +137,12 @@ export default function AdminPage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'orders' | 'salads' | 'slider' | 'timing' | 'banner' | 'categories' | 'siteTexts' | 'reviews'>('orders');
-  const [formTab, setFormTab] = useState<'general' | 'ingredients' | 'benefits' | 'nutrition' | 'addons'>('general');
+  const [formTab, setFormTab] = useState<'general' | 'portions' | 'ingredients' | 'benefits' | 'nutrition' | 'addons'>('general');
+  
+  // Custom gram size / portions editor states in salad form
+  const [newPortionGrams, setNewPortionGrams] = useState<string>('');
+  const [newPortionPrice, setNewPortionPrice] = useState<string>('');
+  const [newPortionLabel, setNewPortionLabel] = useState<string>('');
   
   // Dynamic categories & site settings state
   const [categoriesState, setCategoriesState] = useState<SiteCategory[]>(DEFAULT_CATEGORIES);
@@ -782,6 +789,9 @@ export default function AdminPage() {
     setImageSourceType('file');
     setNewAddOnName('');
     setNewAddOnPrice('');
+    setNewPortionGrams('');
+    setNewPortionPrice('');
+    setNewPortionLabel('');
     setIsQuickAddCatOpen(false);
     setQuickCatLabel('');
     setQuickCatIcon('🥗');
@@ -790,7 +800,7 @@ export default function AdminPage() {
       name: '',
       calories: '',
       protein: '',
-      price: '',
+      price: '₹240',
       tag: defaultCat,
       category: defaultCat,
       image: '',
@@ -799,6 +809,11 @@ export default function AdminPage() {
       healthBenefits: [],
       additionalBenefits: [],
       perfectFor: ['Diet', 'Fitness', 'Healthy'],
+      portions: [
+        { grams: 250, price: 190, label: 'Small Bowl (250g)' },
+        { grams: 350, price: 240, label: 'Regular Bowl (350g)', isDefault: true },
+        { grams: 500, price: 320, label: 'Jumbo Bowl (500g)' },
+      ],
       addOns: [
         { name: 'Extra Organic Paneer / Tofu', price: 40 },
         { name: 'Extra Cold-Blended Herb Dressing', price: 30 },
@@ -823,10 +838,17 @@ export default function AdminPage() {
     setImageSourceType(salad.image && !salad.image.startsWith('data:') ? 'url' : 'file');
     setNewAddOnName('');
     setNewAddOnPrice('');
+    setNewPortionGrams('');
+    setNewPortionPrice('');
+    setNewPortionLabel('');
     setIsQuickAddCatOpen(false);
     setQuickCatLabel('');
     setQuickCatIcon('🥗');
     const saladCategory = salad.category || salad.tag || categoriesState.find(c => c.id !== 'all')?.label || 'Protein House';
+    const saladPortions = Array.isArray(salad.portions) && salad.portions.length > 0 
+      ? salad.portions 
+      : getSaladPortions(salad);
+
     setCurrentSalad({ 
       ...salad,
       tag: saladCategory,
@@ -836,6 +858,7 @@ export default function AdminPage() {
       healthBenefits: salad.healthBenefits || [],
       additionalBenefits: salad.additionalBenefits || [],
       perfectFor: salad.perfectFor || ['Diet', 'Fitness', 'Healthy'],
+      portions: saladPortions,
       addOns: Array.isArray(salad.addOns) ? salad.addOns : [
         { name: 'Extra Organic Paneer / Tofu', price: 40 },
         { name: 'Extra Cold-Blended Herb Dressing', price: 30 },
@@ -2829,6 +2852,24 @@ export default function AdminPage() {
                               {salad.addOns && salad.addOns.length > 0 ? `${salad.addOns.length} Extra Add-ons` : '5 Default Add-ons'}
                             </span>
                           </div>
+
+                          {/* Gram Portions Badges */}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                            {getSaladPortions(salad).map((p) => (
+                              <span
+                                key={p.grams}
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
+                                  p.isDefault
+                                    ? 'bg-[#123B2B] text-white border-[#123B2B]'
+                                    : 'bg-[#FAF6F0] text-[#123B2B] border-[#E8E1D5]'
+                                }`}
+                              >
+                                <span>{p.grams}g:</span>
+                                <span className={p.isDefault ? 'text-[#fbce45]' : 'font-black'}>₹{p.price}</span>
+                                {p.isDefault && <span className="text-[8px] opacity-80">(default)</span>}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
 
@@ -2953,7 +2994,7 @@ export default function AdminPage() {
             </div>
 
             {/* Inner Dialog Form Tab Selectors */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1.5 bg-[#F4EFE6] rounded-2xl border border-[#E8E1D5] mb-5 select-none">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 p-1.5 bg-[#F4EFE6] rounded-2xl border border-[#E8E1D5] mb-5 select-none">
               <button
                 type="button"
                 onClick={() => setFormTab('general')}
@@ -2965,6 +3006,26 @@ export default function AdminPage() {
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span>General</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFormTab('portions')}
+                className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
+                  formTab === 'portions'
+                    ? 'bg-[#123B2B] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-[#123B2B] hover:bg-white/60'
+                }`}
+              >
+                <DollarSign className="w-3.5 h-3.5 text-[#C89D4B]" />
+                <span>Grams &amp; Price</span>
+                {(currentSalad.portions || []).length > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                    formTab === 'portions' ? 'bg-[#C89D4B] text-[#123B2B]' : 'bg-[#123B2B] text-white'
+                  }`}>
+                    {(currentSalad.portions || []).length}
+                  </span>
+                )}
               </button>
               
               <button
@@ -3009,7 +3070,7 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => setFormTab('addons')}
-                className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 col-span-2 sm:col-span-1 ${
+                className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
                   formTab === 'addons'
                     ? 'bg-[#123B2B] text-white shadow-sm'
                     : 'text-gray-600 hover:text-[#123B2B] hover:bg-white/60'
@@ -3333,7 +3394,215 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Tab 2: Ingredients & Gravy */}
+              {/* Tab: Grams & Custom Portions Pricing */}
+              {formTab === 'portions' && (
+                <div className="space-y-5 animate-in fade-in duration-150 max-h-[50vh] overflow-y-auto pr-1">
+                  <div className="bg-[#E8F3EE] p-3.5 rounded-2xl border border-[#237357]/20 flex flex-col sm:flex-row items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-[#144C38] flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-[#C89D4B]" />
+                        <span>Gram-Based Portion Sizes &amp; Prices</span>
+                      </p>
+                      <p className="text-[11px] text-gray-600 leading-relaxed">
+                        Configure different bowl weights in grams (e.g. 250g, 350g, 500g, or custom) with different prices. These options will be shown across all customer salad pages and update the price instantly!
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const baseNum = parseInt(String(currentSalad.price || '240').replace(/[^\d]/g, ''), 10) || 240;
+                        const p250 = Math.max(99, Math.round((baseNum * 0.8) / 10) * 10);
+                        const p350 = baseNum;
+                        const p500 = Math.max(baseNum + 50, Math.round((baseNum * 1.35) / 10) * 10);
+                        setCurrentSalad(prev => ({
+                          ...prev,
+                          portions: [
+                            { grams: 250, price: p250, label: 'Small Bowl (250g)' },
+                            { grams: 350, price: p350, label: 'Regular Bowl (350g)', isDefault: true },
+                            { grams: 500, price: p500, label: 'Jumbo Bowl (500g)' },
+                          ]
+                        }));
+                      }}
+                      className="text-[11px] font-bold text-[#123B2B] bg-white hover:bg-[#FAF6F0] px-3 py-1.5 rounded-xl border border-[#C89D4B]/40 shadow-2xs whitespace-nowrap cursor-pointer transition-all flex-shrink-0"
+                    >
+                      + Load 250g/350g/500g Standard
+                    </button>
+                  </div>
+
+                  {/* Add New Gram Portion Input Fields */}
+                  <div className="space-y-2 bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#EBE2D3]">
+                    <label className="text-xs font-bold text-[#123B2B] block">Add New Gram Size &amp; Price</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                      <div className="sm:col-span-3 relative">
+                        <input
+                          type="number"
+                          placeholder="Grams (e.g. 250)"
+                          value={newPortionGrams}
+                          onChange={(e) => setNewPortionGrams(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#123B2B]/30"
+                        />
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">g</span>
+                      </div>
+                      <div className="sm:col-span-3 relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">₹</span>
+                        <input
+                          type="number"
+                          placeholder="Price (₹)"
+                          value={newPortionPrice}
+                          onChange={(e) => setNewPortionPrice(e.target.value)}
+                          className="w-full pl-6 pr-2.5 py-2 rounded-xl border border-gray-300 bg-white text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#123B2B]/30"
+                        />
+                      </div>
+                      <div className="sm:col-span-4">
+                        <input
+                          type="text"
+                          placeholder="Label (e.g. Small / Regular / Jumbo)"
+                          value={newPortionLabel}
+                          onChange={(e) => setNewPortionLabel(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#123B2B]/30"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const g = parseInt(newPortionGrams, 10);
+                              const p = parseInt(newPortionPrice, 10);
+                              if (g > 0 && p > 0) {
+                                const newP: SaladPortion = {
+                                  grams: g,
+                                  price: p,
+                                  label: newPortionLabel.trim() || `${g}g Bowl`,
+                                  isDefault: (currentSalad.portions || []).length === 0
+                                };
+                                setCurrentSalad(prev => ({
+                                  ...prev,
+                                  portions: [...(prev.portions || []).filter(item => item.grams !== g), newP].sort((a, b) => a.grams - b.grams)
+                                }));
+                                setNewPortionGrams('');
+                                setNewPortionPrice('');
+                                setNewPortionLabel('');
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const g = parseInt(newPortionGrams, 10);
+                            const p = parseInt(newPortionPrice, 10);
+                            if (g > 0 && p > 0) {
+                              const newP: SaladPortion = {
+                                grams: g,
+                                price: p,
+                                label: newPortionLabel.trim() || `${g}g Bowl`,
+                                isDefault: (currentSalad.portions || []).length === 0
+                              };
+                              setCurrentSalad(prev => ({
+                                ...prev,
+                                portions: [...(prev.portions || []).filter(item => item.grams !== g), newP].sort((a, b) => a.grams - b.grams)
+                              }));
+                              setNewPortionGrams('');
+                              setNewPortionPrice('');
+                              setNewPortionLabel('');
+                            }
+                          }}
+                          disabled={!newPortionGrams || !newPortionPrice}
+                          className="w-full h-full py-2 bg-[#123B2B] text-white text-xs font-bold rounded-xl hover:bg-[#1C4D3A] cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* List of Configured Gram Portions */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-[#123B2B]">
+                        Configured Gram Weights &amp; Prices ({(currentSalad.portions || []).length})
+                      </label>
+                      <span className="text-[10px] text-gray-500 font-semibold">
+                        Click Star to set default selection
+                      </span>
+                    </div>
+
+                    {(!currentSalad.portions || currentSalad.portions.length === 0) ? (
+                      <div className="p-4 rounded-xl border border-dashed border-gray-300 text-center text-xs text-gray-500 bg-gray-50">
+                        No custom gram portions yet. Click <strong>&quot;+ Load 250g/350g/500g Standard&quot;</strong> or enter gram sizes above.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {currentSalad.portions.map((portion) => (
+                          <div
+                            key={portion.grams}
+                            className={`flex items-center justify-between p-3 rounded-xl bg-white border transition-all ${
+                              portion.isDefault
+                                ? 'border-[#123B2B] ring-1 ring-[#123B2B]/20 shadow-xs'
+                                : 'border-[#E8E1D5] hover:border-[#123B2B]/40'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-12 h-9 rounded-lg bg-[#E8F3EE] text-[#123B2B] flex items-center justify-center font-black text-xs border border-[#237357]/20">
+                                {portion.grams}g
+                              </span>
+                              <div>
+                                <h4 className="text-xs font-bold text-[#0C2A20]">
+                                  {portion.label || `${portion.grams}g Bowl`}
+                                </h4>
+                                <span className="text-xs font-black text-emerald-700">
+                                  ₹{portion.price}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCurrentSalad(prev => ({
+                                    ...prev,
+                                    price: `₹${portion.price}`,
+                                    portions: (prev.portions || []).map(p => ({
+                                      ...p,
+                                      isDefault: p.grams === portion.grams
+                                    }))
+                                  }));
+                                }}
+                                className={`px-2 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-colors flex items-center gap-1 ${
+                                  portion.isDefault
+                                    ? 'bg-[#123B2B] text-[#C89D4B]'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                                title={portion.isDefault ? 'Default portion' : 'Set as default'}
+                              >
+                                <Star className={`w-3 h-3 ${portion.isDefault ? 'fill-[#C89D4B]' : ''}`} />
+                                <span>{portion.isDefault ? 'Default' : 'Make Default'}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCurrentSalad(prev => ({
+                                    ...prev,
+                                    portions: (prev.portions || []).filter(p => p.grams !== portion.grams)
+                                  }));
+                                }}
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                title="Remove this gram portion"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 3: Ingredients & Gravy */}
               {formTab === 'ingredients' && (
                 <div className="space-y-5 animate-in fade-in duration-150">
                   {/* Ingredients Builder */}

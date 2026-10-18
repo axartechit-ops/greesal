@@ -1,8 +1,12 @@
 const { spawn } = require('child_process');
 
 console.log('====================================================');
-console.log(' 🥗 GREESAL - Starting Unified Development Stack');
+console.log(' 🥗 GREESAL - Unified Development Stack');
 console.log('====================================================');
+console.log(' 👉 Open Website:    http://localhost:3000');
+console.log(' ⚙️  Backend API:     http://127.0.0.1:8000');
+console.log(' 📖 API Docs:        http://127.0.0.1:8000/docs');
+console.log('====================================================\n');
 
 // 1. Start Python FastAPI Server
 console.log('🚀 [1/2] Starting Python FastAPI backend on port 8000...');

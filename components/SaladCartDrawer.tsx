@@ -245,13 +245,17 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
       deliverySlot: slotNames[slot],
       mapsUrl: mapsLink,
       notes: notes.trim(),
-      items: cartItems.map((it) => ({
-        id: it.salad.id || it.salad._id || it.salad.slug || it.salad.name,
-        name: it.salad.name,
-        price: it.salad.price,
-        image: it.salad.image,
-        quantity: it.quantity,
-      })),
+      items: cartItems.map((it) => {
+        const portionText = it.salad.selectedPortion ? ` (${it.salad.selectedPortion.grams}g)` : '';
+        const displayName = it.salad.name.includes('(') ? it.salad.name : `${it.salad.name}${portionText}`;
+        return {
+          id: it.salad.id || it.salad._id || it.salad.slug || it.salad.name,
+          name: displayName,
+          price: it.salad.price,
+          image: it.salad.image,
+          quantity: it.quantity,
+        };
+      }),
       total: totalAmount,
       paymentMethod: 'Cash on Delivery / UPI',
     };
@@ -312,12 +316,12 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
 
     // 4. Construct WhatsApp Message and Open in Background
     let itemsList = cartItems
-      .map(
-        (item, i) =>
-          `${i + 1}. *${item.salad.name}* x ${item.quantity} = ₹${
-            (parseInt(item.salad.price.replace(/[^\d]/g, ''), 10) || 0) * item.quantity
-          }`
-      )
+      .map((item, i) => {
+        const portionText = item.salad.selectedPortion ? ` (${item.salad.selectedPortion.grams}g)` : '';
+        const displayName = item.salad.name.includes('(') ? item.salad.name : `${item.salad.name}${portionText}`;
+        const unitPrice = parseInt(item.salad.price.replace(/[^\d]/g, ''), 10) || 0;
+        return `${i + 1}. *${displayName}* x ${item.quantity} = ₹${unitPrice * item.quantity}`;
+      })
       .join('\n');
 
     const message =
@@ -428,9 +432,16 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
                           <h4 className="font-montserrat font-bold text-xs sm:text-sm text-[#20493c] truncate">
                             {item.salad.name}
                           </h4>
-                          <span className="text-xs font-semibold text-[#20493c]/80 block mt-0.5">
-                            ₹{pricePerUnit} each
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            {item.salad.selectedPortion && (
+                              <span className="text-[10px] font-black text-[#123B2B] bg-[#e8f7ee] px-1.5 py-0.2 rounded border border-[#56aa52]/30">
+                                {item.salad.selectedPortion.grams}g
+                              </span>
+                            )}
+                            <span className="text-xs font-semibold text-[#20493c]/80">
+                              ₹{pricePerUnit} each
+                            </span>
+                          </div>
 
                           <div className="flex items-center justify-between mt-2">
                             <div className="flex items-center gap-1.5 bg-gray-100 rounded-lg p-0.5">

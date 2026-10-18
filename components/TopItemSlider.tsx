@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Salad, slugify } from '@/lib/salads';
+import { Salad, slugify, SaladPortion, getSaladPortions, getSaladPriceForPortion } from '@/lib/salads';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -40,6 +40,7 @@ export const TopItemSlider: React.FC<TopItemSliderProps> = ({
   const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(0);
   const [addedItemMap, setAddedItemMap] = useState<Record<string, boolean>>({});
+  const [selectedPortionMap, setSelectedPortionMap] = useState<Record<string, SaladPortion>>({});
   const [isPaused, setIsPaused] = useState(false);
 
   // Auto-advance timer (gentle pause on hover)
@@ -84,10 +85,17 @@ export const TopItemSlider: React.FC<TopItemSliderProps> = ({
     router.push(`/salads/${slug}`);
   };
 
-  const handleAdd = (e: React.MouseEvent, salad: Salad) => {
+  const handleAdd = (e: React.MouseEvent, salad: Salad, portion?: SaladPortion) => {
     e.stopPropagation();
-    onAddToCart(salad);
     const key = salad._id || salad.id || salad.name;
+    const portions = getSaladPortions(salad);
+    const activePortion = portion || selectedPortionMap[key] || portions.find(p => p.isDefault) || portions[0];
+    const activePrice = activePortion ? `₹${activePortion.price}` : salad.price;
+    onAddToCart({
+      ...salad,
+      price: activePrice,
+      selectedPortion: activePortion,
+    });
     setAddedItemMap((prev) => ({ ...prev, [key]: true }));
     setTimeout(() => {
       setAddedItemMap((prev) => ({ ...prev, [key]: false }));
@@ -378,11 +386,63 @@ export const TopItemSlider: React.FC<TopItemSliderProps> = ({
 
                 </div>
 
+                {/* Gram Portions Selector */}
+                {(() => {
+                  const saladKey = currentSalad._id || currentSalad.id || currentSalad.name;
+                  const portions = getSaladPortions(currentSalad);
+                  const activePortion = selectedPortionMap[saladKey] || portions.find((p) => p.isDefault) || portions[0];
+
+                  return (
+                    <div className="pt-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                          Bowl Weight:
+                        </span>
+                        <span className="text-xs font-black text-[#123B2B] bg-[#e8f7ee] px-2 py-0.5 rounded-full border border-[#56aa52]/30">
+                          {activePortion?.grams}g Bowl
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {portions.map((p) => {
+                          const isSelected = activePortion?.grams === p.grams;
+                          return (
+                            <button
+                              key={p.grams}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedPortionMap((prev) => ({ ...prev, [saladKey]: p }));
+                              }}
+                              className={`py-1.5 px-2 rounded-xl text-center transition-all cursor-pointer border flex flex-col items-center justify-center ${
+                                isSelected
+                                  ? 'bg-[#123B2B] text-white border-[#123B2B] shadow-sm ring-1 ring-[#56aa52]'
+                                  : 'bg-gray-50 hover:bg-gray-100 text-[#123B2B] border-gray-200'
+                              }`}
+                            >
+                              <span className={`text-xs font-black leading-tight ${isSelected ? 'text-[#56aa52]' : 'text-[#123B2B]'}`}>
+                                {p.grams}g
+                              </span>
+                              <span className={`text-[11px] font-extrabold leading-tight ${isSelected ? 'text-white' : 'text-emerald-700'}`}>
+                                ₹{p.price}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Bottom Row: Price & Add to Cart Button */}
                 <div className="pt-2 flex items-center justify-between gap-3">
                   <div>
                     <span className="font-montserrat font-black text-2xl sm:text-3xl lg:text-[34px] text-[#123B2B]">
-                      {currentSalad.price}
+                      {(() => {
+                        const saladKey = currentSalad._id || currentSalad.id || currentSalad.name;
+                        const portions = getSaladPortions(currentSalad);
+                        const activePortion = selectedPortionMap[saladKey] || portions.find((p) => p.isDefault) || portions[0];
+                        return activePortion ? `₹${activePortion.price}` : currentSalad.price;
+                      })()}
                     </span>
                   </div>
 

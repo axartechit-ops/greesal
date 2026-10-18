@@ -74,8 +74,9 @@ def get_orders(
         # Purge demo orders if present
         db.orders.delete_many({
             "$or": [
-                {"orderNumber": {"$in": ["GRS-84920", "GRS-79214", "GRS-61803"]}},
-                {"id": {"$in": ["GRS-84920", "GRS-79214", "GRS-61803"]}}
+                {"orderNumber": {"$in": ["GRS-90844", "GRS-84920", "GRS-79214", "GRS-61803"]}},
+                {"id": {"$in": ["GRS-90844", "GRS-84920", "GRS-79214", "GRS-61803"]}},
+                {"customerName": {"$regex": "FastAPI Tester", "$options": "i"}}
             ]
         })
 
@@ -92,7 +93,7 @@ def get_orders(
         for o in orders:
             doc = format_order_doc(o)
             order_id = doc.get("orderNumber") or doc.get("id")
-            if order_id in ["GRS-84920", "GRS-79214", "GRS-61803"]:
+            if order_id in ["GRS-90844", "GRS-84920", "GRS-79214", "GRS-61803"]:
                 continue
             formatted.append(doc)
 

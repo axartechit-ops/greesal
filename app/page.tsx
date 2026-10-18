@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Salad, DEFAULT_SALADS } from '@/lib/salads';
+import { Salad, DEFAULT_SALADS, SaladPortion, getSaladPortions, getSaladNumericPrice } from '@/lib/salads';
 import { SaladStickyBar } from '@/components/SaladStickyBar';
 import { SaladIndiaHeader } from '@/components/SaladIndiaHeader';
 import { SaladHeroSection } from '@/components/SaladHeroSection';
@@ -36,9 +36,9 @@ export default function SaladIndiaHome() {
   // Site dynamic content settings & categories managed by admin
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
 
-  // Salads list state
-  const [salads, setSalads] = useState<Salad[]>([]);
-  const [isLoadingSalads, setIsLoadingSalads] = useState<boolean>(true);
+  // Salads list state - pre-populated with DEFAULT_SALADS for instant zero-latency load
+  const [salads, setSalads] = useState<Salad[]>(DEFAULT_SALADS);
+  const [isLoadingSalads, setIsLoadingSalads] = useState<boolean>(false);
 
   // Cart state: map of saladId -> quantity
   const [cartQuantities, setCartQuantities] = useState<CartMap>({});
@@ -147,7 +147,9 @@ export default function SaladIndiaHome() {
   };
 
   const handleAddToCart = (salad: Salad) => {
-    const id = salad.id || salad._id || salad.slug || salad.name;
+    const baseId = salad.id || salad._id || salad.slug || salad.name;
+    const portionKey = salad.selectedPortion ? `__${salad.selectedPortion.grams}g` : '';
+    const id = `${baseId}${portionKey}`;
     const currentQty = cartQuantities[id] || 0;
     saveCart({
       ...cartQuantities,
@@ -156,16 +158,15 @@ export default function SaladIndiaHome() {
   };
 
   const handleRemoveFromCart = (saladId: string) => {
-    const currentQty = cartQuantities[saladId] || 0;
-    if (currentQty <= 1) {
-      const updated = { ...cartQuantities };
-      delete updated[saladId];
-      saveCart(updated);
-    } else {
-      saveCart({
-        ...cartQuantities,
-        [saladId]: currentQty - 1,
-      });
+    if (cartQuantities[saladId]) {
+      handleUpdateQuantity(saladId, -1);
+      return;
+    }
+    const matchingKey = Object.keys(cartQuantities).find(
+      (k) => k === saladId || k.startsWith(`${saladId}__`)
+    );
+    if (matchingKey) {
+      handleUpdateQuantity(matchingKey, -1);
     }
   };
 
@@ -188,15 +189,47 @@ export default function SaladIndiaHome() {
     saveCart({});
   };
 
-  // Convert cart map to drawer items list
+  // Convert cart map to drawer items list with portion decoding
   const drawerCartItems: DrawerCartItem[] = useMemo(() => {
     const items: DrawerCartItem[] = [];
-    Object.entries(cartQuantities).forEach(([saladId, qty]) => {
+    Object.entries(cartQuantities).forEach(([key, qty]) => {
+      if (qty <= 0) return;
+      const [baseId, gramPart] = key.split('__');
       const salad = salads.find(
-        (s) => (s.id || s._id || s.slug || s.name) === saladId
+        (s) => (s.id || s._id || s.slug || s.name) === baseId
       );
-      if (salad && qty > 0) {
-        items.push({ salad, quantity: qty });
+      if (!salad) return;
+
+      if (gramPart) {
+        const grams = parseInt(gramPart, 10);
+        const portions = getSaladPortions(salad);
+        const portion =
+          portions.find((p) => p.grams === grams) || {
+            grams,
+            price: getSaladNumericPrice(salad),
+            label: `${grams}g Bowl`,
+          };
+        items.push({
+          salad: {
+            ...salad,
+            id: key,
+            price: `₹${portion.price}`,
+            selectedPortion: portion,
+          },
+          quantity: qty,
+        });
+      } else {
+        const portions = getSaladPortions(salad);
+        const defaultPortion = portions.find((p) => p.isDefault) || portions[0];
+        items.push({
+          salad: {
+            ...salad,
+            id: key,
+            price: defaultPortion ? `₹${defaultPortion.price}` : salad.price,
+            selectedPortion: defaultPortion,
+          },
+          quantity: qty,
+        });
       }
     });
     return items;
@@ -212,6 +245,16 @@ export default function SaladIndiaHome() {
       return sum + price * item.quantity;
     }, 0);
   }, [drawerCartItems]);
+
+  const cartAggregatedQuantities = useMemo(() => {
+    const agg: Record<string, number> = {};
+    Object.entries(cartQuantities).forEach(([k, q]) => {
+      const [baseId] = k.split('__');
+      agg[baseId] = (agg[baseId] || 0) + q;
+      agg[k] = q;
+    });
+    return agg;
+  }, [cartQuantities]);
 
   // Compute salads selected by admin for top slider
   const sliderSalads = useMemo(() => {

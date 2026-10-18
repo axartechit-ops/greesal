@@ -355,13 +355,26 @@ def format_salad_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
         res["tag"] = res.get("category")
     return res
 
+import time
+
+_salads_cache: Optional[List[Dict[str, Any]]] = None
+_salads_cache_time: float = 0.0
+SALADS_CACHE_TTL: float = 30.0
+
+def invalidate_salads_cache():
+    global _salads_cache
+    _salads_cache = None
+
 @router.get("/salads")
 @router.get("/api/salads")
 @router.get("/admin/salads")
 @router.get("/api/admin/salads")
 def get_salads():
-    global local_salads_store
-    # One-time sync from MongoDB on first request after startup
+    global local_salads_store, _salads_cache, _salads_cache_time
+    now = time.time()
+    if _salads_cache is not None and (now - _salads_cache_time < SALADS_CACHE_TTL):
+        return _salads_cache
+
     sync_local_store_from_mongodb()
 
     db = get_db()
@@ -369,16 +382,17 @@ def get_salads():
         try:
             salads = list(db.salads.find({}))
             if salads:
-                logger.info(f"Loaded {len(salads)} salads from MongoDB Atlas")
-                return [format_salad_doc(s) for s in salads]
-            else:
-                logger.info("No salads in MongoDB — returning local store")
+                formatted = [format_salad_doc(s) for s in salads]
+                _salads_cache = formatted
+                _salads_cache_time = now
+                return formatted
         except Exception as e:
             logger.error(f"Error reading salads from MongoDB: {e}")
-    else:
-        logger.warning("MongoDB not available — returning local salads store")
 
-    return [format_salad_doc(s) for s in local_salads_store]
+    formatted = [format_salad_doc(s) for s in local_salads_store]
+    _salads_cache = formatted
+    _salads_cache_time = now
+    return formatted
 
 @router.get("/salads/{salad_id}")
 @router.get("/api/salads/{salad_id}")
@@ -439,6 +453,7 @@ async def create_salad(request: Request):
 
     local_salads_store.append(new_salad)
     save_local_salads(local_salads_store)
+    invalidate_salads_cache()
 
     return {"message": "Salad added successfully", "salad": new_salad}
 
@@ -484,6 +499,7 @@ async def update_salad(salad_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Salad not found")
 
     save_local_salads(local_salads_store)
+    invalidate_salads_cache()
     return {"message": "Salad updated successfully"}
 
 @router.delete("/admin/salads/{salad_id}")
@@ -516,4 +532,5 @@ def delete_salad(salad_id: str):
         raise HTTPException(status_code=404, detail="Salad not found")
 
     save_local_salads(local_salads_store)
+    invalidate_salads_cache()
     return {"message": "Salad deleted successfully"}

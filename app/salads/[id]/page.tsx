@@ -11,7 +11,7 @@ import { InvoiceModal, InvoiceOrder } from '@/components/InvoiceModal';
 import { LoginModal } from '@/components/LoginModal';
 import { getLiveDetailedLocation } from '@/lib/geolocation';
 import { sendOrderToWhatsApp } from '@/lib/whatsapp';
-import { DEFAULT_SALADS, DEFAULT_SALAD_ADDONS, getSaladByIdOrSlug, Salad, SaladAddOn, slugify } from '@/lib/salads';
+import { DEFAULT_SALADS, DEFAULT_SALAD_ADDONS, getSaladByIdOrSlug, Salad, SaladAddOn, SaladPortion, getSaladPortions, slugify } from '@/lib/salads';
 import {
   Sparkles,
   Leaf,
@@ -64,6 +64,22 @@ export default function SaladDetailPage() {
   const [allSalads, setAllSalads] = useState<Salad[]>(DEFAULT_SALADS);
   const [activeSalad, setActiveSalad] = useState<Salad | null>(() => getSaladByIdOrSlug(rawId, DEFAULT_SALADS) || null);
   const salad: Salad = activeSalad || getSaladByIdOrSlug(rawId, allSalads) || allSalads[0] || DEFAULT_SALADS[0];
+  const portions = useMemo(() => getSaladPortions(salad), [salad]);
+  const [selectedPortion, setSelectedPortion] = useState<SaladPortion>(() => {
+    const list = getSaladPortions(salad);
+    return list.find((p) => p.isDefault) || list[0];
+  });
+
+  useEffect(() => {
+    if (salad) {
+      const list = getSaladPortions(salad);
+      setSelectedPortion((prev) => {
+        const match = list.find((p) => p.grams === prev?.grams);
+        return match || list.find((p) => p.isDefault) || list[0];
+      });
+    }
+  }, [salad]);
+
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedAddOns, setSelectedAddOns] = useState<Array<{ name: string; price: number }>>([]);
   const [isAddedAnimation, setIsAddedAnimation] = useState(false);
@@ -226,15 +242,16 @@ export default function SaladDetailPage() {
     });
   };
 
-  const rawBasePrice = salad ? (parseInt(salad.price.replace(/[^\d]/g, '')) || 299) : 299;
+  const rawBasePrice = selectedPortion ? selectedPortion.price : (salad ? (parseInt(salad.price.replace(/[^\d]/g, '')) || 240) : 240);
   const addOnsTotal = selectedAddOns.reduce((sum, a) => sum + (a.price || 0), 0);
   const mainItemCalculatedPrice = rawBasePrice + addOnsTotal;
   const mainItemTotalPrice = mainItemCalculatedPrice * quantity;
 
   const addToCartWithQuantity = () => {
     if (!salad) return;
+    const portionKey = `${selectedPortion.grams}g`;
     const addOnKey = selectedAddOns.map(a => a.name).sort().join('|');
-    const itemId = `${salad._id || salad.name}${addOnKey ? `_${addOnKey}` : ''}`;
+    const itemId = `${salad._id || salad.name}_${portionKey}${addOnKey ? `_${addOnKey}` : ''}`;
     const existing = cart.find((i) => i.id === itemId);
 
     let updatedCart: CartItem[];
@@ -247,7 +264,7 @@ export default function SaladDetailPage() {
         ...cart,
         {
           id: itemId,
-          name: salad.name,
+          name: `${salad.name} (${selectedPortion.grams}g)`,
           price: `₹${mainItemCalculatedPrice}`,
           image: salad.image,
           quantity: quantity,
@@ -654,6 +671,49 @@ export default function SaladDetailPage() {
                 </h1>
               </div>
 
+              {/* Select Bowl Portion Weight in Grams */}
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-[#123B2B] flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-[#C89D4B]" />
+                    <span>Select Bowl Gram Weight</span>
+                  </h3>
+                  <span className="text-[11px] font-extrabold text-[#237357] bg-[#E8F3EE] px-2.5 py-0.5 rounded-full border border-[#237357]/20">
+                    {selectedPortion.grams}g Selected (₹{selectedPortion.price})
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {portions.map((portion) => {
+                    const isSelected = selectedPortion.grams === portion.grams;
+                    return (
+                      <button
+                        key={portion.grams}
+                        type="button"
+                        onClick={() => setSelectedPortion(portion)}
+                        className={`p-3 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                          isSelected
+                            ? 'bg-[#123B2B] text-white border-[#123B2B] shadow-md ring-2 ring-[#C89D4B]'
+                            : 'bg-[#FAF6F0] hover:bg-white text-[#123B2B] border-[#E8E1D5]'
+                        }`}
+                      >
+                        <span className={`text-xs font-black ${isSelected ? 'text-[#C89D4B]' : 'text-[#123B2B]'}`}>
+                          {portion.grams}g
+                        </span>
+                        <span className={`text-xs font-extrabold ${isSelected ? 'text-white' : 'text-emerald-700'}`}>
+                          ₹{portion.price}
+                        </span>
+                        {portion.label && (
+                          <span className={`text-[10px] line-clamp-1 opacity-80 ${isSelected ? 'text-gray-200' : 'text-gray-500'}`}>
+                            {portion.label.replace(`(${portion.grams}g)`, '').trim()}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Price Row */}
               <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-[#EBE2D3] flex items-center justify-between">
                 <div>
@@ -758,7 +818,7 @@ export default function SaladDetailPage() {
                 </button>
 
                 <a
-                  href={`https://wa.me/919925836117?text=Hi%20Greesal!%20I%20would%20like%20to%20order%20${quantity}x%20${encodeURIComponent(salad.name)}${selectedAddOns.length > 0 ? encodeURIComponent(` (with Add-ons: ${selectedAddOns.map(a => `${a.name} +₹${a.price}`).join(', ')})`) : ''}%20(Total:%20₹${mainItemTotalPrice}).`}
+                  href={`https://wa.me/919925836117?text=Hi%20Greesal!%20I%20would%20like%20to%20order%20${quantity}x%20${encodeURIComponent(salad.name)}%20(${selectedPortion.grams}g)${selectedAddOns.length > 0 ? encodeURIComponent(` (with Add-ons: ${selectedAddOns.map(a => `${a.name} +₹${a.price}`).join(', ')})`) : ''}%20(Total:%20₹${mainItemTotalPrice}).`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full py-3 px-5 rounded-2xl bg-[#25D366] hover:bg-[#20BD5A] text-white font-black text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"

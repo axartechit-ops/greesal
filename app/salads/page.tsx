@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { DEFAULT_SALADS, Salad } from '@/lib/salads';
+import { DEFAULT_SALADS, Salad, SaladPortion, getSaladPortions, getSaladNumericPrice } from '@/lib/salads';
 import { SaladIndiaHeader } from '@/components/SaladIndiaHeader';
 import { SaladStickyBar } from '@/components/SaladStickyBar';
 import { SaladMenuSection } from '@/components/SaladMenuSection';
@@ -26,8 +26,8 @@ export default function SaladsPage() {
   const { data: session, status } = useSession();
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
 
-  const [salads, setSalads] = useState<Salad[]>([]);
-  const [isLoadingSalads, setIsLoadingSalads] = useState<boolean>(true);
+  const [salads, setSalads] = useState<Salad[]>(DEFAULT_SALADS);
+  const [isLoadingSalads, setIsLoadingSalads] = useState<boolean>(false);
   const [cartQuantities, setCartQuantities] = useState<CartMap>({});
 
   // Modals state
@@ -135,7 +135,9 @@ export default function SaladsPage() {
   };
 
   const handleAddToCart = (salad: Salad) => {
-    const id = salad.id || salad._id || salad.slug || salad.name;
+    const baseId = salad.id || salad._id || salad.slug || salad.name;
+    const portionKey = salad.selectedPortion ? `__${salad.selectedPortion.grams}g` : '';
+    const id = `${baseId}${portionKey}`;
     const currentQty = cartQuantities[id] || 0;
     saveCart({
       ...cartQuantities,
@@ -144,16 +146,15 @@ export default function SaladsPage() {
   };
 
   const handleRemoveFromCart = (saladId: string) => {
-    const currentQty = cartQuantities[saladId] || 0;
-    if (currentQty <= 1) {
-      const updated = { ...cartQuantities };
-      delete updated[saladId];
-      saveCart(updated);
-    } else {
-      saveCart({
-        ...cartQuantities,
-        [saladId]: currentQty - 1,
-      });
+    if (cartQuantities[saladId]) {
+      handleUpdateQuantity(saladId, -1);
+      return;
+    }
+    const matchingKey = Object.keys(cartQuantities).find(
+      (k) => k === saladId || k.startsWith(`${saladId}__`)
+    );
+    if (matchingKey) {
+      handleUpdateQuantity(matchingKey, -1);
     }
   };
 
@@ -172,18 +173,72 @@ export default function SaladsPage() {
     }
   };
 
-  const drawerCartItems: CartItem[] = Object.entries(cartQuantities)
-    .map(([id, qty]) => {
-      const salad = salads.find((s) => (s.id || s._id || s.slug || s.name) === id);
-      return salad ? { salad, quantity: qty } : null;
-    })
-    .filter(Boolean) as CartItem[];
+  // Aggregated quantities for cards display
+  const cartAggregatedQuantities = useMemo(() => {
+    const agg: Record<string, number> = {};
+    Object.entries(cartQuantities).forEach(([k, q]) => {
+      const [baseId] = k.split('__');
+      agg[baseId] = (agg[baseId] || 0) + q;
+      agg[k] = q;
+    });
+    return agg;
+  }, [cartQuantities]);
 
-  const totalCartCount = Object.values(cartQuantities).reduce((acc, q) => acc + q, 0);
-  const totalCartPrice = drawerCartItems.reduce((sum, item) => {
-    const price = parseInt(item.salad.price.replace(/[^\d]/g, ''), 10) || 0;
-    return sum + price * item.quantity;
-  }, 0);
+  const drawerCartItems: CartItem[] = useMemo(() => {
+    return Object.entries(cartQuantities)
+      .map(([key, qty]) => {
+        if (qty <= 0) return null;
+        const [baseId, gramPart] = key.split('__');
+        const salad = salads.find(
+          (s) => (s.id || s._id || s.slug || s.name) === baseId
+        );
+        if (!salad) return null;
+
+        if (gramPart) {
+          const grams = parseInt(gramPart, 10);
+          const portions = getSaladPortions(salad);
+          const portion =
+            portions.find((p) => p.grams === grams) || {
+              grams,
+              price: getSaladNumericPrice(salad),
+              label: `${grams}g Bowl`,
+            };
+          return {
+            salad: {
+              ...salad,
+              id: key,
+              price: `₹${portion.price}`,
+              selectedPortion: portion,
+            },
+            quantity: qty,
+          };
+        }
+
+        const portions = getSaladPortions(salad);
+        const defaultPortion = portions.find((p) => p.isDefault) || portions[0];
+        return {
+          salad: {
+            ...salad,
+            id: key,
+            price: defaultPortion ? `₹${defaultPortion.price}` : salad.price,
+            selectedPortion: defaultPortion,
+          },
+          quantity: qty,
+        };
+      })
+      .filter(Boolean) as CartItem[];
+  }, [cartQuantities, salads]);
+
+  const totalCartCount = useMemo(() => {
+    return Object.values(cartQuantities).reduce((acc, q) => acc + q, 0);
+  }, [cartQuantities]);
+
+  const totalCartPrice = useMemo(() => {
+    return drawerCartItems.reduce((sum, item) => {
+      const price = parseInt(item.salad.price.replace(/[^\d]/g, ''), 10) || 0;
+      return sum + price * item.quantity;
+    }, 0);
+  }, [drawerCartItems]);
 
   const isLoggedIn = status === 'authenticated' || Boolean(customName || customMobile);
   const userName = session?.user?.name || customName || null;
@@ -250,7 +305,7 @@ export default function SaladsPage() {
           salads={salads}
           isLoading={isLoadingSalads}
           categories={siteSettings.categories}
-          cartItems={cartQuantities}
+          cartItems={cartAggregatedQuantities}
           onAddToCart={handleAddToCart}
           onRemoveFromCart={handleRemoveFromCart}
           onSelectSaladForModal={(salad) => setSelectedSalad(salad)}

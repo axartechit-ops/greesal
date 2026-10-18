@@ -166,15 +166,34 @@ def sanitize_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
         res["contactPhone"] = "+91 99258 36117"
     return res
 
+import time
+from typing import Optional
+
+_settings_cache: Optional[Dict[str, Any]] = None
+_settings_cache_time: float = 0.0
+SETTINGS_CACHE_TTL: float = 60.0
+
+def invalidate_settings_cache():
+    global _settings_cache
+    _settings_cache = None
+
 @router.get("/settings")
 @router.get("/api/settings")
 @router.get("/admin/settings")
 @router.get("/api/admin/settings")
 def get_settings():
+    global _settings_cache, _settings_cache_time
+    now = time.time()
+    if _settings_cache is not None and (now - _settings_cache_time < SETTINGS_CACHE_TTL):
+        return _settings_cache
+
     db = get_db()
     if db is None:
         logger.warning("MongoDB not available — returning default settings")
-        return sanitize_settings(DEFAULT_SITE_SETTINGS)
+        sanitized = sanitize_settings(DEFAULT_SITE_SETTINGS)
+        _settings_cache = sanitized
+        _settings_cache_time = now
+        return sanitized
 
     try:
         settings = db.settings.find_one({"_id": "homepage"})
@@ -195,12 +214,18 @@ def get_settings():
             if "_id" in merged:
                 del merged["_id"]
             logger.info(f"Settings loaded from MongoDB ({len(merged)} fields)")
-            return sanitize_settings(merged)
+            sanitized = sanitize_settings(merged)
+            _settings_cache = sanitized
+            _settings_cache_time = now
+            return sanitized
     except Exception as e:
         logger.error(f"Error reading settings from MongoDB: {e}", exc_info=True)
 
     logger.warning("Returning hardcoded default settings (MongoDB read failed)")
-    return sanitize_settings(DEFAULT_SITE_SETTINGS)
+    sanitized = sanitize_settings(DEFAULT_SITE_SETTINGS)
+    _settings_cache = sanitized
+    _settings_cache_time = now
+    return sanitized
 
 @router.post("/admin/settings")
 @router.post("/api/admin/settings")
@@ -283,6 +308,7 @@ async def update_settings(request: Request):
     else:
         logger.warning("MongoDB not available — settings NOT persisted to database!")
 
+    invalidate_settings_cache()
     return {
         "success": True,
         "message": "Store settings, categories and site texts saved successfully",

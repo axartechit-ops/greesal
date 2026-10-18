@@ -103,7 +103,7 @@ export function ProfileModal({
   const [isEditing, setIsEditing] = useState(false);
   const [nameInput, setNameInput] = useState(displayName);
   const [mobileInput, setMobileInput] = useState(displayMobile);
-  const [addressInput, setAddressInput] = useState('Flat 402, Green Valley Heights, Katargam, Surat - 395004');
+  const [addressInput, setAddressInput] = useState('');
   const [addressLabel, setAddressLabel] = useState('Home');
   const [dietPreference, setDietPreference] = useState('High Protein / Low Carb');
   const [healthGoal, setHealthGoal] = useState('Muscle Building & Active Energy');
@@ -141,7 +141,7 @@ export function ProfileModal({
         const parsed = JSON.parse(storedOrders);
         if (Array.isArray(parsed)) {
           const cleaned = parsed.filter(
-            (o: any) => !['GRS-84920', 'GRS-79214', 'GRS-61803'].includes(o.id || o.orderNumber)
+            (o: any) => !['GRS-90844', 'GRS-84920', 'GRS-79214', 'GRS-61803'].includes(o.id || o.orderNumber)
           );
           setOrders(cleaned);
           localStorage.setItem('greesal_orders_history', JSON.stringify(cleaned));
