@@ -287,6 +287,12 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
 
     // Save locally into order history for immediate display in Profile Modal
     try {
+      localStorage.setItem('greesal_custom_name', trimmedName);
+      localStorage.setItem('greesal_custom_mobile', customerPhone.trim());
+      if (address.trim()) {
+        localStorage.setItem('greesal_user_address', address.trim());
+      }
+
       const existingHistoryStr = localStorage.getItem('greesal_orders_history');
       const existingHistory = existingHistoryStr ? JSON.parse(existingHistoryStr) : [];
       const historyRecord = {

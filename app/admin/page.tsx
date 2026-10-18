@@ -101,7 +101,7 @@ interface OrderItem {
   id: string;
   name: string;
   price: string;
-  image: string;
+  image?: string;
   quantity: number;
 }
 
@@ -1196,7 +1196,7 @@ export default function AdminPage() {
             {(() => {
               const query = orderSearch.toLowerCase().trim();
               const filtered = orders.filter(order => {
-                const matchesFilter = orderFilter === 'all' || order.status.toLowerCase() === orderFilter.toLowerCase();
+                const matchesFilter = orderFilter === 'all' || (order.status || '').toLowerCase() === orderFilter.toLowerCase();
                 const matchesSearch = query === '' ||
                   (order.id && order.id.toLowerCase().includes(query)) ||
                   (order.orderNumber && order.orderNumber.toLowerCase().includes(query)) ||
@@ -1204,7 +1204,7 @@ export default function AdminPage() {
                   (order.customerMobile && order.customerMobile.includes(query)) ||
                   (order.customerEmail && order.customerEmail.toLowerCase().includes(query)) ||
                   (order.deliveryAddress && order.deliveryAddress.toLowerCase().includes(query)) ||
-                  order.items.some(item => item.name.toLowerCase().includes(query));
+                  (Array.isArray(order.items) && order.items.some(item => (item?.name || '').toLowerCase().includes(query)));
                 return matchesFilter && matchesSearch;
               });
 
@@ -1293,28 +1293,28 @@ export default function AdminPage() {
                         <div className="space-y-2.5">
                           <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
                             <ShoppingBag className="w-3.5 h-3.5 text-[#123B2B]" />
-                            <span>Ordered Salad Bowls ({order.items.reduce((acc, i) => acc + i.quantity, 0)})</span>
+                            <span>Ordered Salad Bowls ({(Array.isArray(order.items) ? order.items : []).reduce((acc, i) => acc + (Number(i.quantity) || 1), 0)})</span>
                           </h4>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {order.items.map((item, idx) => (
+                            {(Array.isArray(order.items) ? order.items : []).map((item, idx) => (
                               <div
                                 key={idx}
                                 className="flex items-center gap-3 p-3 rounded-2xl bg-[#FAF6F0] border border-greesal-beige/80 text-xs"
                               >
                                 <img
-                                  src={item.image}
-                                  alt={item.name}
+                                  src={item.image || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80'}
+                                  alt={item.name || 'Salad'}
                                   className="w-12 h-12 object-cover rounded-xl border border-greesal-beige flex-shrink-0"
                                 />
                                 <div className="min-w-0 flex-1">
-                                  <p className="font-bold text-greesal-dark truncate">{item.name}</p>
+                                  <p className="font-bold text-greesal-dark truncate">{item.name || 'Salad Bowl'}</p>
                                   <p className="text-[11px] text-gray-500 mt-0.5">
-                                    Qty: <strong className="text-greesal-dark font-bold">{item.quantity}</strong> &bull; {item.price}
+                                    Qty: <strong className="text-greesal-dark font-bold">{item.quantity || 1}</strong> &bull; {typeof item.price === 'number' ? `₹${item.price}` : (item.price || '₹0')}
                                   </p>
                                 </div>
                                 <span className="font-black text-greesal-forest text-xs">
-                                  ₹{(parseInt(item.price.replace(/[^\d]/g, '')) || 0) * item.quantity}
+                                  ₹{(parseInt(String(item.price || 0).replace(/[^\d]/g, ''), 10) || 0) * (Number(item.quantity) || 1)}
                                 </span>
                               </div>
                             ))}

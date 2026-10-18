@@ -202,7 +202,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
 
                 <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                   {order.items.map((item, idx) => {
-                    const priceNum = parseInt(item.price.replace(/[^\d]/g, ''), 10) || 0;
+                    const priceNum = parseInt(String(item.price || 0).replace(/[^\d]/g, ''), 10) || 0;
                     return (
                       <div
                         key={idx}

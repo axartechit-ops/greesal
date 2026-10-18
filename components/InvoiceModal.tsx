@@ -395,8 +395,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {order.items.map((item, index) => {
-                  const numericPrice = parseInt(item.price.replace(/[^\d]/g, '')) || 0;
-                  const itemTotal = numericPrice * item.quantity;
+                  const numericPrice = parseInt(String(item.price || 0).replace(/[^\d]/g, ''), 10) || 0;
+                  const itemTotal = numericPrice * (Number(item.quantity) || 1);
 
                   return (
                     <tr key={index} className="hover:bg-gray-50/60 transition-colors">

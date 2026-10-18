@@ -414,7 +414,7 @@ export default function SaladIndiaHome() {
         onClose={() => setIsProfileModalOpen(false)}
         displayName={userName || 'Greesal Member'}
         displayEmail={session?.user?.email || 'customer@greesal.in'}
-        displayMobile={customMobile || '+91 99258 36117'}
+        displayMobile={customMobile || ''}
         userImage={userImage}
         onUpdateProfile={(name, mobile, address) => {
           setCustomName(name);

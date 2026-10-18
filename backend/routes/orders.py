@@ -17,7 +17,42 @@ def format_order_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
     res = dict(doc)
     str_id = str(res.get("_id", ""))
     res["_id"] = str_id
-    res["id"] = res.get("orderNumber") or res.get("id") or f"GRS-{str_id[-5:].upper()}"
+    order_id = res.get("orderNumber") or res.get("id") or f"GRS-{str_id[-5:].upper()}"
+    res["id"] = order_id
+    res["orderNumber"] = order_id
+    res["status"] = str(res.get("status") or "Placed")
+    res["customerName"] = str(res.get("customerName") or "Greesal Member")
+    res["customerMobile"] = str(res.get("customerMobile") or "")
+    res["customerEmail"] = str(res.get("customerEmail") or "")
+    res["deliveryAddress"] = str(res.get("deliveryAddress") or "Surat Doorstep")
+    res["date"] = str(res.get("date") or "Recently")
+    res["timestamp"] = int(res.get("timestamp") or time.time() * 1000)
+
+    # Normalize items array and ensure item.price is formatted properly
+    raw_items = res.get("items") or []
+    norm_items = []
+    for it in raw_items:
+        if isinstance(it, dict):
+            p = it.get("price", "0")
+            p_str = f"₹{str(p).replace('₹', '').strip()}" if p is not None else "₹0"
+            norm_items.append({
+                **it,
+                "name": str(it.get("name") or "Salad Bowl"),
+                "price": p_str,
+                "quantity": int(it.get("quantity") or 1),
+                "image": it.get("image") or "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80"
+            })
+    res["items"] = norm_items
+
+    try:
+        res["total"] = float(str(res.get("total", 0)).replace("₹", "").strip() or 0)
+    except Exception:
+        res["total"] = 0.0
+    try:
+        res["subtotal"] = float(str(res.get("subtotal", 0)).replace("₹", "").strip() or res["total"])
+    except Exception:
+        res["subtotal"] = res["total"]
+
     return res
 
 @router.get("/orders")

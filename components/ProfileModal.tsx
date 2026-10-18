@@ -47,7 +47,7 @@ export interface OrderItem {
   id: string;
   name: string;
   price: string;
-  image: string;
+  image?: string;
   quantity: number;
   selectedAddOns?: Array<{ name: string; price: number }>;
 }
@@ -161,7 +161,10 @@ export function ProfileModal({
     // Also fetch live orders from API to reflect status updates (e.g. Preparing -> On the Way -> Delivered)
     const fetchLiveOrders = async () => {
       try {
-        const cleanMobile = (displayMobile || '').replace(/\D/g, '').slice(-10);
+        const savedCustomMobile = typeof window !== 'undefined' ? (localStorage.getItem('greesal_custom_mobile') || '') : '';
+        const userPhone = displayMobile && !displayMobile.includes('9925836117') ? displayMobile : savedCustomMobile;
+        const cleanMobile = (userPhone || '').replace(/\D/g, '').slice(-10);
+
         if (cleanMobile) {
           const res = await fetch(`/api/orders?mobile=${cleanMobile}`);
           if (res.ok) {
@@ -170,8 +173,34 @@ export function ProfileModal({
               const cleanedLive = liveOrders.filter(
                 (o: any) => !['GRS-84920', 'GRS-79214', 'GRS-61803'].includes(o.id || o.orderNumber)
               );
-              setOrders(cleanedLive);
-              localStorage.setItem('greesal_orders_history', JSON.stringify(cleanedLive));
+
+              // Merge live orders with local orders without wiping
+              const map = new Map<string, any>();
+              const localRaw = localStorage.getItem('greesal_orders_history');
+              if (localRaw) {
+                try {
+                  const parsed = JSON.parse(localRaw);
+                  if (Array.isArray(parsed)) {
+                    parsed.forEach((o: any) => {
+                      const key = o.id || o.orderNumber;
+                      if (key && !['GRS-84920', 'GRS-79214', 'GRS-61803'].includes(key)) {
+                        map.set(key, o);
+                      }
+                    });
+                  }
+                } catch {}
+              }
+              cleanedLive.forEach((o: any) => {
+                const key = o.id || o.orderNumber;
+                if (key) map.set(key, o);
+              });
+              const merged = Array.from(map.values()).sort(
+                (a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0)
+              );
+              if (merged.length > 0) {
+                setOrders(merged);
+                localStorage.setItem('greesal_orders_history', JSON.stringify(merged));
+              }
             }
           }
         }
@@ -226,10 +255,10 @@ export function ProfileModal({
 
   // Filtered orders
   const filteredOrders = orders.filter(order => {
-    const matchesFilter = filterStatus === 'all' || order.status.toLowerCase() === filterStatus.toLowerCase();
+    const matchesFilter = filterStatus === 'all' || (order.status || '').toLowerCase() === filterStatus.toLowerCase();
     const matchesSearch = searchQuery === '' || 
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.items.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      (order.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (Array.isArray(order.items) && order.items.some(item => (item?.name || '').toLowerCase().includes(searchQuery.toLowerCase())));
     return matchesFilter && matchesSearch;
   });
 
@@ -248,8 +277,8 @@ export function ProfileModal({
     }
   };
 
-  const totalSpent = orders.reduce((sum, o) => sum + o.total, 0);
-  const totalSaladBowls = orders.reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0);
+  const totalSpent = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  const totalSaladBowls = orders.reduce((sum, o) => sum + (Array.isArray(o.items) ? o.items.reduce((s, i) => s + (Number(i.quantity) || 1), 0) : 0), 0);
 
   return (
     <div className="fixed inset-0 z-50 bg-[#0C2A20]/65 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
@@ -497,7 +526,7 @@ export function ProfileModal({
                     {selectedOrder.items.map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between p-3.5 rounded-xl border border-gray-100 bg-[#FAFAF8] hover:bg-white transition-colors">
                         <div className="flex items-center gap-3.5">
-                          <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-xl border border-greesal-beige/80 flex-shrink-0" />
+                          <img src={item.image || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80'} alt={item.name} className="w-14 h-14 object-cover rounded-xl border border-greesal-beige/80 flex-shrink-0" />
                           <div>
                             <p className="font-bold text-sm text-greesal-dark">{item.name}</p>
                             {item.selectedAddOns && item.selectedAddOns.length > 0 && (
@@ -509,11 +538,11 @@ export function ProfileModal({
                                 ))}
                               </div>
                             )}
-                            <p className="text-xs text-gray-500 mt-0.5">Quantity: {item.quantity} &bull; {item.price} per bowl</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Quantity: {item.quantity || 1} &bull; {typeof item.price === 'number' ? `₹${item.price}` : (item.price || '₹0')} per bowl</p>
                           </div>
                         </div>
                         <span className="font-extrabold text-sm text-[#123B2B]">
-                          ₹{(parseInt(item.price.replace(/[^\d]/g, '')) || 0) * item.quantity}
+                          ₹{(parseInt(String(item.price || 0).replace(/[^\d]/g, ''), 10) || 0) * (Number(item.quantity) || 1)}
                         </span>
                       </div>
                     ))}
@@ -603,7 +632,7 @@ export function ProfileModal({
                     </div>
 
                     <div className="flex items-center gap-1.5 self-start sm:self-auto overflow-x-auto w-full sm:w-auto">
-                      {['all', 'Delivered', 'Preparing', 'On the Way'].map((st) => (
+                      {['all', 'Placed', 'Preparing', 'On the Way', 'Delivered'].map((st) => (
                         <button
                           key={st}
                           onClick={() => setFilterStatus(st)}
@@ -613,7 +642,7 @@ export function ProfileModal({
                               : 'bg-white text-gray-600 border border-greesal-beige/80 hover:bg-gray-50'
                           }`}
                         >
-                          {st}
+                          {st === 'all' ? 'All Orders' : st}
                         </button>
                       ))}
                     </div>
@@ -663,11 +692,11 @@ export function ProfileModal({
 
                           {/* Order Items Preview */}
                           <div className="flex flex-wrap items-center gap-2.5">
-                            {order.items.map((item, idx) => (
+                            {(Array.isArray(order.items) ? order.items : []).map((item, idx) => (
                               <div key={idx} className="flex items-center gap-2 bg-[#FAF6F0] px-3 py-1.5 rounded-xl border border-greesal-beige/60 text-xs">
-                                <img src={item.image} alt={item.name} className="w-7 h-7 rounded-md object-cover" />
-                                <span className="font-semibold text-greesal-dark truncate max-w-[150px]">{item.name}</span>
-                                <span className="text-[10px] bg-white px-1.5 py-0.5 rounded-md font-bold text-gray-600 border border-gray-100">x{item.quantity}</span>
+                                <img src={item.image || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80'} alt={item.name} className="w-7 h-7 rounded-md object-cover" />
+                                <span className="font-semibold text-greesal-dark truncate max-w-[150px]">{item.name || 'Salad Bowl'}</span>
+                                <span className="text-[10px] bg-white px-1.5 py-0.5 rounded-md font-bold text-gray-600 border border-gray-100">x{item.quantity || 1}</span>
                               </div>
                             ))}
                           </div>

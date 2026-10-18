@@ -281,8 +281,8 @@ export default function SaladDetailPage() {
 
   const getSubtotal = () => {
     return cart.reduce((total, item) => {
-      const num = parseInt(item.price.replace(/[^\d]/g, '')) || 0;
-      return total + num * item.quantity;
+      const num = parseInt(String(item.price || 0).replace(/[^\d]/g, ''), 10) || 0;
+      return total + num * (item.quantity || 1);
     }, 0);
   };
 
@@ -1373,8 +1373,8 @@ export default function SaladDetailPage() {
               newCart.push({
                 id: item.id,
                 name: item.name,
-                price: item.price,
-                image: item.image,
+                price: typeof item.price === 'number' ? `₹${item.price}` : String(item.price || '₹0'),
+                image: item.image || '',
                 quantity: item.quantity
               });
             }
