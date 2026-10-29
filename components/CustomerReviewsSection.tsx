@@ -121,7 +121,7 @@ export const CustomerReviewsSection: React.FC = () => {
         {/* Section Header */}
         <div className="text-center mb-12 sm:mb-16">
           <p className="text-xs sm:text-sm font-bold uppercase tracking-widest text-[#6ac6ac] mb-2 font-montserrat">
-
+            REAL STORIES &amp; REVIEWS
           </p>
           <h2 className="font-montserrat font-extrabold text-3xl sm:text-5xl text-[#20493c] tracking-tight">
             Customer <span className="text-[#fbce45]">Experiences</span>

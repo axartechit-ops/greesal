@@ -89,7 +89,7 @@ export const SaladIndiaHeader: React.FC<SaladIndiaHeaderProps> = ({
               {/* 2. Salads */}
               <Link
                 href="/salads"
-                className="text-[#1a1a1a] pb-1 border-b-2 border-transparent hover:border-[#20493c] hover:text-[#20493c] transition-all font-semibold text-[#20493c]"
+                className="text-[#1a1a1a] pb-1 border-b-2 border-transparent hover:border-[#20493c] hover:text-[#20493c] transition-all font-medium"
               >
                 Salads
               </Link>
@@ -197,9 +197,6 @@ export const SaladIndiaHeader: React.FC<SaladIndiaHeaderProps> = ({
 
           </div>
         </div>
-
-        {/* Decorative Brand Leaf Stripe Directly Under Header Matching Greesal Logo Secondary Color */}
-        <div className="h-2 sm:h-2.5 bg-[#56aa52] w-full" />
       </header>
 
       {/* Mobile Drawer Menu */}

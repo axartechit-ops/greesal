@@ -18,7 +18,12 @@ import {
   ShieldCheck,
   UploadCloud,
   ImageIcon,
-  Trash2
+  Trash2,
+  Film,
+  Play,
+  Pause,
+  Video,
+  ExternalLink
 } from 'lucide-react';
 import { SiteSettings, DEFAULT_SITE_SETTINGS } from '@/lib/siteSettings';
 
@@ -48,8 +53,10 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
   }, [settings]);
 
   const [activeSection, setActiveSection] = useState<
-    'sticky' | 'hero' | 'difference' | 'stats' | 'services' | 'contact'
+    'sticky' | 'hero' | 'howToOrder' | 'difference' | 'stats' | 'services' | 'contact'
   >('hero');
+
+  const [isHowToOrderUploading, setIsHowToOrderUploading] = useState(false);
 
   const handleChange = (key: keyof SiteSettings, value: any) => {
     setFormData((prev) => ({
@@ -84,6 +91,24 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
 
   const handleResetSection = (section: string) => {
     if (confirm(`Reset ${section} text back to defaults?`)) {
+      if (section === 'howToOrder') {
+        setFormData((prev) => ({
+          ...prev,
+          howToOrderBadge: DEFAULT_SITE_SETTINGS.howToOrderBadge,
+          howToOrderHeading: DEFAULT_SITE_SETTINGS.howToOrderHeading,
+          howToOrderCardNumber: DEFAULT_SITE_SETTINGS.howToOrderCardNumber,
+          howToOrderCardTitle: DEFAULT_SITE_SETTINGS.howToOrderCardTitle,
+          howToOrderCardDesc: DEFAULT_SITE_SETTINGS.howToOrderCardDesc,
+          howToOrderVideoUrl: DEFAULT_SITE_SETTINGS.howToOrderVideoUrl,
+          howToOrderVideoPoster: DEFAULT_SITE_SETTINGS.howToOrderVideoPoster,
+          howToOrderHighlight1: DEFAULT_SITE_SETTINGS.howToOrderHighlight1,
+          howToOrderHighlight2: DEFAULT_SITE_SETTINGS.howToOrderHighlight2,
+          howToOrderHighlight3: DEFAULT_SITE_SETTINGS.howToOrderHighlight3,
+          howToOrderBtnText: DEFAULT_SITE_SETTINGS.howToOrderBtnText,
+          howToOrderBtnLink: DEFAULT_SITE_SETTINGS.howToOrderBtnLink,
+        }));
+        return;
+      }
       setFormData((prev) => ({
         ...prev,
         ...DEFAULT_SITE_SETTINGS,
@@ -132,6 +157,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
         {[
           { id: 'sticky', label: 'Sticky Top Bar', icon: Sparkles },
           { id: 'hero', label: 'Hero Slogan & Story', icon: Utensils },
+          { id: 'howToOrder', label: 'How To Order Video', icon: Film },
           { id: 'difference', label: 'What Makes Difference', icon: Layers },
           { id: 'stats', label: 'Stats Counters', icon: Award },
           { id: 'services', label: 'Our Services', icon: Truck },
@@ -437,6 +463,380 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                     </p>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SECTION: HOW TO ORDER VIDEO & SHOWCASE ("Get more from your lunch and dinner") */}
+      {activeSection === 'howToOrder' && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200 space-y-6 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-bold uppercase tracking-wider mb-1 border border-emerald-200/60">
+                <Film className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Video Process &amp; Order Guide</span>
+              </div>
+              <h3 className="text-lg font-extrabold text-[#123B2B]">
+                How To Order Showcase (&ldquo;Get more from your lunch and dinner.&rdquo;)
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Manage the video, ordering steps, highlights, and call-to-action button for this featured section.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleResetSection('howToOrder')}
+              className="text-xs font-bold text-gray-500 hover:text-red-600 flex items-center gap-1.5 self-start sm:self-auto px-3 py-1.5 rounded-xl border border-gray-200 hover:border-red-200 transition-colors cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset Section</span>
+            </button>
+          </div>
+
+          {/* 1. Video & Media Uploader */}
+          <div className="bg-[#FAF6F0] rounded-2xl p-5 border border-[#E4DEC9] space-y-4">
+            <h4 className="text-xs font-black uppercase tracking-wider text-[#123B2B] flex items-center gap-2">
+              <Video className="w-4 h-4 text-emerald-700" />
+              <span>Step 1: Upload or Link Video &amp; Poster</span>
+            </h4>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+              {/* Left: Video File Upload & URL */}
+              <div className="lg:col-span-7 space-y-3">
+                <label className="text-xs font-bold text-gray-700 block">
+                  Upload Video from Device
+                </label>
+
+                <div
+                  onClick={() => document.getElementById('how-to-order-video-file')?.click()}
+                  className="border-2 border-dashed border-emerald-300/80 hover:border-[#123B2B] bg-white rounded-2xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center group"
+                >
+                  <input
+                    id="how-to-order-video-file"
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime,video/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        const file = e.target.files[0];
+                        if (file.size > 50 * 1024 * 1024) {
+                          alert('Video is larger than 50MB. For faster customer playback, compress or host on a CDN/Cloud storage.');
+                        }
+                        setIsHowToOrderUploading(true);
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          if (ev.target?.result) {
+                            handleChange('howToOrderVideoUrl', ev.target.result as string);
+                          }
+                          setIsHowToOrderUploading(false);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  {isHowToOrderUploading ? (
+                    <div className="flex flex-col items-center">
+                      <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mb-2" />
+                      <p className="text-xs font-bold text-[#123B2B]">Processing video file...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-10 h-10 rounded-full bg-emerald-100/70 text-[#123B2B] flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                        <UploadCloud className="w-5 h-5 text-emerald-700" />
+                      </div>
+                      <p className="text-xs font-bold text-[#123B2B]">Click to browse &amp; upload video file</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">Supports MP4, WEBM, MOV (Auto-preview)</p>
+                    </>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-gray-600 block">
+                    Or Direct Video URL (CDN / Hosted MP4):
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.howToOrderVideoUrl || ''}
+                    onChange={(e) => handleChange('howToOrderVideoUrl', e.target.value)}
+                    placeholder="https://.../video.mp4 or /videos/how-to-order.mp4"
+                    className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#123B2B] bg-white font-mono"
+                  />
+                </div>
+
+                {/* Video Poster Upload */}
+                <div className="pt-2 space-y-2">
+                  <label className="text-xs font-bold text-gray-700 block">
+                    Video Poster Thumbnail (Image shown before playing)
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      id="how-to-order-poster-file"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            if (ev.target?.result) {
+                              handleChange('howToOrderVideoPoster', ev.target.result as string);
+                            }
+                          };
+                          reader.readAsDataURL(e.target.files[0]);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('how-to-order-poster-file')?.click()}
+                      className="px-3.5 py-2 rounded-xl bg-white border border-gray-300 hover:border-[#123B2B] text-xs font-bold text-[#123B2B] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                    >
+                      <ImageIcon className="w-4 h-4 text-emerald-700" />
+                      <span>Upload Poster</span>
+                    </button>
+                    <input
+                      type="text"
+                      value={formData.howToOrderVideoPoster || ''}
+                      onChange={(e) => handleChange('howToOrderVideoPoster', e.target.value)}
+                      placeholder="Or enter poster image URL..."
+                      className="flex-1 text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#123B2B] bg-white font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Live Interactive Video Preview */}
+              <div className="lg:col-span-5 space-y-2">
+                <label className="text-xs font-bold text-gray-700 block">
+                  Live Video Player Preview
+                </label>
+                <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black border border-gray-300 shadow-inner flex items-center justify-center">
+                  {formData.howToOrderVideoUrl ? (
+                    <video
+                      controls
+                      playsInline
+                      poster={formData.howToOrderVideoPoster}
+                      src={formData.howToOrderVideoUrl}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="p-4 text-center text-gray-400">
+                      <Film className="w-8 h-8 mx-auto mb-1 opacity-50" />
+                      <p className="text-xs">No video configured yet</p>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-gray-400 text-center">
+                  This video automatically loops smoothly on the live website.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Section Titles & Headings */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-black uppercase tracking-wider text-[#123B2B] flex items-center gap-2">
+              <Leaf className="w-4 h-4 text-emerald-700" />
+              <span>Step 2: Section Titles &amp; Headings</span>
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">Section Pill Badge</label>
+                <input
+                  type="text"
+                  value={formData.howToOrderBadge || ''}
+                  onChange={(e) => handleChange('howToOrderBadge', e.target.value)}
+                  placeholder="How We Craft Your Salad"
+                  className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#123B2B] bg-gray-50"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">
+                  Section Main Heading
+                </label>
+                <input
+                  type="text"
+                  value={formData.howToOrderHeading || ''}
+                  onChange={(e) => handleChange('howToOrderHeading', e.target.value)}
+                  placeholder="Get more from your lunch and dinner."
+                  className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#123B2B] bg-gray-50 font-bold text-[#123B2B]"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Card Details & Steps (The Single Option Card) */}
+          <div className="space-y-4 pt-2">
+            <h4 className="text-xs font-black uppercase tracking-wider text-[#123B2B] flex items-center gap-2">
+              <FileText className="w-4 h-4 text-emerald-700" />
+              <span>Step 3: Card Details, Steps &amp; Value Highlights</span>
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+              <div className="sm:col-span-3 space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">Card Number / Badge</label>
+                <input
+                  type="text"
+                  value={formData.howToOrderCardNumber || '01'}
+                  onChange={(e) => handleChange('howToOrderCardNumber', e.target.value)}
+                  placeholder="01"
+                  className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#123B2B] bg-gray-50 text-center font-bold"
+                />
+              </div>
+
+              <div className="sm:col-span-9 space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">Card Heading / Title</label>
+                <input
+                  type="text"
+                  value={formData.howToOrderCardTitle || ''}
+                  onChange={(e) => handleChange('howToOrderCardTitle', e.target.value)}
+                  placeholder="How to Order Fresh Salad at Greesal"
+                  className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#123B2B] bg-gray-50 font-bold text-[#123B2B]"
+                />
+              </div>
+
+              <div className="sm:col-span-12 space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">
+                  How To Order Steps &amp; Description (Multi-line supported)
+                </label>
+                <textarea
+                  rows={4}
+                  value={formData.howToOrderCardDesc || ''}
+                  onChange={(e) => handleChange('howToOrderCardDesc', e.target.value)}
+                  placeholder="1. Select your bowl...&#10;2. Choose portion &amp; dressing...&#10;3. Enjoy 30-min doorstep delivery!"
+                  className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#123B2B] bg-gray-50 leading-relaxed font-sans"
+                />
+              </div>
+            </div>
+
+            {/* 3 Highlight Badges */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-gray-600 block">Highlight 1 (Delivery)</label>
+                <input
+                  type="text"
+                  value={formData.howToOrderHighlight1 || ''}
+                  onChange={(e) => handleChange('howToOrderHighlight1', e.target.value)}
+                  placeholder="⚡ 30–45 Min Express Delivery in Surat"
+                  className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#123B2B] bg-gray-50"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-gray-600 block">Highlight 2 (Purity / Diet)</label>
+                <input
+                  type="text"
+                  value={formData.howToOrderHighlight2 || ''}
+                  onChange={(e) => handleChange('howToOrderHighlight2', e.target.value)}
+                  placeholder="🥗 100% Satvik • No Onion Garlic • No Preservatives"
+                  className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#123B2B] bg-gray-50"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-gray-600 block">Highlight 3 (Offer / City)</label>
+                <input
+                  type="text"
+                  value={formData.howToOrderHighlight3 || ''}
+                  onChange={(e) => handleChange('howToOrderHighlight3', e.target.value)}
+                  placeholder="✨ Free Doorstep Delivery Across Surat"
+                  className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#123B2B] bg-gray-50"
+                />
+              </div>
+            </div>
+
+            {/* Button Actions */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">Action Button Text</label>
+                <input
+                  type="text"
+                  value={formData.howToOrderBtnText || ''}
+                  onChange={(e) => handleChange('howToOrderBtnText', e.target.value)}
+                  placeholder="Order Fresh Salad Now"
+                  className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#123B2B] bg-gray-50 font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">Action Button Link</label>
+                <input
+                  type="text"
+                  value={formData.howToOrderBtnLink || ''}
+                  onChange={(e) => handleChange('howToOrderBtnLink', e.target.value)}
+                  placeholder="/salads"
+                  className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#123B2B] bg-gray-50 font-mono"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Live Visual Card Preview */}
+          <div className="pt-4 border-t border-gray-100 space-y-3">
+            <h4 className="text-xs font-black uppercase tracking-wider text-gray-400">
+              Live Showcase Card Preview (What Customers See)
+            </h4>
+
+            <div className="max-w-4xl mx-auto bg-white rounded-3xl overflow-hidden border border-[#E4DEC9] shadow-md grid grid-cols-1 md:grid-cols-12 text-left">
+              <div className="md:col-span-5 relative aspect-video md:aspect-auto w-full min-h-[220px] bg-black overflow-hidden flex items-center justify-center">
+                {formData.howToOrderVideoUrl ? (
+                  <video
+                    muted
+                    loop
+                    playsInline
+                    poster={formData.howToOrderVideoPoster}
+                    src={formData.howToOrderVideoUrl}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-gray-400 text-xs flex items-center gap-1.5">
+                    <Film className="w-4 h-4" />
+                    <span>Video will preview here</span>
+                  </div>
+                )}
+                <div className="absolute top-3 left-3 w-7 h-7 rounded-full bg-[#123B2B] text-white flex items-center justify-center font-extrabold text-[11px] shadow-sm">
+                  {formData.howToOrderCardNumber || '01'}
+                </div>
+              </div>
+
+              <div className="md:col-span-7 p-5 flex flex-col justify-between space-y-3">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#25A87D] block mb-1">
+                    ORDER IN 3 SIMPLE STEPS
+                  </span>
+                  <h5 className="font-montserrat font-extrabold text-base text-[#123B2B]">
+                    {formData.howToOrderCardTitle || 'How to Order Fresh Salad at Greesal'}
+                  </h5>
+                  <p className="mt-2 text-xs text-gray-600 whitespace-pre-line bg-[#fcfbf7] p-2.5 rounded-xl border border-gray-100">
+                    {formData.howToOrderCardDesc || '1. Select bowl  2. Pick dressing  3. Fast 30-min delivery'}
+                  </p>
+                </div>
+
+                <div className="space-y-1.5 text-[11px] font-semibold text-gray-700">
+                  {formData.howToOrderHighlight1 && (
+                    <div className="flex items-center gap-1.5 text-emerald-800">
+                      <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{formData.howToOrderHighlight1}</span>
+                    </div>
+                  )}
+                  {formData.howToOrderHighlight2 && (
+                    <div className="flex items-center gap-1.5 text-amber-800">
+                      <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                      <span>{formData.howToOrderHighlight2}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-gray-100">
+                  <span className="inline-block bg-[#123B2B] text-[#E5F97A] text-[11px] font-bold px-4 py-2 rounded-xl">
+                    {formData.howToOrderBtnText || 'Order Fresh Salad Now'} &rarr;
+                  </span>
+                </div>
               </div>
             </div>
           </div>

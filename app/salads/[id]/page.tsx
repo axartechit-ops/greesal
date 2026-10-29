@@ -11,7 +11,7 @@ import { InvoiceModal, InvoiceOrder } from '@/components/InvoiceModal';
 import { LoginModal } from '@/components/LoginModal';
 import { getLiveDetailedLocation } from '@/lib/geolocation';
 import { sendOrderToWhatsApp } from '@/lib/whatsapp';
-import { DEFAULT_SALADS, DEFAULT_SALAD_ADDONS, getSaladByIdOrSlug, Salad, SaladAddOn, SaladPortion, getSaladPortions, slugify } from '@/lib/salads';
+import { DEFAULT_SALADS, DEFAULT_SALAD_ADDONS, getSaladByIdOrSlug, Salad, SaladAddOn, SaladPortion, getSaladPortions, getSaladIngredients, getSaladDressing, getSaladCrunch, slugify } from '@/lib/salads';
 import {
   Sparkles,
   Leaf,
@@ -405,7 +405,7 @@ export default function SaladDetailPage() {
   const otherSalads = allSalads.filter((s) => (s.slug || slugify(s.name)) !== (salad.slug || slugify(salad.name))).slice(0, 3);
 
   return (
-    <div className="relative min-h-screen bg-[#FDFBF7] font-sans selection:bg-[#123B2B] selection:text-white overflow-x-hidden flex flex-col justify-between pb-24 md:pb-0">
+    <div className="relative min-h-screen bg-[#FDFBF7] font-sans selection:bg-[#123B2B] selection:text-white overflow-x-hidden flex flex-col justify-between">
 
       {/* Background Leaves */}
       <TopLeftLeafBranch className="top-0 left-0 opacity-15 pointer-events-none" />
@@ -595,55 +595,117 @@ export default function SaladDetailPage() {
               </div>
             </div>
 
-            {/* Fresh Farm Ingredients */}
-            <div className="bg-white rounded-[28px] p-6 sm:p-7 border border-[#E8E1D5] shadow-xs space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-sans font-black text-lg text-[#123B2B] flex items-center gap-2">
-                  <Leaf className="w-5 h-5 text-[#237357]" />
-                  <span>Farm-Fresh Ingredients ({salad.ingredients?.length || 0})</span>
-                </h3>
-                <span className="text-xs font-bold text-[#237357] bg-[#E8F3EE] px-2.5 py-1 rounded-full">
-                  100% Hydroponic
+            {/* 3-Part Architecture Container: Ingredients, Dressing, Crunch */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+                <div>
+                  <h3 className="text-sm font-black text-[#123B2B] tracking-wide uppercase flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#C89D4B]" />
+                    <span>Crafted in 3 Fresh Parts</span>
+                  </h3>
+                  <p className="text-xs text-gray-500">Every bowl is handcrafted with separate, harmonious culinary layers.</p>
+                </div>
+                <span className="text-xs font-black text-[#237357] bg-[#E8F3EE] px-3 py-1 rounded-full border border-[#237357]/20 self-start sm:self-auto">
+                  100% Satvik Goodness
                 </span>
               </div>
 
-              <div className="flex flex-wrap gap-2 pt-1">
-                {salad.ingredients?.map((ing, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#FAF6F0] border border-[#EBE2D3] text-xs font-bold text-gray-700 hover:border-[#123B2B]/40 transition-colors"
-                  >
-                    <Leaf className="w-3 h-3 text-[#237357]" />
-                    <span>{ing}</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Artisan Dressing / Gravy */}
-            {salad.gravy && salad.gravy.length > 0 && (
-              <div className="bg-white rounded-[28px] p-6 sm:p-7 border border-[#E8E1D5] shadow-xs space-y-4">
-                <h3 className="font-sans font-black text-lg text-[#123B2B] flex items-center gap-2">
-                  <Utensils className="w-5 h-5 text-[#C89D4B]" />
-                  <span>Artisan Cold-Blended Dressing</span>
-                </h3>
-                <p className="text-xs text-gray-500 font-medium">
-                  Crafted daily in small batches with cold-pressed olive oil, organic honey, raw nuts, and aromatic herbs.
-                </p>
-
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {salad.gravy.map((item, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#FAF6F0] border border-[#EBE2D3] text-xs font-bold text-gray-700"
-                    >
-                      <Sparkles className="w-3 h-3 text-[#C89D4B]" />
-                      <span>{item}</span>
+              {/* Part 1: Farm-Fresh Ingredients */}
+              {getSaladIngredients(salad).length > 0 && (
+                <div className="bg-white rounded-[26px] p-5 sm:p-6 border border-[#E8E1D5] shadow-xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-sans font-black text-base text-[#123B2B] flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-lg bg-[#E8F3EE] text-[#237357] flex items-center justify-center">
+                        <Leaf className="w-4 h-4" />
+                      </span>
+                      <span>Part 1: Fresh Ingredients</span>
+                      <span className="text-xs font-bold text-gray-500">({getSaladIngredients(salad).length})</span>
+                    </h4>
+                    <span className="text-[11px] font-bold text-[#237357] bg-[#E8F3EE] px-2.5 py-0.5 rounded-full">
+                      Farm Harvested
                     </span>
-                  ))}
+                  </div>
+                  <p className="text-xs text-gray-500 font-medium">
+                    Hydroponic crisp greens, sprouted organic legumes, crunchy garden veggies, and protein cubes.
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {getSaladIngredients(salad).map((ing, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FAF6F0] border border-[#EBE2D3] text-xs font-bold text-[#123B2B] hover:border-[#123B2B]/40 transition-colors"
+                      >
+                        <Leaf className="w-3 h-3 text-[#237357]" />
+                        <span>{ing}</span>
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* Part 2: Handcrafted Dressing */}
+              {getSaladDressing(salad).length > 0 && (
+                <div className="bg-white rounded-[26px] p-5 sm:p-6 border border-[#E8E1D5] shadow-xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-sans font-black text-base text-[#123B2B] flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
+                        <Utensils className="w-4 h-4" />
+                      </span>
+                      <span>Part 2: Handcrafted Dressing</span>
+                      <span className="text-xs font-bold text-gray-500">({getSaladDressing(salad).length})</span>
+                    </h4>
+                    <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                      Cold-Blended
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 font-medium">
+                    Crafted daily in small batches with cold-pressed olive oil, herbs, lemon zing, and zero preservatives.
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {getSaladDressing(salad).map((item, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50/60 border border-amber-200/70 text-xs font-bold text-amber-950"
+                      >
+                        <Sparkles className="w-3 h-3 text-amber-600" />
+                        <span>{item}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Part 3: Signature Crunch */}
+              {getSaladCrunch(salad).length > 0 && (
+                <div className="bg-white rounded-[26px] p-5 sm:p-6 border border-[#E8E1D5] shadow-xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-sans font-black text-base text-[#123B2B] flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-lg bg-stone-100 text-stone-700 flex items-center justify-center">
+                        <Zap className="w-4 h-4 text-[#C89D4B]" />
+                      </span>
+                      <span>Part 3: Signature Crunch</span>
+                      <span className="text-xs font-bold text-gray-500">({getSaladCrunch(salad).length})</span>
+                    </h4>
+                    <span className="text-[11px] font-bold text-stone-800 bg-stone-100 px-2.5 py-0.5 rounded-full border border-stone-200">
+                      Slow Roasted
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 font-medium">
+                    Toasted seeds, crunchy nuts, and crisp croutons that deliver maximum taste & satisfying crunch.
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {getSaladCrunch(salad).map((item, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FAF6F0] border border-[#EBE2D3] text-xs font-bold text-stone-900"
+                      >
+                        <span className="text-amber-600 text-xs font-black">✨</span>
+                        <span>{item}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
           </div>
 
@@ -1056,21 +1118,26 @@ export default function SaladDetailPage() {
       </main>
 
       {/* Comprehensive Professional Brand Footer */}
-      <footer className="mt-10 sm:mt-14 bg-[#081F17] text-white pt-10 sm:pt-12 pb-8 relative z-10 border-t-2 border-[#C89D4B]/50 shadow-[0_-10px_30px_rgba(0,0,0,0.15)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <footer className="relative overflow-hidden bg-[#6ac6ac] text-[#0c2a20] pt-10 sm:pt-12 pb-20 md:pb-8 z-10 border-t border-[#4fa88f] shadow-[0_-10px_30px_rgba(0,0,0,0.06)] font-dmsans">
+        {/* Decorative ambient background glows */}
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-white/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-[#0c2a20]/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
           {/* Top Value Banner inside Footer */}
-          <div className="relative overflow-hidden bg-gradient-to-r from-[#0D3123] via-[#123E2E] to-[#0D3123] rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-7 border border-[#C89D4B]/35 shadow-lg mb-8 sm:mb-10">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-5 text-center lg:text-left">
+          <div className="relative overflow-hidden bg-[#0c2a20] rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-7 border border-[#144c38] shadow-xl mb-8 sm:mb-10">
+            <div className="absolute -top-12 -right-12 w-36 h-36 bg-[#6ac6ac]/15 rounded-full blur-2xl pointer-events-none" />
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-5 text-center lg:text-left relative z-10">
               <div className="space-y-1.5 max-w-2xl">
-                <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#C89D4B] bg-[#C89D4B]/10 px-2.5 py-0.5 rounded-full border border-[#C89D4B]/30">
-                  <Leaf className="w-3 h-3 text-[#C89D4B]" />
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#fbce45] bg-[#fbce45]/10 px-2.5 py-0.5 rounded-full border border-[#fbce45]/30">
+                  <Leaf className="w-3 h-3 text-[#fbce45]" />
                   <span>DAILY FARM-TO-BOWL PROMISE</span>
                 </span>
                 <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
                   Craving clean, delicious organic nutrition
                 </h3>
-                <p className="text-xs text-emerald-200/90 font-medium">
+                <p className="text-xs text-[#a5ded0] font-medium">
                   Freshly prepared within 15 minutes of ordering and delivered in sealed eco-friendly packaging across Surat in 30 mins.
                 </p>
               </div>
@@ -1086,8 +1153,8 @@ export default function SaladDetailPage() {
                   <span>Order via WhatsApp (+91 99258 36117)</span>
                 </a>
                 <Link
-                  href="/#menu"
-                  className="px-4 sm:px-5 py-2.5 rounded-xl bg-[#C89D4B] hover:bg-[#D9A84E] text-[#081F17] font-black text-xs shadow-md transition-all cursor-pointer active:scale-95"
+                  href="/salads"
+                  className="px-4 sm:px-5 py-2.5 rounded-xl bg-[#fbce45] hover:bg-[#eab92d] text-[#081F17] font-black text-xs shadow-md transition-all cursor-pointer active:scale-95"
                 >
                   Browse Menu
                 </Link>
@@ -1096,31 +1163,31 @@ export default function SaladDetailPage() {
           </div>
 
           {/* 4-Column Main Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-8 text-left pb-8 sm:pb-10 border-b border-white/10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-8 text-left pb-8 sm:pb-10 border-b border-[#0c2a20]/15">
 
             {/* Column 1: Brand & Mission */}
             <div className="lg:col-span-4 space-y-3.5">
               <div className="flex items-center gap-3">
-                <div className="bg-white/95 px-3 py-1.5 rounded-xl inline-block shadow-sm">
+                <div className="bg-white/95 px-3 py-1.5 rounded-xl inline-block shadow-sm border border-white/60">
                   <GreesalLogo size="sm" />
                 </div>
               </div>
 
-              <p className="text-xs text-emerald-100/80 leading-relaxed font-medium">
+              <p className="text-xs text-[#0c2a20]/85 leading-relaxed font-medium">
                 Greesal (Slice of Green) crafts nutrient-dense, 100% organic gourmet salad bowls. We source crisp hydroponic greens daily, paired with high-protein plant grains and cold-blended artisan gravies.
               </p>
 
               <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                <span className="text-[10px] font-bold bg-white/10 border border-white/15 px-2.5 py-1 rounded-lg text-emerald-200 flex items-center gap-1.5">
-                  <Leaf className="w-3 h-3 text-emerald-300" />
+                <span className="text-[10px] font-bold bg-[#0c2a20] px-2.5 py-1 rounded-lg text-emerald-200 flex items-center gap-1.5 shadow-xs">
+                  <Leaf className="w-3 h-3 text-[#6ac6ac]" />
                   <span>100% Hydroponic</span>
                 </span>
-                <span className="text-[10px] font-bold bg-white/10 border border-white/15 px-2.5 py-1 rounded-lg text-emerald-200 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3 h-3 text-emerald-300" />
+                <span className="text-[10px] font-bold bg-[#0c2a20] px-2.5 py-1 rounded-lg text-emerald-200 flex items-center gap-1.5 shadow-xs">
+                  <ShieldCheck className="w-3 h-3 text-[#6ac6ac]" />
                   <span>Freeze-Dried Lock</span>
                 </span>
-                <span className="text-[10px] font-bold bg-white/10 border border-white/15 px-2.5 py-1 rounded-lg text-emerald-200 flex items-center gap-1.5">
-                  <Truck className="w-3 h-3 text-emerald-300" />
+                <span className="text-[10px] font-bold bg-[#0c2a20] px-2.5 py-1 rounded-lg text-emerald-200 flex items-center gap-1.5 shadow-xs">
+                  <Truck className="w-3 h-3 text-[#6ac6ac]" />
                   <span>30-Min Surat Express</span>
                 </span>
               </div>
@@ -1128,25 +1195,25 @@ export default function SaladDetailPage() {
 
             {/* Column 2: Popular Salad Bowls */}
             <div className="lg:col-span-3 space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-widest text-[#C89D4B] flex items-center gap-1.5">
-                <Utensils className="w-3.5 h-3.5 text-[#C89D4B]" />
+              <h4 className="text-xs font-black uppercase tracking-widest text-[#0c2a20] flex items-center gap-1.5">
+                <Utensils className="w-3.5 h-3.5 text-[#0c2a20]" />
                 <span>Popular Salad Bowls</span>
               </h4>
-              <ul className="space-y-2 text-xs font-medium text-emerald-100/90">
+              <ul className="space-y-2 text-xs font-medium text-[#0c2a20]/85">
                 {DEFAULT_SALADS.slice(0, 4).map((s) => (
                   <li key={s.slug}>
                     <Link
                       href={`/salads/${s.slug}`}
-                      className="hover:text-[#C89D4B] transition-colors flex items-center gap-1.5 cursor-pointer text-left group"
+                      className="hover:text-black hover:font-bold transition-all flex items-center gap-1.5 cursor-pointer text-left group"
                     >
-                      <span className="text-emerald-400 group-hover:translate-x-0.5 transition-transform">›</span>
+                      <span className="text-[#0c2a20] font-bold group-hover:translate-x-0.5 transition-transform">›</span>
                       <span>{s.name}</span>
                     </Link>
                   </li>
                 ))}
                 <li>
-                  <Link href="/#menu" className="text-[#C89D4B] font-bold hover:underline flex items-center gap-1 pt-0.5 text-xs">
-                    <span>View All 7 Salad Bowls</span>
+                  <Link href="/salads" className="text-[#0c2a20] font-extrabold hover:underline flex items-center gap-1 pt-0.5 text-xs">
+                    <span>View All Salad Bowls</span>
                     <span>&rarr;</span>
                   </Link>
                 </li>
@@ -1155,28 +1222,28 @@ export default function SaladDetailPage() {
 
             {/* Column 3: Surat Delivery Areas */}
             <div className="lg:col-span-3 space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-widest text-[#C89D4B] flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5" /> Surat Delivery Hubs
+              <h4 className="text-xs font-black uppercase tracking-widest text-[#0c2a20] flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-[#0c2a20]" /> Surat Delivery Hubs
               </h4>
-              <div className="space-y-2 text-xs text-emerald-100/90 font-medium">
+              <div className="space-y-2 text-xs text-[#0c2a20]/85 font-medium">
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <MapPin className="w-3.5 h-3.5 text-[#0c2a20] flex-shrink-0 mt-0.5" />
                   <div>
-                    <strong className="text-white font-bold block text-xs">Central Organic Kitchen:</strong>
-                    <span className="text-emerald-200/80 text-[11px]">Katargam, Surat - 395004</span>
+                    <strong className="text-[#0c2a20] font-bold block text-xs">Central Organic Kitchen:</strong>
+                    <span className="text-[#0c2a20]/75 text-[11px]">Katargam, Surat - 395004</span>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2">
-                  <Clock className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <Clock className="w-3.5 h-3.5 text-[#0c2a20] flex-shrink-0 mt-0.5" />
                   <div>
-                    <strong className="text-white font-bold block text-xs">Operating Hours:</strong>
-                    <span className="text-emerald-200/80 text-[11px]">Mon – Sun: 8:00 AM – 10:30 PM</span>
+                    <strong className="text-[#0c2a20] font-bold block text-xs">Operating Hours:</strong>
+                    <span className="text-[#0c2a20]/75 text-[11px]">Mon – Sun: 8:00 AM – 10:30 PM</span>
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[11px] text-emerald-200 leading-snug">
-                  <strong className="text-white block mb-0.5">Active Zones:</strong>
+                <div className="p-2.5 rounded-xl bg-white/70 border border-[#0c2a20]/15 text-[11px] text-[#0c2a20] leading-snug">
+                  <strong className="text-[#0c2a20] block mb-0.5 font-bold">Active Zones:</strong>
                   Katargam, Adajan, Vesu, Pal, City Light, Piplod, Varachha, Althan.
                 </div>
               </div>
@@ -1184,54 +1251,53 @@ export default function SaladDetailPage() {
 
             {/* Column 4: Contact & Food Safety */}
             <div className="lg:col-span-2 space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-widest text-[#C89D4B] flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5" /> Contact &amp; Safety
+              <h4 className="text-xs font-black uppercase tracking-widest text-[#0c2a20] flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#0c2a20]" /> Contact &amp; Safety
               </h4>
 
-              <div className="space-y-2 text-xs text-emerald-100/90 font-medium">
+              <div className="space-y-2 text-xs text-[#0c2a20]/85 font-medium">
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-md bg-white/10 flex items-center justify-center">
-                    <Phone className="w-3 h-3 text-[#C89D4B]" />
+                  <span className="w-5 h-5 rounded-md bg-[#0c2a20] flex items-center justify-center">
+                    <Phone className="w-3 h-3 text-[#fbce45]" />
                   </span>
-                  <a href="tel:+919925836117" className="hover:text-[#C89D4B] transition-colors font-bold">+91 99258 36117</a>
+                  <a href="tel:+919925836117" className="hover:underline font-bold text-[#0c2a20]">+91 99258 36117</a>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-md bg-white/10 flex items-center justify-center">
-                    <Globe className="w-3 h-3 text-[#C89D4B]" />
+                  <span className="w-5 h-5 rounded-md bg-[#0c2a20] flex items-center justify-center">
+                    <Globe className="w-3 h-3 text-[#fbce45]" />
                   </span>
-                  <a href="https://www.greesal.in" target="_blank" rel="noopener noreferrer" className="hover:text-[#C89D4B] transition-colors font-bold">www.greesal.in</a>
+                  <a href="https://www.greesal.in" target="_blank" rel="noopener noreferrer" className="hover:underline font-bold text-[#0c2a20]">www.greesal.in</a>
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#0D3123] to-[#154632] border border-[#C89D4B]/40 text-center space-y-0.5 shadow-sm">
-                <div className="text-[10px] font-black uppercase tracking-wider text-[#C89D4B] flex items-center justify-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <div className="p-2.5 rounded-xl bg-[#0c2a20] text-center space-y-0.5 shadow-md text-white">
+                <div className="text-[10px] font-black uppercase tracking-wider text-[#fbce45] flex items-center justify-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#6ac6ac]" />
                   <span>fssai Registered</span>
                 </div>
                 <div className="text-[11px] font-black text-white">
                   LIC NO. 123456789412
                 </div>
-                <p className="text-[9px] text-emerald-200/75">Govt. Certified Clean Food Safety</p>
+                <p className="text-[9px] text-[#a5ded0]">Govt. Certified Clean Food Safety</p>
               </div>
             </div>
 
           </div>
 
           {/* Bottom Legal Sub-Footer */}
-          <div className="pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-emerald-200/70 font-medium text-center md:text-left">
+          <div className="pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-[#0c2a20]/80 font-medium text-center md:text-left">
             <div>
-              <p>© {new Date().getFullYear()} Greesal Organic Kitchen. All rights reserved.</p>
-              <p className="text-[10px] text-emerald-300/50 mt-0.5">Handcrafted with passion by Rinkal Jivani in Surat, Gujarat.</p>
+              <p>© {new Date().getFullYear()} <strong className="text-[#0c2a20]">Greesal Organic Kitchen</strong>. All rights reserved.</p>
+              <p className="text-[10px] text-[#0c2a20]/60 mt-0.5">Handcrafted with passion in Surat, Gujarat.</p>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-3 text-xs font-semibold">
-              <Link href="/admin/login" className="hover:text-white transition-colors flex items-center gap-1 text-[#C89D4B]">
-                <span>Admin Portal</span>
-                <span>&rarr;</span>
+              <Link href="/admin" className="hover:text-black transition-colors">
+                Admin Portal
               </Link>
-              <span className="text-white/20">•</span>
-              <a href="https://wa.me/919925836117" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+              <span className="text-[#0c2a20]/40">•</span>
+              <a href="https://wa.me/919925836117" target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">
                 Support
               </a>
             </div>
@@ -1497,4 +1563,3 @@ export default function SaladDetailPage() {
     </div>
   );
 }
-

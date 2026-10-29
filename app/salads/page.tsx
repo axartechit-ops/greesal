@@ -43,6 +43,11 @@ export default function SaladsPage() {
   const [customName, setCustomName] = useState<string>('');
   const [customMobile, setCustomMobile] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -240,9 +245,9 @@ export default function SaladsPage() {
     }, 0);
   }, [drawerCartItems]);
 
-  const isLoggedIn = status === 'authenticated' || Boolean(customName || customMobile);
-  const userName = session?.user?.name || customName || null;
-  const userImage = session?.user?.image || null;
+  const isLoggedIn = isMounted && (status === 'authenticated' || Boolean(customName || customMobile));
+  const userName = isMounted ? (session?.user?.name || customName || null) : null;
+  const userImage = isMounted ? (session?.user?.image || null) : null;
 
   return (
     <div className="min-h-screen bg-[#fcfdfc] text-[#1a1a1a] flex flex-col font-dmsans selection:bg-[#20493c] selection:text-white">
@@ -364,7 +369,7 @@ export default function SaladsPage() {
         onClose={() => setSelectedSalad(null)}
         quantityInCart={
           selectedSalad
-            ? cartQuantities[
+            ? cartAggregatedQuantities[
                 selectedSalad.id ||
                   selectedSalad._id ||
                   selectedSalad.slug ||
@@ -403,6 +408,7 @@ export default function SaladsPage() {
       />
 
       {/* Login Modal */}
+      
       <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}

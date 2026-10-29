@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Salad, slugify, SaladPortion, getSaladPortions, getSaladPriceForPortion } from '@/lib/salads';
+import { Salad, slugify, SaladPortion, getSaladPortions, getSaladPriceForPortion, getSaladIngredients, getSaladDressing, getSaladCrunch } from '@/lib/salads';
 import { 
   X, 
   Flame, 
@@ -11,10 +11,11 @@ import {
   Leaf, 
   Plus, 
   Minus, 
-  ShoppingCart,
-  Phone,
-  Sparkles,
-  ExternalLink
+  ShoppingCart, 
+  Phone, 
+  Sparkles, 
+  ExternalLink,
+  Utensils
 } from 'lucide-react';
 
 interface SaladDetailModalProps {
@@ -130,7 +131,7 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
             <Link
               href={`/salads/${salad.slug || slugify(salad.name)}`}
               onClick={onClose}
-              className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-[#123B2B] via-[#164634] to-[#1F5E46] text-white hover:opacity-95 transition-all shadow-md group"
+              className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-[#6ac6ac] via-[#164634] to-[#1F5E46] text-white hover:opacity-95 transition-all shadow-md group"
             >
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center text-[#fbce45]">
@@ -238,37 +239,80 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
               </div>
             </div>
 
-            {/* Ingredients */}
-            {salad.ingredients && salad.ingredients.length > 0 && (
-              <div>
-                <h4 className="font-montserrat font-bold text-sm uppercase tracking-wider text-[#20493c] mb-2 flex items-center gap-1.5">
-                  <Leaf className="w-4 h-4 text-[#6ac6ac]" />
-                  Fresh Ingredients
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {salad.ingredients.map((ing, idx) => (
-                    <span
-                      key={idx}
-                      className="px-3 py-1 rounded-xl bg-gray-100 text-gray-800 text-xs font-medium"
-                    >
-                      {ing}
-                    </span>
-                  ))}
-                </div>
+            {/* 3-Part Modular Ingredients: Ingredients, Dressing, Crunch */}
+            <div className="space-y-4 pt-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#20493c] flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C89D4B]" />
+                  <span>Crafted in 3 Fresh Parts</span>
+                </span>
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  100% Satvik Clean
+                </span>
               </div>
-            )}
 
-            {/* Handcrafted Dressing */}
-            {salad.gravy && salad.gravy.length > 0 && (
-              <div>
-                <h4 className="font-montserrat font-bold text-sm uppercase tracking-wider text-[#20493c] mb-2">
-                  100% Handmade Dressing &amp; Seasoning
-                </h4>
-                <p className="text-xs sm:text-sm text-gray-700 bg-[#f8faf9] p-3.5 rounded-xl border border-gray-100 leading-relaxed">
-                  {salad.gravy.join(', ')}
-                </p>
-              </div>
-            )}
+              {/* Part 1: Fresh Base Ingredients */}
+              {getSaladIngredients(salad).length > 0 && (
+                <div className="bg-[#FAF6F0] p-3 rounded-2xl border border-[#E8E1D5] space-y-2">
+                  <h4 className="font-montserrat font-bold text-xs uppercase tracking-wider text-[#20493c] flex items-center gap-1.5">
+                    <Leaf className="w-3.5 h-3.5 text-[#237357]" />
+                    <span>Part 1: Fresh Ingredients ({getSaladIngredients(salad).length})</span>
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {getSaladIngredients(salad).map((ing, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-1 rounded-lg bg-white border border-[#EBE2D3] text-gray-800 text-[11px] font-semibold shadow-2xs"
+                      >
+                        {ing}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Part 2: Handcrafted Dressing */}
+              {getSaladDressing(salad).length > 0 && (
+                <div className="bg-amber-50/60 p-3 rounded-2xl border border-amber-200/80 space-y-2">
+                  <h4 className="font-montserrat font-bold text-xs uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                    <Utensils className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Part 2: Handcrafted Dressing ({getSaladDressing(salad).length})</span>
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {getSaladDressing(salad).map((item, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-1 rounded-lg bg-white border border-amber-200 text-amber-950 text-[11px] font-semibold shadow-2xs flex items-center gap-1"
+                      >
+                        <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                        <span>{item}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Part 3: Signature Crunch */}
+              {getSaladCrunch(salad).length > 0 && (
+                <div className="bg-[#FAF6F0] p-3 rounded-2xl border border-stone-200 space-y-2">
+                  <h4 className="font-montserrat font-bold text-xs uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-[#C89D4B]" />
+                    <span>Part 3: Signature Crunch ({getSaladCrunch(salad).length})</span>
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {getSaladCrunch(salad).map((item, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-1 rounded-lg bg-white border border-stone-200 text-stone-900 text-[11px] font-semibold shadow-2xs flex items-center gap-1"
+                      >
+                        <span className="text-[10px]">✨</span>
+                        <span>{item}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Health Benefits */}
             {salad.healthBenefits && salad.healthBenefits.length > 0 && (

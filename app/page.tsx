@@ -20,7 +20,7 @@ import { ProfileModal } from '@/components/ProfileModal';
 import { LoginModal } from '@/components/LoginModal';
 import { InvoiceModal, InvoiceOrder } from '@/components/InvoiceModal';
 import { TermsModal } from '@/components/TermsModal';
-import { TopItemSlider } from '@/components/TopItemSlider';
+import { SaladProjectHero } from '@/components/SaladProjectHero';
 import { SaladDetailModal } from '@/components/SaladDetailModal';
 
 import { DEFAULT_SITE_SETTINGS, SiteSettings } from '@/lib/siteSettings';
@@ -56,6 +56,11 @@ export default function SaladIndiaHome() {
   const [customName, setCustomName] = useState<string>('');
   const [customMobile, setCustomMobile] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -273,9 +278,9 @@ export default function SaladIndiaHome() {
     return salads.slice(0, 6);
   }, [salads, siteSettings.topSliderSaladIds]);
 
-  const userName = session?.user?.name || customName || null;
-  const userImage = session?.user?.image || null;
-  const isLoggedIn = status === 'authenticated' || Boolean(customName);
+  const userName = isMounted ? (session?.user?.name || customName || null) : null;
+  const userImage = isMounted ? (session?.user?.image || null) : null;
+  const isLoggedIn = isMounted && (status === 'authenticated' || Boolean(customName || customMobile));
 
   const navigateToSalads = () => {
     router.push('/salads');
@@ -326,14 +331,23 @@ export default function SaladIndiaHome() {
 
       {/* Main Content Area */}
       <main className="flex-1">
-        {/* Top Featured Salad Items Slider (Admin Configurable) */}
-        <TopItemSlider
-          salads={sliderSalads}
-          onAddToCart={handleAddToCart}
-          title={siteSettings.topSliderTitle}
-          subtitle={siteSettings.topSliderSubtitle}
-          badge={siteSettings.topSliderBadge}
-          showSlider={siteSettings.showTopSlider ?? true}
+        {/* The Salad Project Inspired Dual-Split & Full-Width Cinematic Video Hero */}
+        <SaladProjectHero
+          onExploreMenu={navigateToSalads}
+          onSubscribeClick={() => setIsSubscriptionModalOpen(true)}
+          cityName="Surat"
+          howToOrderBadge={siteSettings.howToOrderBadge}
+          howToOrderHeading={siteSettings.howToOrderHeading}
+          howToOrderCardNumber={siteSettings.howToOrderCardNumber}
+          howToOrderCardTitle={siteSettings.howToOrderCardTitle}
+          howToOrderCardDesc={siteSettings.howToOrderCardDesc}
+          howToOrderVideoUrl={siteSettings.howToOrderVideoUrl}
+          howToOrderVideoPoster={siteSettings.howToOrderVideoPoster}
+          howToOrderHighlight1={siteSettings.howToOrderHighlight1}
+          howToOrderHighlight2={siteSettings.howToOrderHighlight2}
+          howToOrderHighlight3={siteSettings.howToOrderHighlight3}
+          howToOrderBtnText={siteSettings.howToOrderBtnText}
+          howToOrderBtnLink={siteSettings.howToOrderBtnLink}
         />
 
         {/* 3. Hero Section ("Farm-Fresh Organic Salad Bowls" & Story) */}
@@ -447,7 +461,7 @@ export default function SaladIndiaHome() {
         salad={selectedSalad}
         isOpen={Boolean(selectedSalad)}
         onClose={() => setSelectedSalad(null)}
-        quantityInCart={selectedSalad ? cartQuantities[selectedSalad.id || selectedSalad._id || selectedSalad.slug || selectedSalad.name] || 0 : 0}
+        quantityInCart={selectedSalad ? cartAggregatedQuantities[selectedSalad.id || selectedSalad._id || selectedSalad.slug || selectedSalad.name] || 0 : 0}
         onAddToCart={handleAddToCart}
         onRemoveFromCart={(id) => handleRemoveFromCart(id)}
       />

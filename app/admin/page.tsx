@@ -73,6 +73,8 @@ interface Salad {
   category?: string;
   image: string;
   ingredients?: string[];
+  dressing?: string[];
+  crunch?: string[];
   gravy?: string[];
   healthBenefits?: string[];
   additionalBenefits?: string[];
@@ -258,6 +260,8 @@ export default function AdminPage() {
     tag: 'Chef Choice',
     image: '',
     ingredients: [],
+    dressing: [],
+    crunch: [],
     gravy: [],
     healthBenefits: [],
     additionalBenefits: [],
@@ -805,6 +809,8 @@ export default function AdminPage() {
       category: defaultCat,
       image: '',
       ingredients: [],
+      dressing: [],
+      crunch: [],
       gravy: [],
       healthBenefits: [],
       additionalBenefits: [],
@@ -854,7 +860,9 @@ export default function AdminPage() {
       tag: saladCategory,
       category: saladCategory,
       ingredients: salad.ingredients || [],
-      gravy: salad.gravy || [],
+      dressing: salad.dressing || salad.gravy || [],
+      crunch: salad.crunch || [],
+      gravy: [],
       healthBenefits: salad.healthBenefits || [],
       additionalBenefits: salad.additionalBenefits || [],
       perfectFor: salad.perfectFor || ['Diet', 'Fitness', 'Healthy'],
@@ -887,12 +895,19 @@ export default function AdminPage() {
       const url = editingSaladId 
         ? `/api/admin/salads/${editingSaladId}` 
         : '/api/admin/salads';
+      const payload = { 
+        ...currentSalad,
+        dressing: currentSalad.dressing || [],
+        crunch: currentSalad.crunch || []
+      };
+      delete (payload as any).gravy;
+
       const method = editingSaladId ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentSalad),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -2070,7 +2085,7 @@ export default function AdminPage() {
                             />
 
                             {/* Floating Micro-Badge 1 */}
-                            <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md px-3 py-1 rounded-full shadow-md border border-[#6ac6ac]/30 flex items-center gap-1.5">
+                            <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md px-3 py-1 rounded-full shadow-md border border-[#123B2B]/30 flex items-center gap-1.5">
                               <Leaf className="w-3.5 h-3.5 text-[#20493c]" />
                               <span className="text-[11px] font-bold text-[#20493c]">
                                 {bannerPill1 || '100% Handmade Dressings'}
@@ -2113,7 +2128,7 @@ export default function AdminPage() {
                         }`}
                       >
                         <div>
-                          <span className="font-montserrat font-bold text-xs sm:text-sm text-[#6ac6ac] uppercase tracking-wide block">
+                          <span className="font-montserrat font-bold text-xs sm:text-sm text-[#123B2B] uppercase tracking-wide block">
                             {bannerStoryHeading || 'A short story about'}
                           </span>
                           <h5 className="font-montserrat font-extrabold text-2xl sm:text-3xl text-[#20493c] tracking-tight">
@@ -2201,7 +2216,7 @@ export default function AdminPage() {
                         {/* 3 Bottom Feature Highlight Badges */}
                         <div className="pt-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-[#20493c]">
                           <span className="inline-flex items-center gap-1.5 bg-[#f2f8f5] px-2.5 py-1 rounded-full border border-gray-100">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#6ac6ac]" /> {bannerHighlight1Title || 'Free Delivery in Surat'}
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#123B2B]" /> {bannerHighlight1Title || 'Free Delivery in Surat'}
                           </span>
                           <span className="inline-flex items-center gap-1.5 bg-[#f2f8f5] px-2.5 py-1 rounded-full border border-gray-100">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#fbce45]" /> {bannerHighlight2Title || 'Lunch & Evening Slots'}
@@ -2305,7 +2320,7 @@ export default function AdminPage() {
                           />
                           <div className="min-w-0">
                             <p className="text-[11px] font-bold text-[#123B2B] truncate">{preset.name}</p>
-                            <span className="text-[9px] text-[#6ac6ac] font-bold">Use Preset</span>
+                            <span className="text-[9px] text-[#123B2B] font-bold">Use Preset</span>
                           </div>
                         </button>
                       ))}
@@ -2535,7 +2550,7 @@ export default function AdminPage() {
 
                   <div className="space-y-4">
                     {/* Paragraph 1 */}
-                    <div className="p-4 rounded-2xl bg-[#F7FAF8] border border-[#6ac6ac]/30 space-y-1.5">
+                    <div className="p-4 rounded-2xl bg-[#F7FAF8] border border-[#123B2B]/30 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-black text-[#123B2B] flex items-center gap-1.5">
                           <Leaf className="w-3.5 h-3.5 text-[#20493c]" />
@@ -2557,10 +2572,10 @@ export default function AdminPage() {
                     </div>
 
                     {/* Paragraph 2 */}
-                    <div className="p-4 rounded-2xl bg-white border border-gray-200 border-l-4 border-l-[#6ac6ac] space-y-1.5">
+                    <div className="p-4 rounded-2xl bg-white border border-gray-200 border-l-4 border-l-[#123B2B] space-y-1.5">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-[#6ac6ac]" />
+                          <span className="w-2 h-2 rounded-full bg-[#123B2B]" />
                           <span>Story Paragraph 2 (Freshness &amp; Organic Goodness)</span>
                         </label>
                         <span className="text-[10px] text-gray-400 font-medium">Line by line view</span>
@@ -2593,7 +2608,7 @@ export default function AdminPage() {
                     </div>
 
                     {/* Paragraph 4: Dedicated Satvik Callout */}
-                    <div className="p-4 rounded-2xl bg-gradient-to-r from-[#eef8f3] via-[#f7fcf9] to-[#fffdf5] border-2 border-[#6ac6ac]/60 space-y-2">
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-[#eef8f3] via-[#f7fcf9] to-[#fffdf5] border-2 border-[#123B2B]/60 space-y-2">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-black text-[#123B2B] flex items-center gap-2">
                           <span className="p-1 rounded-md bg-[#20493c] text-[#fbce45]">
@@ -2613,7 +2628,7 @@ export default function AdminPage() {
                         onChange={(e) => setBannerStoryP4(e.target.value)}
                         placeholder="Our handcrafted salads are made using premium-quality ingredients, without onion and garlic..."
                         rows={3}
-                        className="w-full px-3 py-2 rounded-xl border border-[#6ac6ac]/40 bg-white text-gray-800 text-xs font-medium leading-relaxed focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
+                        className="w-full px-3 py-2 rounded-xl border border-[#123B2B]/40 bg-white text-gray-800 text-xs font-medium leading-relaxed focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
                       />
                     </div>
                   </div>
@@ -3038,7 +3053,14 @@ export default function AdminPage() {
                 }`}
               >
                 <Utensils className="w-3.5 h-3.5" />
-                <span>Ingredients</span>
+                <span>Ingredients (3 Parts)</span>
+                {((currentSalad.ingredients || []).length + (currentSalad.dressing || []).length + (currentSalad.crunch || []).length) > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                    formTab === 'ingredients' ? 'bg-[#C89D4B] text-[#123B2B]' : 'bg-[#123B2B] text-white'
+                  }`}>
+                    {(currentSalad.ingredients || []).length + (currentSalad.dressing || []).length + (currentSalad.crunch || []).length}
+                  </span>
+                )}
               </button>
 
               <button
@@ -3602,18 +3624,44 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Tab 3: Ingredients & Gravy */}
+              {/* Tab 3: Ingredients (3 Parts: Ingredients, Dressing, Crunch) */}
               {formTab === 'ingredients' && (
-                <div className="space-y-5 animate-in fade-in duration-150">
-                  {/* Ingredients Builder */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-[#123B2B] block">Ingredients List</label>
+                <div className="space-y-6 animate-in fade-in duration-150">
+                  <div className="bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#E8E1D5] flex items-center gap-3">
+                    <span className="w-9 h-9 rounded-xl bg-[#123B2B] text-[#C89D4B] flex items-center justify-center font-black text-sm flex-shrink-0">
+                      3P
+                    </span>
+                    <div>
+                      <h4 className="text-xs font-black text-[#123B2B]">3-Part Modular Ingredient Architecture</h4>
+                      <p className="text-[11px] text-gray-600">
+                        Divided into 3 mouth-watering categories: Fresh Base Ingredients, Handcrafted Dressing, and Signature Crunch.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Part 1: Farm-Fresh Base Ingredients */}
+                  <div className="bg-white p-4.5 rounded-2xl border border-emerald-100 shadow-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-emerald-100 text-[#123B2B] flex items-center justify-center text-xs font-black">
+                          1
+                        </span>
+                        <div>
+                          <label className="text-xs font-black text-[#123B2B] block">Part 1: Fresh Ingredients (Base &amp; Veggies)</label>
+                          <span className="text-[10px] text-gray-500">Hydroponic greens, vegetables, boiled chickpeas, sprouts, paneer, etc.</span>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        {(currentSalad.ingredients || []).length} items
+                      </span>
+                    </div>
+
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Type and press Enter, or click Add"
+                        placeholder="e.g. Boiled Chickpeas, Fresh Organic Paneer, Steamed Broccoli"
                         id="new-ingredient-input"
-                        className="flex-1 px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#123B2B]/30"
+                        className="flex-1 px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-[#123B2B]/30"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
@@ -3646,10 +3694,11 @@ export default function AdminPage() {
                         Add
                       </button>
                     </div>
+
                     <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pt-1">
                       {(currentSalad.ingredients || []).map((ing, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-greesal-lightgreen border border-greesal-emerald/10 text-[#123B2B] text-xs font-semibold rounded-lg">
-                          <span>{ing}</span>
+                        <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#E8F3EE] border border-[#237357]/20 text-[#123B2B] text-xs font-bold rounded-lg">
+                          <span>🥬 {ing}</span>
                           <button
                             type="button"
                             onClick={() => {
@@ -3658,24 +3707,42 @@ export default function AdminPage() {
                                 ingredients: (prev.ingredients || []).filter((_, i) => i !== idx)
                               }));
                             }}
-                            className="text-red-500 hover:text-red-700 font-bold ml-1 focus:outline-none cursor-pointer"
+                            className="text-red-500 hover:text-red-700 font-bold ml-1 focus:outline-none cursor-pointer text-sm leading-none"
+                            title="Remove ingredient"
                           >
                             &times;
                           </button>
                         </span>
                       ))}
+                      {(currentSalad.ingredients || []).length === 0 && (
+                        <span className="text-[11px] text-gray-400 italic">No base ingredients added yet.</span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Gravy Builder */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-[#123B2B] block">Gravy Ingredients List</label>
+                  {/* Part 2: Handcrafted Dressing */}
+                  <div className="bg-white p-4.5 rounded-2xl border border-amber-100 shadow-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center text-xs font-black">
+                          2
+                        </span>
+                        <div>
+                          <label className="text-xs font-black text-[#123B2B] block">Part 2: Handcrafted Dressing (Sauces &amp; Oils)</label>
+                          <span className="text-[10px] text-gray-500">Cold-blended dressings, vinaigrettes, oils, herb seasonings, and dips.</span>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                        {(currentSalad.dressing || []).length} items
+                      </span>
+                    </div>
+
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Type and press Enter, or click Add"
-                        id="new-gravy-input"
-                        className="flex-1 px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#123B2B]/30"
+                        placeholder="e.g. 100% Herb Dressing, Cold Pressed Olive Oil, White Cheese Dip"
+                        id="new-dressing-input"
+                        className="flex-1 px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-[#123B2B]/30"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
@@ -3683,7 +3750,7 @@ export default function AdminPage() {
                             if (val) {
                               setCurrentSalad(prev => ({
                                 ...prev,
-                                gravy: [...(prev.gravy || []), val]
+                                dressing: [...(prev.dressing || []), val]
                               }));
                               (e.target as HTMLInputElement).value = '';
                             }
@@ -3693,39 +3760,125 @@ export default function AdminPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          const el = document.getElementById('new-gravy-input') as HTMLInputElement;
+                          const el = document.getElementById('new-dressing-input') as HTMLInputElement;
                           const val = el?.value.trim();
                           if (val) {
                             setCurrentSalad(prev => ({
                               ...prev,
-                              gravy: [...(prev.gravy || []), val]
+                              dressing: [...(prev.dressing || []), val]
                             }));
                             el.value = '';
                           }
                         }}
-                        className="px-4 py-2 bg-[#123B2B] text-white text-xs font-bold rounded-xl hover:bg-[#1C4D3A] cursor-pointer"
+                        className="px-4 py-2 bg-amber-600 text-white text-xs font-bold rounded-xl hover:bg-amber-700 cursor-pointer"
                       >
                         Add
                       </button>
                     </div>
+
                     <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pt-1">
-                      {(currentSalad.gravy || []).map((gr, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-greesal-lightgreen border border-greesal-emerald/10 text-greesal-gold font-bold text-xs rounded-lg">
-                          <span>{gr}</span>
+                      {(currentSalad.dressing || []).map((dr, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-950 text-xs font-bold rounded-lg">
+                          <span>🥣 {dr}</span>
                           <button
                             type="button"
                             onClick={() => {
                               setCurrentSalad(prev => ({
                                 ...prev,
-                                gravy: (prev.gravy || []).filter((_, i) => i !== idx)
+                                dressing: (prev.dressing || []).filter((_, i) => i !== idx)
                               }));
                             }}
-                            className="text-red-500 hover:text-red-700 font-bold ml-1 focus:outline-none cursor-pointer"
+                            className="text-red-500 hover:text-red-700 font-bold ml-1 focus:outline-none cursor-pointer text-sm leading-none"
+                            title="Remove dressing"
                           >
                             &times;
                           </button>
                         </span>
                       ))}
+                      {(currentSalad.dressing || []).length === 0 && (
+                        <span className="text-[11px] text-gray-400 italic">No dressings added yet.</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Part 3: Signature Crunch */}
+                  <div className="bg-white p-4.5 rounded-2xl border border-stone-200 shadow-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-stone-200 text-stone-900 flex items-center justify-center text-xs font-black">
+                          3
+                        </span>
+                        <div>
+                          <label className="text-xs font-black text-[#123B2B] block">Part 3: Signature Crunch (Nuts, Seeds &amp; Toppers)</label>
+                          <span className="text-[10px] text-gray-500">Slow-roasted seeds, toasted nuts, crisp croutons, tortilla crisps.</span>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-bold text-stone-800 bg-stone-100 px-2 py-0.5 rounded-full border border-stone-300">
+                        {(currentSalad.crunch || []).length} items
+                      </span>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="e.g. Roasted Pumpkin Seeds, Almond Slivers, Herb Croutons, Golden Flax"
+                        id="new-crunch-input"
+                        className="flex-1 px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-[#123B2B]/30"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const val = (e.target as HTMLInputElement).value.trim();
+                            if (val) {
+                              setCurrentSalad(prev => ({
+                                ...prev,
+                                crunch: [...(prev.crunch || []), val]
+                              }));
+                              (e.target as HTMLInputElement).value = '';
+                            }
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const el = document.getElementById('new-crunch-input') as HTMLInputElement;
+                          const val = el?.value.trim();
+                          if (val) {
+                            setCurrentSalad(prev => ({
+                              ...prev,
+                              crunch: [...(prev.crunch || []), val]
+                            }));
+                            el.value = '';
+                          }
+                        }}
+                        className="px-4 py-2 bg-stone-800 text-white text-xs font-bold rounded-xl hover:bg-stone-900 cursor-pointer"
+                      >
+                        Add
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pt-1">
+                      {(currentSalad.crunch || []).map((cr, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#FAF6F0] border border-[#E8E1D5] text-stone-900 text-xs font-bold rounded-lg">
+                          <span>🥜 {cr}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCurrentSalad(prev => ({
+                                ...prev,
+                                crunch: (prev.crunch || []).filter((_, i) => i !== idx)
+                              }));
+                            }}
+                            className="text-red-500 hover:text-red-700 font-bold ml-1 focus:outline-none cursor-pointer text-sm leading-none"
+                            title="Remove crunch item"
+                          >
+                            &times;
+                          </button>
+                        </span>
+                      ))}
+                      {(currentSalad.crunch || []).length === 0 && (
+                        <span className="text-[11px] text-gray-400 italic">No crunch items added yet.</span>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -30,6 +30,24 @@ export interface SaladPortion {
   isDefault?: boolean; // true for standard default portion
 }
 
+
+export function getSaladIngredients(salad: Salad | null | undefined): string[] {
+  if (!salad || !Array.isArray(salad.ingredients)) return [];
+  return salad.ingredients;
+}
+
+export function getSaladDressing(salad: Salad | null | undefined): string[] {
+  if (!salad) return [];
+  if (Array.isArray(salad.dressing) && salad.dressing.length > 0) return salad.dressing;
+  if (Array.isArray(salad.gravy) && salad.gravy.length > 0) return salad.gravy;
+  return [];
+}
+
+export function getSaladCrunch(salad: Salad | null | undefined): string[] {
+  if (!salad || !Array.isArray(salad.crunch)) return [];
+  return salad.crunch;
+}
+
 export interface Salad {
   _id?: string;
   id?: string;
@@ -42,6 +60,8 @@ export interface Salad {
   category?: string;
   image: string;
   ingredients?: string[];
+  dressing?: string[];
+  crunch?: string[];
   gravy?: string[];
   healthBenefits?: string[];
   additionalBenefits?: string[];
@@ -143,10 +163,10 @@ export const DEFAULT_SALADS: Salad[] = [
       'Tender Red Cabbage',
       'Sweet Corn',
       'Organic Moong Sprouts',
-      'Pomegranate Pearls',
-      'Sunflower & Pumpkin Seeds'
+      'Pomegranate Pearls'
     ],
-    gravy: ['100% Handmade Herb Dressing', 'Cold Pressed Olive Oil & Lemon Zing', 'Rock Salt & Crushed Black Pepper'],
+    dressing: ['100% Handmade Herb Dressing', 'Cold Pressed Olive Oil & Lemon Zing', 'Rock Salt & Crushed Black Pepper'],
+    crunch: ['Roasted Sunflower & Pumpkin Seeds', 'Crispy Golden Flaxseeds'],
     healthBenefits: [
       'High Protein & Plant Fiber: 18g plant protein accelerates lean muscle repair and sustained fullness.',
       'Antioxidant Rich: Red cabbage and fresh sprouts boost immunity and gut digestion.',
@@ -170,10 +190,10 @@ export const DEFAULT_SALADS: Salad[] = [
       'Sprouted Moong & Chana',
       'Crisp Cucumber Slices',
       'Juicy Fresh Tomatoes',
-      'Zesty Lemon Slices',
-      'Medley of Roasted Nuts & Seeds'
+      'Zesty Lemon Slices'
     ],
-    gravy: ['Tantalizing Signature Homemade Dip', 'Cold Pressed Olive Dressing', 'Himalayan Pink Salt'],
+    dressing: ['Tantalizing Signature Homemade Dip', 'Cold Pressed Olive Dressing', 'Himalayan Pink Salt'],
+    crunch: ['Roasted Almonds & Walnut Halves', 'Toasted Pumpkin Seeds', 'Crunchy Melon Seeds'],
     healthBenefits: [
       '21g Lean Dairy & Sprout Protein for optimum athletic recovery.',
       'Loaded with Micronutrients: Vitamin C, Calcium, Zinc & Healthy Fats.',
@@ -192,15 +212,9 @@ export const DEFAULT_SALADS: Salad[] = [
     price: '₹250',
     tag: 'Paneer Salad',
     image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
-    ingredients: [
-      'Fresh Creamy Organic Paneer (100g)',
-      'Crunchy Steamed Broccoli',
-      'Sweet Cherry Tomatoes',
-      'Tricolor Bell Peppers',
-      'Black Olives',
-      'Crisp Garden Greens'
-    ],
-    gravy: ['Greesal White Cheese Dip', 'Herbed Olive Vinaigrette', 'Cracked Pepper'],
+    ingredients: ["Fresh Creamy Organic Paneer (100g)", "Crunchy Steamed Broccoli", "Sweet Cherry Tomatoes", "Tricolor Bell Peppers", "Black Olives", "Crisp Garden Greens"],
+    dressing: ["Greesal White Cheese Dip", "Herbed Olive Vinaigrette", "Cracked Pepper"],
+    crunch: ["Herb Toasted Croutons", "Roasted Chia & Pumpkin Seeds"],
     healthBenefits: [
       '22g Premium Protein from farm-fresh paneer.',
       'Broccoli and bell peppers supply 120% of daily Vitamin C.',
@@ -219,17 +233,9 @@ export const DEFAULT_SALADS: Salad[] = [
     price: '₹220',
     tag: 'Veggies Salad',
     image: 'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=800&q=80',
-    ingredients: [
-      'Exotic Veggies Fusion',
-      'Fresh Paneer',
-      'Broccoli Florets',
-      'Cherry Tomatoes',
-      'Boiled Chickpeas',
-      'Fresh Sprouts',
-      'Sweet American Corn',
-      'Crisp Romaine Lettuce'
-    ],
-    gravy: ['Homemade Greek Yogurt Dip', 'Mint-Coriander Dressing', 'Lemon Vinaigrette'],
+    ingredients: ["Exotic Veggies Fusion", "Fresh Paneer", "Broccoli Florets", "Cherry Tomatoes", "Boiled Chickpeas", "Fresh Sprouts", "Sweet American Corn", "Crisp Romaine Lettuce"],
+    dressing: ["Homemade Greek Yogurt Dip", "Mint-Coriander Dressing", "Lemon Vinaigrette"],
+    crunch: ["Toasted Pumpkin & Flaxseed Mix", "Crispy Roasted Peanuts"],
     healthBenefits: [
       'Cooling and refreshing gut-friendly Greek yogurt base.',
       'Rich in hydration with high-water veggies.',
@@ -248,14 +254,9 @@ export const DEFAULT_SALADS: Salad[] = [
     price: '₹200',
     tag: 'Veggies Salad',
     image: 'https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?auto=format&fit=crop&w=800&q=80',
-    ingredients: [
-      'Multi-sprout Blend (Moong, Methi, Chana)',
-      'Sweet Pomegranate Arils',
-      'Crisp Organic Greens',
-      'Cucumber and Diced Carrots',
-      'Roasted Sesame & Chia'
-    ],
-    gravy: ['Zesty Spicy Handmade Dipping Sauce', 'Fresh Lime Wedge', 'Rock Salt Blend'],
+    ingredients: ["Multi-sprout Blend (Moong, Methi, Chana)", "Sweet Pomegranate Arils", "Crisp Organic Greens", "Cucumber and Diced Carrots"],
+    dressing: ["Zesty Spicy Handmade Dipping Sauce", "Fresh Lime Wedge", "Rock Salt Blend"],
+    crunch: ["Roasted Sesame & Chia Seeds", "Crispy Sprout Crisps"],
     healthBenefits: [
       'Live enzymes and high active fiber for digestive vitality.',
       'Iron and folate rich for hemoglobin elevation.',
@@ -274,15 +275,9 @@ export const DEFAULT_SALADS: Salad[] = [
     price: '₹550',
     tag: 'Exotic Salad',
     image: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=800&q=80',
-    ingredients: [
-      '5 Different Salads (150g portion each):',
-      '1. Paneer & Vegetable Salad',
-      '2. Sweet Corn Bowl',
-      '3. Mexican Rice Bowl & Nachos',
-      '4. Fresh Fruit Bowl',
-      '5. Protein Pulse Salad'
-    ],
-    gravy: ['Assorted Trio of Signature Dressings', 'Greek Yogurt Dip', 'Salsa'],
+    ingredients: ["Paneer & Vegetable Salad (150g)", "Sweet Corn Bowl (150g)", "Mexican Rice Bowl & Nachos (150g)", "Fresh Fruit Bowl (150g)", "Protein Pulse Salad (150g)"],
+    dressing: ["Assorted Trio of Signature Dressings", "Greek Yogurt Dip", "Fresh Lime Salsa"],
+    crunch: ["Roasted Seeds & Nut Medley", "Baked Tortilla Chips"],
     healthBenefits: [
       'Perfect for family sharing, office group meals, or healthy party cravings.',
       'Complete nutritional spectrum: Fruits, Veggies, Protein, and Healthy Carbs.'
@@ -300,15 +295,9 @@ export const DEFAULT_SALADS: Salad[] = [
     price: '₹260',
     tag: 'Rice Bowl',
     image: 'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=800&q=80',
-    ingredients: [
-      'Steamed Brown Rice / Quinoa',
-      'Spiced Rajma & Black Beans',
-      'Golden Sweet Corn',
-      'Fresh Roasted Tomato Salsa',
-      'Avocado / Fresh Guacamole',
-      'Crispy Baked Tortilla Strips'
-    ],
-    gravy: ['Homemade Zesty Lime Salsa', 'Mild Jalapeño Herb Dressing'],
+    ingredients: ["Steamed Brown Rice / Quinoa", "Spiced Rajma & Black Beans", "Golden Sweet Corn", "Fresh Roasted Tomato Salsa", "Fresh Avocado & Guacamole"],
+    dressing: ["Homemade Zesty Lime Salsa", "Mild Jalapeño Herb Dressing", "Cold-Pressed Olive Dressing"],
+    crunch: ["Crispy Baked Tortilla Strips", "Roasted Pumpkin Seeds"],
     healthBenefits: [
       'Complex carbohydrates supply long-lasting sustained energy.',
       'Wholesome vegan nutrition with high dietary fiber.'
@@ -326,14 +315,9 @@ export const DEFAULT_SALADS: Salad[] = [
     price: '₹230',
     tag: 'Exotic Salad',
     image: 'https://images.unsplash.com/photo-1515543237350-b3eea1ec8082?auto=format&fit=crop&w=800&q=80',
-    ingredients: [
-      'Sweet Corn Mais',
-      'Bell Peppers',
-      'Diced Zucchini',
-      'Purple Onions (Optional/Omitted)',
-      'Coriander & Lime Herb Mix'
-    ],
-    gravy: ['Tangy Mexican Dip', 'Lemon Chili Glaze'],
+    ingredients: ["Sweet Corn Mais", "Tricolor Bell Peppers", "Diced Zucchini", "Crisp Cucumber", "Coriander & Lime Herb Mix"],
+    dressing: ["Tangy Mexican Dip", "Lemon Chili Glaze", "Cold-Pressed Olive Oil"],
+    crunch: ["Baked Corn Crisps", "Toasted Sunflower Seeds"],
     healthBenefits: [
       'Crisp texture, vibrant taste, loaded with beta-carotene.'
     ],
@@ -356,30 +340,9 @@ export const DEFAULT_SALADS: Salad[] = [
       { name: 'Organic Boiled Chickpeas & Sprout Beans', price: 25 },
     ],
     image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
-    ingredients: [
-      'Boiled Chickpeas',
-      'Beetroot',
-      'Cabbage',
-      'Zucchini - yellow + green',
-      'Carrot',
-      'Capsicum',
-      'Pomegranate',
-      'Pumpkin Seeds',
-      'Watermelon Seeds',
-      'Sunflower Seeds',
-      'Flax Seeds'
-    ],
-    gravy: [
-      'Cashew',
-      'Parsley',
-      'Mint',
-      'Honey',
-      'Watermelon Seeds',
-      'Black Pepper Powder',
-      'Basil',
-      'Chilli Flakes',
-      'Chat Masala'
-    ],
+    ingredients: ["Boiled Chickpeas", "Fresh Beetroot", "Shredded Cabbage", "Zucchini - yellow + green", "Crunchy Carrot", "Capsicum", "Pomegranate Pearls"],
+    dressing: ["Cashew Puree Dressing", "Fresh Parsley & Mint", "Organic Raw Honey", "Black Pepper Powder", "Fresh Basil", "Chat Masala"],
+    crunch: ["Roasted Pumpkin Seeds", "Watermelon Seeds", "Sunflower Seeds", "Golden Flax Seeds"],
     healthBenefits: [
       'High Protein Boost: Supplies 19g of natural plant protein. Helps in muscle building, strength & faster recovery.',
       'All-Day Energy Increase: Complex natural carbs & healthy fats prevent mid-day slumps and reduce fatigue.',
@@ -418,28 +381,9 @@ export const DEFAULT_SALADS: Salad[] = [
     price: '₹369',
     tag: 'Chef Choice',
     image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
-    ingredients: [
-      'Rajma (Kidney Beans)',
-      'Brown Rice',
-      'Fresh Organic Paneer',
-      'Fresh Herb Salsa',
-      'Sweet Corn',
-      'Cabbage - green + purple',
-      'Zucchini - yellow + green',
-      'Carrot',
-      'Tricolor Bell Peppers'
-    ],
-    gravy: [
-      'Paneer Base',
-      'Walnuts',
-      'Pistachios',
-      'Organic Honey',
-      'Watermelon Seeds',
-      'Black Pepper Powder',
-      'Fresh Basil',
-      'Chilli Flakes',
-      'Chat Masala'
-    ],
+    ingredients: ["Rajma (Kidney Beans)", "Brown Rice", "Fresh Organic Paneer", "Fresh Herb Salsa", "Sweet Corn", "Cabbage - green + purple", "Zucchini - yellow + green", "Carrot", "Tricolor Bell Peppers"],
+    dressing: ["Paneer Herb Base", "Organic Honey", "Fresh Basil & Chilli Flakes", "Chat Masala", "Black Pepper Powder"],
+    crunch: ["Roasted Walnuts & Pistachios", "Toasted Watermelon Seeds", "Baked Corn Crisps"],
     healthBenefits: [
       'High Protein Boost: Supports lean muscle maintenance and keeps you satiated for 4+ hours.',
       'Rich in Soluble Fiber: Slow-digesting legumes improve digestion and maintain a balanced gut flora.',
@@ -478,29 +422,9 @@ export const DEFAULT_SALADS: Salad[] = [
     price: '₹329',
     tag: 'Bestseller',
     image: 'https://images.unsplash.com/photo-1511690656952-34342bb7c2f2?auto=format&fit=crop&w=600&q=80',
-    ingredients: [
-      'Mix Sprout Bean',
-      'Crunchy Masala Peanuts',
-      'Organic Paneer',
-      'Cabbage - green + purple',
-      'Zucchini',
-      'Carrot',
-      'Capsicum',
-      'Beetroot',
-      'Pumpkin Seeds',
-      'Watermelon Seeds',
-      'Sunflower Seeds',
-      'Flax Seeds'
-    ],
-    gravy: [
-      'Cold-Pressed Olive Oil',
-      'Raw Organic Honey',
-      'Wild Oregano',
-      'Black Pepper Powder',
-      'Chilli Flakes',
-      'Chat Masala',
-      'Fresh Lemon Juice'
-    ],
+    ingredients: ["Mix Sprout Beans", "Organic Paneer", "Cabbage - green + purple", "Crisp Zucchini", "Carrot", "Capsicum", "Beetroot"],
+    dressing: ["Cold-Pressed Olive Oil", "Raw Organic Honey", "Wild Oregano", "Black Pepper Powder", "Chilli Flakes", "Chat Masala", "Fresh Lemon Juice"],
+    crunch: ["Crunchy Masala Peanuts", "Roasted Pumpkin Seeds", "Watermelon Seeds", "Sunflower Seeds", "Flax Seeds"],
     healthBenefits: [
       'Rich Plant Protein: High biological value plant protein supports cellular repair and muscle recovery.',
       'Heart-Healthy Monounsaturated Fats: Natural peanut lipids help optimize good HDL cholesterol.',
@@ -539,30 +463,9 @@ export const DEFAULT_SALADS: Salad[] = [
     price: '₹339',
     tag: 'Organic',
     image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
-    ingredients: [
-      'Sprouted Moong & Matki',
-      'Organic Soft Paneer',
-      'Cabbage - green + purple',
-      'Crisp Zucchini',
-      'Farm Carrots',
-      'Capsicum',
-      'Beetroot',
-      'Pomegranate Seeds',
-      'Pumpkin Seeds',
-      'Sunflower Seeds',
-      'Flax Seeds'
-    ],
-    gravy: [
-      'Cashew Puree',
-      'Fresh Parsley',
-      'Mint Leaves',
-      'Honey',
-      'Watermelon Seeds',
-      'Cracked Black Pepper',
-      'Basil',
-      'Chilli Flakes',
-      'Chat Masala'
-    ],
+    ingredients: ["Sprouted Moong & Matki", "Organic Soft Paneer", "Cabbage - green + purple", "Crisp Zucchini", "Farm Carrots", "Capsicum", "Beetroot", "Pomegranate Seeds"],
+    dressing: ["Cashew Puree", "Fresh Parsley & Mint Leaves", "Honey & Lemon", "Cracked Black Pepper", "Basil", "Chat Masala"],
+    crunch: ["Roasted Pumpkin Seeds", "Sunflower Seeds", "Watermelon Seeds", "Flax Seeds"],
     healthBenefits: [
       'Maximum Protein Density (21g): Sprouting increases amino acid bioavailability for peak strength.',
       'Active Digestive Enzymes: Live enzymes eliminate bloating and promote seamless digestive transit.',
@@ -601,26 +504,9 @@ export const DEFAULT_SALADS: Salad[] = [
     price: '₹389',
     tag: 'New Item',
     image: 'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=600&q=80',
-    ingredients: [
-      'Sauteed Button Mushrooms',
-      'Organic Paneer',
-      'Broccoli Florets',
-      'Cabbage - green + purple',
-      'Zucchini - yellow + green',
-      'Carrot',
-      'Capsicum - yellow + green',
-      'Pumpkin Seeds',
-      'Watermelon Seeds',
-      'Sunflower Seeds',
-      'Flax Seeds'
-    ],
-    gravy: [
-      'Artisan Tomato Glaze',
-      'Natural Soy Reduction',
-      'Chilli Flakes',
-      'Chat Masala',
-      'Cold-Pressed Olive Oil'
-    ],
+    ingredients: ["Sauteed Button Mushrooms", "Organic Paneer", "Broccoli Florets", "Cabbage - green + purple", "Zucchini - yellow + green", "Carrot", "Capsicum - yellow + green"],
+    dressing: ["Artisan Tomato Glaze", "Natural Soy Reduction", "Chilli Flakes & Chat Masala", "Cold-Pressed Olive Oil"],
+    crunch: ["Toasted Pumpkin & Watermelon Seeds", "Crispy Sunflower Seeds", "Flax Seeds"],
     healthBenefits: [
       'Immunity Fortification: Beta-glucans and selenium in mushrooms support white blood cell response.',
       'Low Glycemic Load: High satiety with low net impact on blood glucose.',
@@ -659,29 +545,9 @@ export const DEFAULT_SALADS: Salad[] = [
     price: '₹359',
     tag: 'Spicy & Tangy',
     image: 'https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?auto=format&fit=crop&w=600&q=80',
-    ingredients: [
-      'Seasoned Rajma Beans',
-      'House Salsa',
-      'Sweet Golden Corn',
-      'Cabbage - green + purple',
-      'Zucchini - yellow + green',
-      'Carrots',
-      'Capsicum - yellow + green',
-      'Baked Corn Crisps',
-      'Pumpkin Seeds',
-      'Watermelon Seeds',
-      'Sunflower Seeds',
-      'Flax Seeds'
-    ],
-    gravy: [
-      'Extra Virgin Olive Oil',
-      'Raw Honey',
-      'Mexican Oregano',
-      'Black Pepper Powder',
-      'Chilli Flakes',
-      'Chat Masala',
-      'Fresh Lemon'
-    ],
+    ingredients: ["Seasoned Rajma Beans", "House Salsa", "Sweet Golden Corn", "Cabbage - green + purple", "Zucchini - yellow + green", "Carrots", "Capsicum - yellow + green"],
+    dressing: ["Extra Virgin Olive Oil", "Raw Honey", "Mexican Oregano", "Black Pepper Powder", "Fresh Lemon Juice"],
+    crunch: ["Baked Corn Crisps", "Roasted Pumpkin Seeds", "Watermelon Seeds", "Sunflower Seeds", "Flax Seeds"],
     healthBenefits: [
       'Exciting Tangy Flavor: Satisfies fast-food cravings with 100% clean, non-greasy ingredients.',
       'Fiber Powerhouse (13g): Regulates blood sugar spikes and sustains optimal digestion.',
@@ -720,28 +586,9 @@ export const DEFAULT_SALADS: Salad[] = [
     price: '₹399',
     tag: 'Superfood',
     image: 'https://images.unsplash.com/photo-1505576399279-565b52d4ac71?auto=format&fit=crop&w=600&q=80',
-    ingredients: [
-      'Fresh Ripe Hass Avocado',
-      'Fluffy Andean Quinoa',
-      'Organic Paneer',
-      'Sweet Corn',
-      'Cabbage',
-      'Zucchini',
-      'Carrot',
-      'Capsicum - yellow + green',
-      'Beetroot',
-      'Pomegranate Seeds',
-      'Flax Seeds'
-    ],
-    gravy: [
-      'Cold-Pressed Olive Oil',
-      'Organic Honey',
-      'Wild Oregano',
-      'Black Pepper Powder',
-      'Chilli Flakes',
-      'Chat Masala',
-      'Fresh Lime Juice'
-    ],
+    ingredients: ["Fresh Ripe Hass Avocado", "Fluffy Andean Quinoa", "Organic Paneer", "Sweet Corn", "Cabbage", "Zucchini", "Carrot", "Capsicum - yellow + green", "Beetroot", "Pomegranate Seeds"],
+    dressing: ["Cold-Pressed Olive Oil", "Organic Honey", "Wild Oregano", "Black Pepper Powder", "Chilli Flakes", "Fresh Lime Juice"],
+    crunch: ["Golden Flax Seeds", "Toasted Pumpkin & Sunflower Seeds", "Almond Flakes"],
     healthBenefits: [
       'Complete Amino Acid Profile: Quinoa supplies all 9 essential amino acids for total cellular wellness.',
       'Brain & Heart Monounsaturated Fats: Avocado oleic acid supports sharp cognition and heart elasticity.',

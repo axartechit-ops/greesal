@@ -26,8 +26,9 @@ DEFAULT_SALADS_DATA = [
         "price": "₹349",
         "tag": "High Protein",
         "image": "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80",
-        "ingredients": ["Boiled Chickpeas", "Beetroot", "Cabbage", "Zucchini - yellow + green", "Carrot", "Capsicum", "Pomegranate", "Pumpkin Seeds", "Watermelon Seeds", "Sunflower Seeds", "Flax Seeds"],
-        "gravy": ["Cashew", "Parsley", "Mint", "Honey", "Watermelon Seeds", "Black Pepper Powder", "Basil", "Chilli Flakes", "Chat Masala"],
+        "ingredients": ["Boiled Chickpeas", "Beetroot", "Cabbage", "Zucchini - yellow + green", "Carrot", "Capsicum", "Pomegranate"],
+        "dressing": ["Cashew & Mint Dressing", "Honey Lime Dressing", "Basil Herb Vinaigrette", "Black Pepper & Rock Salt"],
+        "crunch": ["Roasted Pumpkin Seeds", "Watermelon Seeds", "Sunflower Seeds", "Crispy Flax Seeds"],
         "healthBenefits": [
             "High Protein Boost: The body has a strong supply of protein. Helps in muscle building & recovery.",
             "Energy Increase: All-day energy from natural carbs & healthy fats. Reduces fatigue & irritability.",
@@ -63,8 +64,9 @@ DEFAULT_SALADS_DATA = [
         "price": "₹369",
         "tag": "Chef Choice",
         "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80",
-        "ingredients": ["Rajma", "Rice", "Paneer", "Salsa", "Sweet Corn", "Cabbage - green + purple", "Zucchini - yellow + green", "Carrot", "Capsicum - yellow / green / red"],
-        "gravy": ["Paneer", "Walnuts", "Pistachios", "Honey", "Watermelon Seeds", "Black Pepper Powder", "Basil", "Chilli Flakes", "Chat Masala"],
+        "ingredients": ["Spiced Rajma", "Brown Rice", "Fresh Paneer", "Zesty Salsa", "Sweet Corn", "Cabbage - green + purple", "Zucchini - yellow + green", "Carrot", "Capsicum - yellow / green / red"],
+        "dressing": ["Creamy Paneer & Herb Dressing", "Honey Lime Vinaigrette", "Mild Mexican Spice Glaze"],
+        "crunch": ["Roasted Walnuts & Pistachios", "Toasted Watermelon Seeds", "Crisp Tortilla Bites"],
         "healthBenefits": [
             "High Protein Boost: Supports muscle building and keeps you full for longer duration.",
             "Rich in Fiber: Improves digestion and helps maintain a healthy gut system.",
@@ -100,8 +102,9 @@ DEFAULT_SALADS_DATA = [
         "price": "₹329",
         "tag": "Bestseller",
         "image": "https://images.unsplash.com/photo-1511690656952-34342bb7c2f2?auto=format&fit=crop&w=600&q=80",
-        "ingredients": ["Mix Sprout Bean", "Masala Peanuts", "Paneer", "Cabbage - green + purple", "Zucchini", "Carrot", "Capsicum", "Beetroot", "Pumpkin Seeds", "Watermelon Seeds", "Sunflower Seeds", "Flax Seeds"],
-        "gravy": ["Olive Oil", "Honey", "Oregano", "Black Pepper Powder", "Chilli Flakes", "Chat Masala", "Lemon"],
+        "ingredients": ["Mix Sprout Beans", "Fresh Paneer", "Cabbage - green + purple", "Zucchini", "Carrot", "Capsicum", "Beetroot"],
+        "dressing": ["Cold Pressed Olive Oil Dressing", "Honey Mustard Glaze", "Oregano & Lemon Herb Splash"],
+        "crunch": ["Roasted Masala Peanuts", "Toasted Pumpkin & Sunflower Seeds", "Golden Flax Seeds"],
         "healthBenefits": [
             "Rich Protein Source: Peanuts provide high-quality plant protein that helps build muscles and keeps you energized throughout the day.",
             "Heart Health Support: Healthy fats in peanuts help reduce bad cholesterol (LDL) and improve heart health.",
@@ -137,8 +140,9 @@ DEFAULT_SALADS_DATA = [
         "price": "₹339",
         "tag": "Organic",
         "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-        "ingredients": ["Mix Sprout Bean", "Paneer", "Cabbage - green + purple", "Zucchini", "Carrot", "Capsicum", "Beetroot", "Pomegranate", "Pumpkin Seeds", "Sunflower Seeds", "Flax Seeds"],
-        "gravy": ["Cashew", "Parsley", "Mint", "Honey", "Watermelon Seeds", "Black Pepper Powder", "Basil", "Chilli Flakes", "Chat Masala"],
+        "ingredients": ["Mix Sprout Beans (Moong & Chana)", "Fresh Organic Paneer", "Cabbage - green + purple", "Zucchini", "Carrot", "Capsicum", "Beetroot", "Pomegranate Pearls"],
+        "dressing": ["Cashew Herb Dressing", "Fresh Mint-Coriander Dressing", "Lemon Zing & Rock Salt"],
+        "crunch": ["Toasted Pumpkin Seeds", "Roasted Sunflower Seeds", "Crunchy Flaxseeds"],
         "healthBenefits": [
             "High Protein Power: Helps in muscle building and body repair, making it great for strength and growth.",
             "Boosts Digestion: Rich in fiber, it improves gut health and prevents constipation.",
@@ -174,8 +178,9 @@ DEFAULT_SALADS_DATA = [
         "price": "₹389",
         "tag": "New Item",
         "image": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=600&q=80",
-        "ingredients": ["Mushroom", "Paneer", "Broccoli", "Cabbage - green + purple", "Zucchini - yellow + green", "Carrot", "Capsicum - yellow + green", "Pumpkin Seeds", "Watermelon Seeds", "Sunflower Seeds", "Flax Seeds"],
-        "gravy": ["Tomato Sauce", "Soy Sauce", "Chilli Flakes", "Chat Masala", "Olive Oil"],
+        "ingredients": ["Pan-Seared Fresh Mushrooms", "Organic Paneer", "Steamed Broccoli", "Cabbage - green + purple", "Zucchini - yellow + green", "Carrot", "Capsicum - yellow + green"],
+        "dressing": ["Herbed Olive Oil Glaze", "Tangy Tomato Dip", "Lemon Herb Dressing"],
+        "crunch": ["Roasted Pumpkin & Sunflower Seeds", "Toasted Watermelon Seeds", "Herb Croutons"],
         "healthBenefits": [
             "Boosts Immunity: Mushrooms contain antioxidants and beta-glucans that help strengthen the immune system.",
             "Supports Weight Loss: Low in calories and high in fiber, this salad keeps you full longer and reduces overeating.",
@@ -211,8 +216,9 @@ DEFAULT_SALADS_DATA = [
         "price": "₹359",
         "tag": "Spicy & Tangy",
         "image": "https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?auto=format&fit=crop&w=600&q=80",
-        "ingredients": ["Rajma", "Salsa", "Sweet Corn", "Cabbage - green + purple", "Zucchini - yellow + green", "Carrot", "Capsicum - yellow + green", "Nachos", "Pumpkin Seeds", "Watermelon Seeds", "Sunflower Seeds", "Flax Seeds"],
-        "gravy": ["Olive Oil", "Honey", "Oregano", "Black Pepper Powder", "Chilli Flakes", "Chat Masala", "Lemon"],
+        "ingredients": ["Mexican Spiced Rajma", "Sweet Corn", "Cabbage - green + purple", "Zucchini - yellow + green", "Carrot", "Capsicum - yellow + green"],
+        "dressing": ["Cold Pressed Olive Dressing", "Tangy Mexican Dip", "Lemon Chili Glaze"],
+        "crunch": ["Crunchy Tortilla Crisps", "Roasted Pumpkin & Sunflower Seeds", "Toasted Flax Seeds"],
         "healthBenefits": [
             "Energy Boost: Provides instant energy due to carbs from fries and corn.",
             "Rich in Fiber: Vegetables like cabbage, lettuce, and corn improve digestion.",
@@ -248,8 +254,9 @@ DEFAULT_SALADS_DATA = [
         "price": "₹399",
         "tag": "Superfood",
         "image": "https://images.unsplash.com/photo-1505576399279-565b52d4ac71?auto=format&fit=crop&w=600&q=80",
-        "ingredients": ["Avocado", "Quinoa", "Paneer", "Sweet Corn", "Cabbage", "Zucchini", "Carrot", "Capsicum - yellow + green", "Beetroot", "Pomegranate", "Flax Seeds"],
-        "gravy": ["Olive Oil", "Honey", "Oregano", "Black Pepper Powder", "Chilli Flakes", "Chat Masala", "Lemon"],
+        "ingredients": ["Peruvian Quinoa", "Fresh Ripe Avocado", "Organic Paneer", "Sweet Corn", "Cabbage", "Zucchini", "Carrot", "Capsicum - yellow + green", "Beetroot", "Pomegranate Pearls"],
+        "dressing": ["Cold Pressed Extra Virgin Olive Oil", "Honey Lime Dressing", "Cracked Black Pepper & Pink Salt"],
+        "crunch": ["Golden Roasted Flaxseeds", "Toasted Pumpkin Seeds", "Toasted Almond Slivers"],
         "healthBenefits": [
             "High Protein Support: Helps in muscle growth and repair because quinoa is a complete protein source.",
             "Heart Health Boost: Supports healthy heart function with avocado's good fats (monounsaturated fats).",
@@ -353,6 +360,20 @@ def format_salad_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
         res["category"] = res.get("tag")
     elif not res.get("tag") and res.get("category"):
         res["tag"] = res.get("category")
+
+    # 3-Part Ingredients Structure: ingredients, dressing, crunch
+    if "ingredients" not in res or not isinstance(res.get("ingredients"), list):
+        res["ingredients"] = []
+    if "dressing" not in res:
+        # Fallback from legacy gravy if present
+        res["dressing"] = res.get("gravy", []) if isinstance(res.get("gravy"), list) else []
+    elif not isinstance(res.get("dressing"), list):
+        res["dressing"] = []
+    if "crunch" not in res or not isinstance(res.get("crunch"), list):
+        res["crunch"] = []
+    # Always remove legacy gravy key
+    res.pop("gravy", None)
+
     return res
 
 import time
@@ -427,6 +448,11 @@ async def create_salad(request: Request):
         raise HTTPException(status_code=400, detail="Salad name and price are required")
 
     new_salad = dict(data)
+    new_salad.pop("gravy", None)
+    if "dressing" not in new_salad or not isinstance(new_salad["dressing"], list):
+        new_salad["dressing"] = []
+    if "crunch" not in new_salad or not isinstance(new_salad["crunch"], list):
+        new_salad["crunch"] = []
     if "slug" not in new_salad or not new_salad["slug"]:
         new_salad["slug"] = slugify(new_salad["name"])
     if new_salad.get("category") and not new_salad.get("tag"):
@@ -465,6 +491,11 @@ async def update_salad(salad_id: str, request: Request):
     update_data = dict(data)
     if "_id" in update_data:
         del update_data["_id"]
+    update_data.pop("gravy", None)
+    if "dressing" in update_data and not isinstance(update_data["dressing"], list):
+        update_data["dressing"] = []
+    if "crunch" in update_data and not isinstance(update_data["crunch"], list):
+        update_data["crunch"] = []
     if update_data.get("category") and not update_data.get("tag"):
         update_data["tag"] = update_data["category"]
     elif update_data.get("tag") and not update_data.get("category"):
@@ -478,7 +509,8 @@ async def update_salad(salad_id: str, request: Request):
             query_list = [{"id": salad_id}, {"slug": salad_id}, {"_id": salad_id}]
             if ObjectId.is_valid(salad_id):
                 query_list.append({"_id": ObjectId(salad_id)})
-            result = db.salads.update_one({"$or": query_list}, {"$set": update_data})
+            update_op: Dict[str, Any] = {"$set": update_data, "$unset": {"gravy": ""}}
+            result = db.salads.update_one({"$or": query_list}, update_op)
             if result.matched_count > 0:
                 db_updated = True
                 logger.info(f"Salad '{salad_id}' updated in MongoDB Atlas (modified={result.modified_count})")
@@ -491,7 +523,9 @@ async def update_salad(salad_id: str, request: Request):
     matched_local = False
     for idx, s in enumerate(local_salads_store):
         if s.get("id") == salad_id or s.get("_id") == salad_id or s.get("slug") == salad_id:
-            local_salads_store[idx] = {**s, **update_data}
+            updated_item = {**s, **update_data}
+            updated_item.pop("gravy", None)
+            local_salads_store[idx] = updated_item
             matched_local = True
             break
 

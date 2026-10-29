@@ -117,6 +117,20 @@ export interface SiteSettings {
   showNotice: boolean;
   noticeType: 'announcement' | 'info' | 'alert' | 'discount';
   closedMessage: string;
+
+  // "Get more from your lunch and dinner" - How To Order Section
+  howToOrderBadge?: string;
+  howToOrderHeading?: string;
+  howToOrderCardNumber?: string;
+  howToOrderCardTitle?: string;
+  howToOrderCardDesc?: string;
+  howToOrderVideoUrl?: string;
+  howToOrderVideoPoster?: string;
+  howToOrderHighlight1?: string;
+  howToOrderHighlight2?: string;
+  howToOrderHighlight3?: string;
+  howToOrderBtnText?: string;
+  howToOrderBtnLink?: string;
 }
 
 export const DEFAULT_CATEGORIES: SiteCategory[] = [
@@ -253,4 +267,18 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   showNotice: true,
   noticeType: 'announcement',
   closedMessage: 'Our kitchen is currently closed. Opening again at 08:00 AM. Pre-orders are welcome!',
+
+  // "Get more from your lunch and dinner" - How To Order Section
+  howToOrderBadge: 'How We Craft Your Salad',
+  howToOrderHeading: 'Get more from your lunch and dinner.',
+  howToOrderCardNumber: '01',
+  howToOrderCardTitle: 'How to Order Fresh Salad at Greesal',
+  howToOrderCardDesc: '1. Select your favorite nutrient-packed salad bowl.\n2. Choose portion size (250g / 350g) and custom artisan dressing.\n3. Order via WhatsApp or instant online checkout for 30–45 min express delivery!',
+  howToOrderVideoUrl: 'https://www.saladproject.co.uk/cdn/shop/videos/c/vp/ac39289fd8c543e9a83c9a7f8fcb0ad6/ac39289fd8c543e9a83c9a7f8fcb0ad6.HD-1080p-7.2Mbps-90049490.mp4?v=0',
+  howToOrderVideoPoster: 'https://www.saladproject.co.uk/cdn/shop/files/preview_images/ac39289fd8c543e9a83c9a7f8fcb0ad6.thumbnail.0000000000.jpg?v=1785184737&width=1200',
+  howToOrderHighlight1: '⚡ 30–45 Min Express Delivery',
+  howToOrderHighlight2: '🥗 100% Satvik • No Onion Garlic',
+  howToOrderHighlight3: '✨ Free Delivery in Surat',
+  howToOrderBtnText: 'Order Fresh Salad Now',
+  howToOrderBtnLink: '/salads',
 };

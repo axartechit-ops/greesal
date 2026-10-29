@@ -47,7 +47,7 @@ export const SaladHeroSection: React.FC<SaladHeroSectionProps> = ({
   onSubscribeClick,
 }) => {
   return (
-    <section id="home" className="relative bg-white pt-8 pb-16 sm:py-16 overflow-hidden">
+    <section id="story" className="relative bg-white pt-10 pb-16 sm:py-20 overflow-hidden">
 
       {/* Background Soft Blobs */}
       <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#6ac6ac]/10 rounded-full blur-3xl pointer-events-none" />
@@ -211,7 +211,7 @@ export const SaladHeroSection: React.FC<SaladHeroSectionProps> = ({
             {/* Quick feature highlights pills */}
             <div className="mt-8 pt-6 border-t border-gray-100 flex flex-wrap items-center justify-center lg:justify-start gap-4 text-xs font-semibold text-[#20493c]">
               <span className="inline-flex items-center gap-1.5 bg-[#f2f8f5] px-3 py-1.5 rounded-full border border-gray-100 shadow-2xs">
-                <span className="w-2 h-2 rounded-full bg-[#6ac6ac]" /> {highlight1Title || 'Free Delivery in Surat'}
+                <span className="w-2 h-2 rounded-full bg-[#123B2B]" /> {highlight1Title || 'Free Delivery in Surat'}
               </span>
               <span className="inline-flex items-center gap-1.5 bg-[#f2f8f5] px-3 py-1.5 rounded-full border border-gray-100 shadow-2xs">
                 <span className="w-2 h-2 rounded-full bg-[#fbce45]" /> {highlight2Title || 'Lunch & Evening Slots'}

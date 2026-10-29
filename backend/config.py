@@ -18,7 +18,7 @@ DEFAULT_MONGO_URL = "mongodb+srv://info_db_user:E50Uk0B0scjdJEXV@cluster0.9gjtws
 
 MONGODB_URL: str = os.getenv("MONGODB_URL") or os.getenv("MONGODB_URI") or DEFAULT_MONGO_URL
 DATABASE_NAME: str = os.getenv("DATABASE_NAME", "greesal")
-PORT: int = int(os.getenv("PORT", "8000"))
+PORT: int = int(os.getenv("BACKEND_PORT") or "8000")
 FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
 INTERNAL_API_KEY: str = os.getenv("INTERNAL_API_KEY", "")
 SECRET_KEY: str = os.getenv("SECRET_KEY") or os.getenv("NEXTAUTH_SECRET") or "greesal_fastapi_secret_2026"

@@ -346,48 +346,50 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
                   className="bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-[#e4eae7] hover:shadow-xl transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1"
                 >
                   {/* Image Section */}
-                  <Link 
-                    href={`/salads/${salad.slug || slugify(salad.name)}`}
-                    className="relative block w-full h-36 xs:h-44 sm:h-52 bg-[#f2f8f5] overflow-hidden cursor-pointer" 
-                  >
-                    <img
-                      src={salad.image}
-                      alt={salad.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80';
-                      }}
-                    />
+                  <div className="relative block w-full h-36 xs:h-44 sm:h-52 bg-[#f2f8f5] overflow-hidden">
+                    <Link 
+                      href={`/salads/${salad.slug || slugify(salad.name)}`}
+                      className="block w-full h-full cursor-pointer" 
+                    >
+                      <img
+                        src={salad.image}
+                        alt={salad.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80';
+                        }}
+                      />
+                    </Link>
 
-                  {/* Top Badge: Tag / Category */}
-                  <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-white/95 backdrop-blur-sm px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[11px] font-bold text-[#20493c] shadow-xs border border-[#6ac6ac]/30 flex items-center gap-0.5 sm:gap-1 max-w-[70%] sm:max-w-none truncate">
-                    <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#fbce45] flex-shrink-0" />
-                    <span className="truncate">{salad.category || salad.tag || 'Greesal Special'}</span>
-                  </div>
-
-                  {/* Top Right: Calories */}
-                  {salad.calories && (
-                    <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-[#20493c]/90 text-white px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-full text-[8px] sm:text-[10px] font-bold flex items-center gap-0.5 sm:gap-1 shadow-xs">
-                      <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#fbce45] flex-shrink-0" />
-                      <span>{salad.calories}</span>
+                    {/* Top Badge: Tag / Category */}
+                    <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-white/95 backdrop-blur-sm px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[11px] font-bold text-[#20493c] shadow-xs border border-[#6ac6ac]/30 flex items-center gap-0.5 sm:gap-1 max-w-[70%] sm:max-w-none truncate pointer-events-none">
+                      <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#fbce45] flex-shrink-0" />
+                      <span className="truncate">{salad.category || salad.tag || 'Greesal Special'}</span>
                     </div>
-                  )}
 
-                  {/* Quick info overlay button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onSelectSaladForModal(salad);
-                    }}
-                    className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/90 hover:bg-white text-[#20493c] flex items-center justify-center shadow-xs transition-transform hover:scale-110 z-10"
-                    title="Quick Preview"
-                  >
-                    <Info className="w-3 h-3 sm:w-4 sm:h-4" />
-                  </button>
-                </Link>
+                    {/* Top Right: Calories */}
+                    {salad.calories && (
+                      <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-[#20493c]/90 text-white px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-full text-[8px] sm:text-[10px] font-bold flex items-center gap-0.5 sm:gap-1 shadow-xs pointer-events-none">
+                        <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#fbce45] flex-shrink-0" />
+                        <span>{salad.calories}</span>
+                      </div>
+                    )}
+
+                    {/* Quick info overlay button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onSelectSaladForModal(salad);
+                      }}
+                      className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/90 hover:bg-white text-[#20493c] flex items-center justify-center shadow-xs transition-transform hover:scale-110 z-10 cursor-pointer"
+                      title="Quick Preview"
+                    >
+                      <Info className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </button>
+                  </div>
 
                 {/* Content Section */}
                 <div className="p-2.5 sm:p-5 flex-1 flex flex-col justify-between">
