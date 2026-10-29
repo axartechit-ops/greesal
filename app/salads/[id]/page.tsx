@@ -524,7 +524,7 @@ export default function SaladDetailPage() {
         <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 mb-6">
           <Link href="/" className="hover:text-[#123B2B] transition-colors">Home</Link>
           <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-          <Link href="/#menu" className="hover:text-[#123B2B] transition-colors">Salads Menu</Link>
+          <Link href="/#menu" className="hover:text-[#123B2B] transition-colors">Menu</Link>
           <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
           <span className="text-[#123B2B] font-bold truncate max-w-[200px] sm:max-w-none">{salad.name}</span>
         </div>

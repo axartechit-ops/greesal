@@ -86,12 +86,12 @@ export const SaladIndiaHeader: React.FC<SaladIndiaHeaderProps> = ({
                 Home
               </Link>
 
-              {/* 2. Salads */}
+              {/* 2. Menu */}
               <Link
                 href="/salads"
                 className="text-[#1a1a1a] pb-1 border-b-2 border-transparent hover:border-[#20493c] hover:text-[#20493c] transition-all font-medium"
               >
-                Salads
+                Menu
               </Link>
 
               {/* 3. Subscriptions */}
@@ -159,16 +159,16 @@ export const SaladIndiaHeader: React.FC<SaladIndiaHeaderProps> = ({
               </button>
             </nav>
 
-            {/* Mobile Actions: Salads, Cart & Hamburger */}
+            {/* Mobile Actions: Menu, Cart & Hamburger */}
             <div className="flex lg:hidden items-center gap-1.5 sm:gap-2.5">
-              {/* Quick Jump to All Salads */}
+              {/* Quick Jump to Menu */}
               <Link
                 href="/salads"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#e8f7f2] hover:bg-[#d5f0e6] text-[#20493c] font-bold text-xs border border-[#56aa52]/40 transition-all shadow-2xs active:scale-95 cursor-pointer"
-                aria-label="Browse All Salads"
+                aria-label="Browse Menu"
               >
                 <UtensilsCrossed className="w-3.5 h-3.5 text-[#20493c]" />
-                <span>Salads</span>
+                <span>Menu</span>
               </Link>
 
               {/* Cart Button */}
@@ -263,7 +263,7 @@ export const SaladIndiaHeader: React.FC<SaladIndiaHeaderProps> = ({
                 >
                   <div className="flex items-center gap-2">
                     <UtensilsCrossed className="w-4 h-4 text-[#20493c]" />
-                    <span>Salad Menu (21+ Varieties)</span>
+                    <span>Menu (21+ Varieties)</span>
                   </div>
                   <ChevronRight className="w-4 h-4 text-gray-400" />
                 </Link>
