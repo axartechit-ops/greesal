@@ -119,17 +119,6 @@ export const SaladProjectHero: React.FC<SaladProjectHeroProps> = ({
               Story
             </a>
           </div>
-
-          {/* Right Pill: Location / Live Kitchen Indicator */}
-          <div className="bg-white/95 backdrop-blur-md px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full shadow-lg border border-black/5 flex items-center gap-2 text-xs font-bold text-[#123B2B]">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-            </span>
-            <span className="uppercase tracking-wider text-[11px] font-extrabold">{cityName.toUpperCase()}</span>
-            <span className="text-gray-300">|</span>
-            <span className="text-[11px] text-gray-500 font-semibold">GUJ</span>
-          </div>
         </div>
 
         {/* The 50/50 Split Canvas */}
