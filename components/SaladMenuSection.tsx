@@ -15,7 +15,8 @@ import {
   Search,
   Check,
   Clock,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 
 import { SiteCategory, DEFAULT_CATEGORIES } from '@/lib/siteSettings';
@@ -58,30 +59,54 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
   const displayCategories = categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
 
   const matchesCategoryForSalad = (salad: Salad, categoryId: string) => {
-    if (categoryId === 'all') return true;
+    if (!categoryId || categoryId === 'all') return true;
     const cat = displayCategories.find((c) => c.id === categoryId);
     const catIdNorm = categoryId.toLowerCase().trim().replace(/[-_]/g, ' ');
     const catLabelNorm = (cat?.label || '').toLowerCase().trim().replace(/[-_]/g, ' ');
     const tagNorm = (salad.tag || '').toLowerCase().trim().replace(/[-_]/g, ' ');
     const catPropNorm = (salad.category || '').toLowerCase().trim().replace(/[-_]/g, ' ');
     const nameNorm = (salad.name || '').toLowerCase().trim();
+    const ingredientsNorm = (salad.ingredients || []).map((i) => (i || '').toLowerCase().trim());
+    const hasIng = (keyword: string) =>
+      ingredientsNorm.some((i) => i.includes(keyword.toLowerCase()));
 
     // 1. Direct equality with category id or label
     if (catPropNorm && (catPropNorm === catIdNorm || catPropNorm === catLabelNorm)) return true;
     if (tagNorm && (tagNorm === catIdNorm || tagNorm === catLabelNorm)) return true;
 
-    // 2. Contains match between category id/label and salad category/tag
+    // 2. Contains match between category id/label and salad category/tag/name
     if (catPropNorm && (catPropNorm.includes(catIdNorm) || catIdNorm.includes(catPropNorm))) return true;
     if (catPropNorm && catLabelNorm && (catPropNorm.includes(catLabelNorm) || catLabelNorm.includes(catPropNorm))) return true;
     if (tagNorm && (tagNorm.includes(catIdNorm) || catIdNorm.includes(tagNorm))) return true;
     if (tagNorm && catLabelNorm && (tagNorm.includes(catLabelNorm) || catLabelNorm.includes(tagNorm))) return true;
+    if (nameNorm && (nameNorm.includes(catIdNorm) || nameNorm.includes(catLabelNorm))) return true;
 
-    // 3. Fallback heuristics for default salads
-    if (catIdNorm.includes('protein') && (tagNorm.includes('protein') || catPropNorm.includes('protein') || nameNorm.includes('protein'))) return true;
-    if (catIdNorm.includes('veggie') && (tagNorm.includes('veggie') || catPropNorm.includes('veggie') || tagNorm.includes('sprout') || tagNorm.includes('detox'))) return true;
-    if (catIdNorm.includes('paneer') && (tagNorm.includes('paneer') || catPropNorm.includes('paneer') || nameNorm.includes('paneer'))) return true;
-    if (catIdNorm.includes('rice') && (tagNorm.includes('rice') || catPropNorm.includes('rice') || nameNorm.includes('rice') || nameNorm.includes('burrito'))) return true;
-    if (catIdNorm.includes('exotic') && (tagNorm.includes('exotic') || catPropNorm.includes('exotic') || nameNorm.includes('bundle') || nameNorm.includes('mais') || tagNorm.includes('superfood'))) return true;
+    // 3. Fallback semantic heuristics
+    if (catIdNorm.includes('protein')) {
+      if (tagNorm.includes('protein') || catPropNorm.includes('protein') || nameNorm.includes('protein')) return true;
+      if (hasIng('protein') || hasIng('chickpea') || hasIng('sprout') || hasIng('peanut') || hasIng('paneer') || hasIng('beans') || hasIng('rajma')) return true;
+    }
+
+    if (catIdNorm.includes('veggie') || catIdNorm.includes('vegetable')) {
+      if (tagNorm.includes('veggie') || catPropNorm.includes('veggie') || tagNorm.includes('sprout') || tagNorm.includes('organic')) return true;
+      if (nameNorm.includes('veggie') || nameNorm.includes('sprout') || nameNorm.includes('mushroom') || nameNorm.includes('garden')) return true;
+      if (hasIng('mushroom') || hasIng('broccoli') || hasIng('sprout') || hasIng('cabbage') || hasIng('zucchini') || hasIng('carrot') || hasIng('capsicum') || hasIng('beetroot')) return true;
+    }
+
+    if (catIdNorm.includes('paneer') || catIdNorm.includes('cheese')) {
+      if (tagNorm.includes('paneer') || catPropNorm.includes('paneer') || nameNorm.includes('paneer')) return true;
+      if (hasIng('paneer') || hasIng('cheese')) return true;
+    }
+
+    if (catIdNorm.includes('rice') || catIdNorm.includes('bowl')) {
+      if (tagNorm.includes('rice') || catPropNorm.includes('rice') || nameNorm.includes('rice') || nameNorm.includes('burrito')) return true;
+      if (hasIng('rice') || hasIng('quinoa')) return true;
+    }
+
+    if (catIdNorm.includes('exotic')) {
+      if (tagNorm.includes('exotic') || catPropNorm.includes('exotic') || nameNorm.includes('exotic') || nameNorm.includes('mais') || tagNorm.includes('superfood')) return true;
+      if (hasIng('mais') || hasIng('avocado') || hasIng('guacamole') || hasIng('mushroom')) return true;
+    }
 
     return false;
   };
@@ -195,54 +220,88 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
           </div>
         )}
 
-        {/* Category Pills & Search */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10">
+        {/* Category Pills & Search Filter Bar - Best View & Fully Responsive */}
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5 mb-6 bg-[#fafcfb] p-3 sm:p-3.5 rounded-2xl border border-[#e4eae7]">
           
-          {/* Category Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 no-scrollbar">
+          {/* Category Tabs - Clean Wrap so NO option is cut off */}
+          <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap pb-1 sm:pb-0 no-scrollbar">
             {displayCategories.map((cat) => {
               const active = selectedCategory === cat.id;
               const count = cat.id === 'all'
                 ? salads.length
                 : salads.filter((s) => matchesCategoryForSalad(s, cat.id)).length;
-              const countText = isLoading ? '...' : `${count} ${count === 1 ? 'item' : 'items'}`;
 
               return (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-4 py-2.5 rounded-2xl whitespace-nowrap text-xs sm:text-sm font-bold transition-all flex items-center gap-2 border ${
+                  className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl whitespace-nowrap text-xs sm:text-sm font-bold transition-all duration-150 flex items-center gap-2 border cursor-pointer active:scale-95 ${
                     active
-                      ? 'bg-[#20493c] text-white border-[#20493c] shadow-md'
-                      : 'bg-white hover:bg-gray-50 text-[#1a1a1a] border-gray-200'
+                      ? 'bg-[#20493c] text-white border-[#20493c] shadow-sm'
+                      : 'bg-white hover:bg-[#eef8f3] text-[#1a1a1a] hover:text-[#20493c] border-gray-200/90 hover:border-[#20493c]/30 shadow-2xs'
                   }`}
                 >
                   <span>{cat.label}</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-normal ${
-                      active ? 'bg-white/20 text-white' : 'bg-gray-100 text-[#20493c]'
+                    className={`text-[11px] px-2 py-0.5 rounded-full font-bold transition-colors ${
+                      active
+                        ? 'bg-white/20 text-[#fbce45]'
+                        : 'bg-[#eef8f3] text-[#20493c]'
                     }`}
                   >
-                    {countText}
+                    {isLoading ? '...' : count}
                   </span>
                 </button>
               );
             })}
           </div>
 
-          {/* Search Box */}
-          <div className="relative w-full md:w-72">
+          {/* Search Box with Clear Button */}
+          <div className="relative w-full lg:w-72 flex-shrink-0">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search paneer, sprouts, corn..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-2xl border border-gray-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#20493c] bg-white text-[#1a1a1a]"
+              className="w-full pl-9 pr-8 py-2 sm:py-2.5 rounded-xl border border-gray-200/90 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#20493c] focus:border-transparent bg-white text-[#1a1a1a] placeholder:text-gray-400 shadow-2xs transition-all"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                aria-label="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
         </div>
+
+        {/* Active Filter & Result Summary */}
+        {(selectedCategory !== 'all' || searchQuery.trim() !== '') && (
+          <div className="flex items-center justify-between text-xs text-gray-600 mb-6 px-1">
+            <span>
+              Showing <strong className="text-[#20493c]">{filteredSalads.length}</strong> {filteredSalads.length === 1 ? 'salad' : 'salads'}
+              {selectedCategory !== 'all' && (
+                <> in <span className="font-semibold text-[#20493c]">{displayCategories.find((c) => c.id === selectedCategory)?.label || selectedCategory}</span></>
+              )}
+              {searchQuery.trim() && (
+                <> matching &ldquo;{searchQuery}&rdquo;</>
+              )}
+            </span>
+            <button
+              onClick={() => {
+                setSelectedCategory('all');
+                setSearchQuery('');
+              }}
+              className="text-[#20493c] hover:underline font-bold text-xs cursor-pointer"
+            >
+              Reset Filters
+            </button>
+          </div>
+        )}
 
         {/* Loading State Spinner & Skeleton Cards */}
         {isLoading ? (
