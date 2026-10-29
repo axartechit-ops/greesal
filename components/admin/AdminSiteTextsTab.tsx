@@ -57,6 +57,11 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
   >('hero');
 
   const [isHowToOrderUploading, setIsHowToOrderUploading] = useState(false);
+  const isGifOrImageHowToOrder = (url?: string) => {
+    if (!url) return false;
+    const l = url.toLowerCase();
+    return l.includes('.gif') || l.startsWith('data:image/') || l.endsWith('.webp') || l.endsWith('.png') || l.endsWith('.jpg');
+  };
 
   const handleChange = (key: keyof SiteSettings, value: any) => {
     setFormData((prev) => ({
@@ -507,7 +512,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
               {/* Left: Video File Upload & URL */}
               <div className="lg:col-span-7 space-y-3">
                 <label className="text-xs font-bold text-gray-700 block">
-                  Upload Video from Device
+                  Upload Video or GIF from Device
                 </label>
 
                 <div
@@ -517,7 +522,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                   <input
                     id="how-to-order-video-file"
                     type="file"
-                    accept="video/mp4,video/webm,video/quicktime,video/*"
+                    accept="video/mp4,video/webm,video/quicktime,video/*,image/gif,image/webp"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
                         const file = e.target.files[0];
@@ -548,20 +553,20 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                         <UploadCloud className="w-5 h-5 text-emerald-700" />
                       </div>
                       <p className="text-xs font-bold text-[#123B2B]">Click to browse &amp; upload video file</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">Supports MP4, WEBM, MOV (Auto-preview)</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">Supports MP4, WEBM, MOV, GIF (Auto-preview)</p>
                     </>
                   )}
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-gray-600 block">
-                    Or Direct Video URL (CDN / Hosted MP4):
+                    Or Direct Video or GIF URL (CDN / Hosted MP4 / GIF):
                   </label>
                   <input
                     type="text"
                     value={formData.howToOrderVideoUrl || ''}
                     onChange={(e) => handleChange('howToOrderVideoUrl', e.target.value)}
-                    placeholder="https://.../video.mp4 or /videos/how-to-order.mp4"
+                    placeholder="https://.../video.mp4 or https://.../guide.gif"
                     className="w-full text-xs p-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#123B2B] bg-white font-mono"
                   />
                 </div>
@@ -615,13 +620,21 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                 </label>
                 <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black border border-gray-300 shadow-inner flex items-center justify-center">
                   {formData.howToOrderVideoUrl ? (
-                    <video
-                      controls
-                      playsInline
-                      poster={formData.howToOrderVideoPoster}
-                      src={formData.howToOrderVideoUrl}
-                      className="w-full h-full object-cover"
-                    />
+                    isGifOrImageHowToOrder(formData.howToOrderVideoUrl) ? (
+                      <img
+                        src={formData.howToOrderVideoUrl}
+                        alt="How to order preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <video
+                        controls
+                        playsInline
+                        poster={formData.howToOrderVideoPoster}
+                        src={formData.howToOrderVideoUrl}
+                        className="w-full h-full object-cover"
+                      />
+                    )
                   ) : (
                     <div className="p-4 text-center text-gray-400">
                       <Film className="w-8 h-8 mx-auto mb-1 opacity-50" />
@@ -785,14 +798,22 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
             <div className="max-w-4xl mx-auto bg-white rounded-3xl overflow-hidden border border-[#E4DEC9] shadow-md grid grid-cols-1 md:grid-cols-12 text-left">
               <div className="md:col-span-5 relative aspect-video md:aspect-auto w-full min-h-[220px] bg-black overflow-hidden flex items-center justify-center">
                 {formData.howToOrderVideoUrl ? (
-                  <video
-                    muted
-                    loop
-                    playsInline
-                    poster={formData.howToOrderVideoPoster}
-                    src={formData.howToOrderVideoUrl}
-                    className="w-full h-full object-cover"
-                  />
+                  isGifOrImageHowToOrder(formData.howToOrderVideoUrl) ? (
+                    <img
+                      src={formData.howToOrderVideoUrl}
+                      alt="How to order preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <video
+                      muted
+                      loop
+                      playsInline
+                      poster={formData.howToOrderVideoPoster}
+                      src={formData.howToOrderVideoUrl}
+                      className="w-full h-full object-cover"
+                    />
+                  )
                 ) : (
                   <div className="text-gray-400 text-xs flex items-center gap-1.5">
                     <Film className="w-4 h-4" />

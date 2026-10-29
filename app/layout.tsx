@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
@@ -38,7 +38,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-[#fcfdfc] text-[#1a1a1a] font-dmsans selection:bg-[#20493c] selection:text-white">
+      <body suppressHydrationWarning className="min-h-screen bg-[#fcfdfc] text-[#1a1a1a] font-dmsans selection:bg-[#20493c] selection:text-white">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

@@ -72,6 +72,19 @@ export const SaladProjectHero: React.FC<SaladProjectHeroProps> = ({
     }
   };
 
+    const isGifOrImage = (url?: string) => {
+    if (!url) return false;
+    const lower = url.toLowerCase();
+    return (
+      lower.includes('.gif') ||
+      lower.startsWith('data:image/') ||
+      lower.endsWith('.webp') ||
+      lower.endsWith('.png') ||
+      lower.endsWith('.jpg') ||
+      lower.endsWith('.jpeg')
+    );
+  };
+
   const handleOrderClick = (e: React.MouseEvent) => {
     if (onExploreMenu) {
       e.preventDefault();
@@ -268,21 +281,29 @@ export const SaladProjectHero: React.FC<SaladProjectHeroProps> = ({
         {/* ONLY ONE OPTION: The Editorial How-To-Order Video Showcase Card */}
         <div className="max-w-5xl mx-auto bg-white rounded-3xl overflow-hidden border border-[#E4DEC9] shadow-sm hover:shadow-xl transition-all duration-300 grid grid-cols-1 lg:grid-cols-12">
           
-          {/* Left: High-Energy Video Player */}
+          {/* Left: High-Energy Video or GIF Player */}
           <div className="lg:col-span-6 relative aspect-video lg:aspect-auto w-full min-h-[300px] sm:min-h-[420px] bg-black overflow-hidden flex items-center justify-center group">
-            <video
-              ref={howToOrderVideoRef}
-              autoPlay
-              muted={isHowToOrderMuted}
-              loop
-              playsInline
-              poster={howToOrderVideoPoster}
-              src={howToOrderVideoUrl}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              key={howToOrderVideoUrl}
-            >
-              <source src={howToOrderVideoUrl} type="video/mp4" />
-            </video>
+            {isGifOrImage(howToOrderVideoUrl) ? (
+              <img
+                src={howToOrderVideoUrl}
+                alt={howToOrderCardTitle || 'How to order fresh salad'}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+              />
+            ) : (
+              <video
+                ref={howToOrderVideoRef}
+                autoPlay
+                muted={isHowToOrderMuted}
+                loop
+                playsInline
+                poster={howToOrderVideoPoster}
+                src={howToOrderVideoUrl}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                key={howToOrderVideoUrl}
+              >
+                <source src={howToOrderVideoUrl} type="video/mp4" />
+              </video>
+            )}
 
             {/* Step/Number Badge */}
             <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
@@ -294,34 +315,42 @@ export const SaladProjectHero: React.FC<SaladProjectHeroProps> = ({
               </span>
             </div>
 
-            {/* Video Controls (Play/Pause & Sound Toggle) */}
-            <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={toggleHowToOrderPlay}
-                aria-label="Play or pause video"
-                className="w-9 h-9 rounded-full bg-white/85 hover:bg-white text-[#123B2B] backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 shadow-lg cursor-pointer"
-              >
-                {isHowToOrderPlaying ? (
-                  <Pause className="w-4 h-4" />
-                ) : (
-                  <Play className="w-4 h-4 ml-0.5" />
-                )}
-              </button>
+            {/* Controls (Play/Pause & Sound Toggle) - Only for Video */}
+            {!isGifOrImage(howToOrderVideoUrl) ? (
+              <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleHowToOrderPlay}
+                  aria-label="Play or pause video"
+                  className="w-9 h-9 rounded-full bg-white/85 hover:bg-white text-[#123B2B] backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 shadow-lg cursor-pointer"
+                >
+                  {isHowToOrderPlaying ? (
+                    <Pause className="w-4 h-4" />
+                  ) : (
+                    <Play className="w-4 h-4 ml-0.5" />
+                  )}
+                </button>
 
-              <button
-                type="button"
-                onClick={toggleHowToOrderSound}
-                aria-label="Toggle sound"
-                className="w-9 h-9 rounded-full bg-white/85 hover:bg-white text-[#123B2B] backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 shadow-lg cursor-pointer"
-              >
-                {isHowToOrderMuted ? (
-                  <VolumeX className="w-4 h-4" />
-                ) : (
-                  <Volume2 className="w-4 h-4 text-emerald-600" />
-                )}
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={toggleHowToOrderSound}
+                  aria-label="Toggle sound"
+                  className="w-9 h-9 rounded-full bg-white/85 hover:bg-white text-[#123B2B] backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 shadow-lg cursor-pointer"
+                >
+                  {isHowToOrderMuted ? (
+                    <VolumeX className="w-4 h-4" />
+                  ) : (
+                    <Volume2 className="w-4 h-4 text-emerald-600" />
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="absolute bottom-4 right-4 z-20">
+                <span className="bg-[#123B2B]/85 backdrop-blur-md text-[#E5F97A] text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full shadow-md border border-[#E5F97A]/20">
+                  GIF ANIMATION
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Right: Order Steps & Details (Matches current details aesthetic) */}
