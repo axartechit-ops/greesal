@@ -67,7 +67,8 @@ import {
   SlidersHorizontal,
   Receipt,
   LayoutGrid,
-  Table
+  Table,
+  Printer
 } from 'lucide-react';
 
 interface Salad {
@@ -183,6 +184,17 @@ export default function AdminPage() {
   const [isOrdersLoading, setIsOrdersLoading] = useState<boolean>(false);
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<AdminOrder | null>(null);
+  const [selectedProductDetails, setSelectedProductDetails] = useState<{
+    order: AdminOrder;
+    item: any;
+    parsed: {
+      baseName: string;
+      portion: string | null;
+      withoutItems: string[];
+    };
+    saladData: Salad | null;
+    image: string;
+  } | null>(null);
 
   // Admin Invoice Modal State
   const [adminInvoiceOrder, setAdminInvoiceOrder] = useState<InvoiceOrder | null>(null);
@@ -526,6 +538,158 @@ export default function AdminPage() {
     } catch (e) {
       // fallback
     }
+  };
+
+  const handleOpenProductDetails = (
+    order: AdminOrder,
+    item: any,
+    parsed: { baseName: string; portion: string | null; withoutItems: string[] },
+    image: string
+  ) => {
+    const clean = parsed.baseName.toLowerCase().trim();
+    const cleanWords = clean.split(/\s+/).filter(w => w.length > 2);
+
+    const foundInDb = salads.find(s => {
+      const sName = (s.name || '').toLowerCase().trim();
+      return sName === clean || sName.includes(clean) || clean.includes(sName);
+    });
+    const foundInDefault = DEFAULT_SALADS.find(s => {
+      const sName = (s.name || '').toLowerCase().trim();
+      return sName === clean || sName.includes(clean) || clean.includes(sName) || cleanWords.some(w => sName.includes(w));
+    });
+
+    let saladData: Salad | null = null;
+    if (foundInDb && foundInDefault) {
+      saladData = {
+        ...foundInDefault,
+        ...foundInDb,
+        calories: (foundInDb.calories && foundInDb.calories.trim().length > 0) ? foundInDb.calories : foundInDefault.calories,
+        protein: (foundInDb.protein && foundInDb.protein.trim().length > 0) ? foundInDb.protein : foundInDefault.protein,
+        ingredients: (Array.isArray(foundInDb.ingredients) && foundInDb.ingredients.length > 0) ? foundInDb.ingredients : foundInDefault.ingredients,
+        dressing: (Array.isArray(foundInDb.dressing) && foundInDb.dressing.length > 0) ? foundInDb.dressing : foundInDefault.dressing,
+        crunch: (Array.isArray(foundInDb.crunch) && foundInDb.crunch.length > 0) ? foundInDb.crunch : foundInDefault.crunch,
+        healthBenefits: (Array.isArray(foundInDb.healthBenefits) && foundInDb.healthBenefits.length > 0) ? foundInDb.healthBenefits : foundInDefault.healthBenefits,
+        additionalBenefits: (Array.isArray(foundInDb.additionalBenefits) && foundInDb.additionalBenefits.length > 0) ? foundInDb.additionalBenefits : foundInDefault.additionalBenefits,
+        perfectFor: (Array.isArray(foundInDb.perfectFor) && foundInDb.perfectFor.length > 0) ? foundInDb.perfectFor : foundInDefault.perfectFor,
+        nutrition: {
+          ...foundInDefault.nutrition,
+          ...Object.fromEntries(Object.entries(foundInDb.nutrition || {}).filter(([_, v]) => v && String(v).trim().length > 0))
+        }
+      };
+    } else {
+      saladData = foundInDb || (foundInDefault as any) || null;
+    }
+
+    setSelectedProductDetails({
+      order,
+      item,
+      parsed,
+      saladData,
+      image
+    });
+  };
+
+  const handlePrintKOT = (details: NonNullable<typeof selectedProductDetails>) => {
+    const { order, item, parsed, saladData } = details;
+    const printWindow = window.open('', '_blank', 'width=420,height=600');
+    if (!printWindow) return;
+
+    const omittedText = parsed.withoutItems.length > 0
+      ? parsed.withoutItems.map(i => `🚫 DO NOT ADD: ${i}`).join('<br>')
+      : '✅ Standard Recipe (No Omissions)';
+
+    const ingredientsList = (saladData?.ingredients || [])
+      .map(ing => {
+        const isRemoved = parsed.withoutItems.some(rem => ing.toLowerCase().includes(rem.toLowerCase()) || rem.toLowerCase().includes(ing.toLowerCase()));
+        return isRemoved
+          ? `<li style="color: #b91c1c; text-decoration: line-through; font-weight: bold;">[OMITTED] ${ing}</li>`
+          : `<li style="color: #064e3b; font-weight: 600;">✓ ${ing}</li>`;
+      })
+      .join('');
+
+    const dressingList = (saladData?.dressing || [])
+      .map(d => `<li>🥣 ${d}</li>`)
+      .join('');
+
+    const crunchList = (saladData?.crunch || [])
+      .map(c => `<li>✨ ${c}</li>`)
+      .join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>KOT - ${order.orderNumber || order.id || 'Order'} - ${parsed.baseName}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; padding: 16px; font-size: 13px; line-height: 1.4; color: #000; }
+          .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 8px; margin-bottom: 10px; }
+          .title { font-size: 16px; font-weight: 900; letter-spacing: 0.5px; }
+          .order-info { margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 8px; font-size: 12px; }
+          .alert-box { border: 2px solid #000; padding: 8px; margin: 10px 0; background: #eee; font-weight: bold; border-radius: 6px; }
+          .section-title { font-weight: 800; margin-top: 10px; border-bottom: 1px dotted #666; font-size: 12px; }
+          ul { margin: 4px 0 8px 18px; padding: 0; }
+          li { margin-bottom: 2px; }
+          .footer { text-align: center; margin-top: 15px; border-top: 2px dashed #000; padding-top: 8px; font-size: 11px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">GREESAL FRESH SALADS</div>
+          <div>KITCHEN ORDER TICKET (KOT)</div>
+          <div>Order #${order.orderNumber || order.id || 'N/A'}</div>
+          <div>Date: ${new Date().toLocaleDateString('en-IN')} ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+        </div>
+
+        <div class="order-info">
+          <div><strong>Customer:</strong> ${order.customerName || 'Customer'}</div>
+          <div><strong>Phone:</strong> ${order.customerMobile || 'N/A'}</div>
+          <div><strong>Delivery Slot:</strong> ${order.deliverySlot || 'Express 30-45 mins'}</div>
+          <div><strong>Destination:</strong> ${order.deliveryAddress || 'N/A'}</div>
+        </div>
+
+        <div style="font-size: 15px; font-weight: 900; margin: 8px 0; color: #123B2B;">
+          ITEM: ${parsed.baseName.toUpperCase()}
+        </div>
+        <div>Qty: <strong>${item.quantity || 1}</strong> • Portion: <strong>${parsed.portion || 'Standard Bowl'}</strong></div>
+
+        ${parsed.withoutItems.length > 0 ? `
+          <div class="alert-box" style="background: #fef2f2; border-color: #dc2626; color: #991b1b;">
+            <div style="color: #dc2626; font-size: 13px; font-weight: 900;">⚠️ CHEF CUSTOMIZATION ALERT - DO NOT ADD:</div>
+            <div style="font-size: 12px; margin-top: 4px;">${omittedText}</div>
+          </div>
+        ` : `
+          <div class="alert-box" style="background: #f0fdf4; border-color: #16a34a; color: #166534;">
+            <div>${omittedText}</div>
+          </div>
+        `}
+
+        <div class="section-title">PART 1: FRESH INGREDIENTS</div>
+        <ul>${ingredientsList || '<li>Standard Greesal fresh harvest mix</li>'}</ul>
+
+        ${dressingList ? `
+          <div class="section-title">PART 2: HANDCRAFTED DRESSING</div>
+          <ul>${dressingList}</ul>
+        ` : ''}
+
+        ${crunchList ? `
+          <div class="section-title">PART 3: SIGNATURE CRUNCH</div>
+          <ul>${crunchList}</ul>
+        ` : ''}
+
+        <div class="footer">
+          <div>*** CHEF VERIFIED • 100% SATVIK CLEAN FOOD ***</div>
+          <div>Triple Ozone Washed • Fresh Farm Harvest</div>
+        </div>
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
   };
 
   // Update Order Status
@@ -1661,16 +1825,23 @@ export default function AdminPage() {
                                         const parsed = parseItemDetails(item.name || 'Salad Bowl');
                                         const actualImage = resolveSaladImage(parsed.baseName || item.name, item.image);
                                         return (
-                                          <div key={iIdx} className="flex items-start gap-2 bg-[#FAF6F0] p-1.5 rounded-xl border border-greesal-beige/70">
+                                          <button
+                                            key={iIdx}
+                                            type="button"
+                                            onClick={() => handleOpenProductDetails(order, item, parsed, actualImage)}
+                                            className="w-full text-left flex items-start gap-2 bg-[#FAF6F0] hover:bg-[#F3EDE2] p-1.5 rounded-xl border border-greesal-beige/90 hover:border-emerald-600/50 shadow-2xs hover:shadow-xs transition-all cursor-pointer group"
+                                            title="Click to view full recipe, ingredients, nutrition & chef details (A to Z)"
+                                          >
                                             <img
                                               src={actualImage}
                                               alt={parsed.baseName}
-                                              className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-greesal-beige"
+                                              className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-greesal-beige group-hover:scale-105 transition-transform"
                                               onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80'; }}
                                             />
                                             <div className="min-w-0 flex-1 text-[11px]">
-                                              <div className="font-bold text-greesal-dark truncate leading-tight">
-                                                {parsed.baseName}
+                                              <div className="font-bold text-greesal-dark group-hover:text-emerald-900 truncate leading-tight flex items-center justify-between">
+                                                <span className="truncate">{parsed.baseName}</span>
+                                                <span className="text-[10px] text-emerald-800 opacity-80 group-hover:opacity-100 font-bold ml-1 flex-shrink-0">&rarr;</span>
                                               </div>
                                               <div className="text-[10px] text-gray-500 font-medium">
                                                 Qty: {item.quantity || 1} {parsed.portion ? `• ${parsed.portion}` : ''}
@@ -1680,8 +1851,11 @@ export default function AdminPage() {
                                                   🚫 -{parsed.withoutItems.join(', -')}
                                                 </div>
                                               )}
+                                              <div className="text-[9px] font-extrabold text-emerald-800 tracking-tight mt-0.5 underline">
+                                                Full Details A-Z
+                                              </div>
                                             </div>
-                                          </div>
+                                          </button>
                                         );
                                       })}
                                     </div>
@@ -1727,12 +1901,9 @@ export default function AdminPage() {
                                     </div>
                                   </td>
 
-                                  {/* 5. Total Amount & Payment */}
+                                  {/* 5. Total Amount */}
                                   <td className="py-3.5 px-4 align-top whitespace-nowrap">
                                     <div className="font-black text-sm text-[#123B2B]">₹{order.total}</div>
-                                    <div className="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-900 text-[10px] font-bold">
-                                      {order.paymentMethod || 'COD / UPI'}
-                                    </div>
                                   </td>
 
                                   {/* 6. Kitchen Status & Quick Dropdown */}
@@ -1884,10 +2055,7 @@ export default function AdminPage() {
                                 <span className="capitalize">{order.deliverySlot} Delivery</span>
                               </span>
                             )}
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold text-[11px]">
-                              <Receipt className="w-3 h-3 text-emerald-700" />
-                              <span>{order.paymentMethod || 'COD / UPI'}</span>
-                            </span>
+
                           </div>
                         </div>
 
@@ -2033,21 +2201,24 @@ export default function AdminPage() {
                               return (
                                 <div
                                   key={idx}
-                                  className="p-3 rounded-2xl bg-white border border-greesal-beige/90 shadow-2xs space-y-2 text-xs hover:border-[#123B2B]/30 transition-all"
+                                  onClick={() => handleOpenProductDetails(order, item, parsed, actualImage)}
+                                  className="p-3 rounded-2xl bg-white hover:bg-[#FAF6F0] border border-greesal-beige/90 hover:border-emerald-600/50 shadow-2xs hover:shadow-xs space-y-2 text-xs transition-all cursor-pointer group"
+                                  title="Click to view full recipe, ingredients, nutrition & chef details (A to Z)"
                                 >
                                   <div className="flex items-start gap-3">
                                     <img
                                       src={actualImage}
                                       alt={parsed.baseName}
-                                      className="w-13 h-13 object-cover rounded-xl border border-greesal-beige flex-shrink-0"
+                                      className="w-13 h-13 object-cover rounded-xl border border-greesal-beige group-hover:scale-105 transition-transform flex-shrink-0"
                                       onError={(e) => {
                                         (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80';
                                       }}
                                     />
                                     <div className="min-w-0 flex-1">
                                       <div className="flex items-start justify-between gap-2">
-                                        <h5 className="font-black text-greesal-dark text-xs sm:text-sm leading-snug">
-                                          {parsed.baseName}
+                                        <h5 className="font-black text-greesal-dark group-hover:text-emerald-900 text-xs sm:text-sm leading-snug flex items-center gap-1.5">
+                                          <span>{parsed.baseName}</span>
+                                          <span className="text-[10px] text-emerald-800 opacity-70 group-hover:opacity-100 font-bold">&rarr;</span>
                                         </h5>
                                         <span className="font-black text-emerald-800 text-xs sm:text-sm flex-shrink-0">
                                           ₹{lineTotal}
@@ -2086,6 +2257,11 @@ export default function AdminPage() {
                                       </div>
                                     </div>
                                   )}
+
+                                  <div className="flex items-center justify-between pt-1 border-t border-gray-100 text-[10px] text-emerald-800 font-extrabold group-hover:underline">
+                                    <span>🔍 View Full Recipe, Nutrition &amp; Chef Dossier (A to Z)</span>
+                                    <span>&rarr;</span>
+                                  </div>
                                 </div>
                               );
                             })}
@@ -2427,7 +2603,9 @@ export default function AdminPage() {
                                   return (
                                     <div
                                       key={idx}
-                                      className="p-3 rounded-2xl bg-[#FAF6F0] border border-greesal-beige/80 space-y-2"
+                                      onClick={() => handleOpenProductDetails(sel, item, parsed, actualImage)}
+                                      className="p-3 rounded-2xl bg-[#FAF6F0] hover:bg-[#F3EDE2] border border-greesal-beige/80 hover:border-emerald-600/50 shadow-2xs space-y-2 cursor-pointer transition-all group"
+                                      title="Click to view full recipe, ingredients, nutrition & chef details (A to Z)"
                                     >
                                       <div className="flex items-start gap-3">
                                         <img
@@ -2440,8 +2618,9 @@ export default function AdminPage() {
                                         />
                                         <div className="min-w-0 flex-1">
                                           <div className="flex items-start justify-between gap-2">
-                                            <h5 className="font-black text-greesal-dark text-sm leading-snug">
-                                              {parsed.baseName}
+                                            <h5 className="font-black text-greesal-dark group-hover:text-emerald-900 text-sm leading-snug flex items-center justify-between">
+                                              <span>{parsed.baseName}</span>
+                                              <span className="text-[10px] text-emerald-800 opacity-70 group-hover:opacity-100 font-bold ml-1 flex-shrink-0">&rarr;</span>
                                             </h5>
                                             <span className="font-black text-emerald-800 text-sm">
                                               ₹{lineTotal}
@@ -2479,6 +2658,11 @@ export default function AdminPage() {
                                           </div>
                                         </div>
                                       )}
+
+                                      <div className="flex items-center justify-between pt-1 border-t border-greesal-beige/60 text-[10px] text-emerald-800 font-extrabold group-hover:underline">
+                                        <span>🔍 View Full Recipe, Nutrition &amp; Chef Dossier (A to Z)</span>
+                                        <span>&rarr;</span>
+                                      </div>
                                     </div>
                                   );
                                 })}
@@ -2489,7 +2673,6 @@ export default function AdminPage() {
                             <div className="p-4 rounded-2xl bg-[#f8faf9] border border-gray-200 flex items-center justify-between">
                               <div>
                                 <span className="text-gray-500 text-xs block">Total Bill Amount</span>
-                                <span className="text-[11px] text-emerald-800 font-bold">{sel.paymentMethod || 'Cash / UPI on Delivery'}</span>
                               </div>
                               <div className="text-2xl font-black text-[#123B2B]">
                                 ₹{sel.total}
@@ -2533,6 +2716,364 @@ export default function AdminPage() {
                             </button>
                           </div>
                         </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* PRODUCT FULL RECIPE & CHEF DOSSIER MODAL (A to Z DETAILS) */}
+                {selectedProductDetails && (() => {
+                  const { order, item, parsed, saladData, image } = selectedProductDetails;
+                  const itemQty = Number(item.quantity) || 1;
+                  const rawPrice = parseInt(String(item.price || 0).replace(/[^\d]/g, ''), 10) || 0;
+                  const lineTotal = rawPrice * itemQty;
+                  const portionLabel = parsed.portion || (saladData?.portions?.find(p => p.isDefault)?.label) || 'Regular (300g)';
+
+                  const ingredients = saladData?.ingredients || [];
+                  const dressing = saladData?.dressing || [];
+                  const crunch = saladData?.crunch || [];
+                  const healthBenefits = saladData?.healthBenefits || [];
+                  const nutrition = saladData?.nutrition || {};
+                  const calories = saladData?.calories || '387 Kcal';
+                  const protein = saladData?.protein || '19g Protein';
+
+                  return (
+                    <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+                      <div className="bg-white rounded-3xl max-w-2xl w-full border border-greesal-beige shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
+                        
+                        {/* MODAL HEADER */}
+                        <div className="bg-[#123B2B] text-white p-4 sm:p-5 flex items-center justify-between relative overflow-hidden">
+                          <div className="absolute top-0 right-0 -mt-6 -mr-6 w-32 h-32 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />
+                          <div className="space-y-1">
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-400/20 border border-emerald-400/30 text-emerald-200 text-[10px] font-black uppercase tracking-wider">
+                              <Sparkles className="w-3 h-3 text-emerald-300" />
+                              <span>Kitchen Dossier &bull; Full Recipe (A to Z)</span>
+                            </div>
+                            <h3 className="text-lg sm:text-xl font-black text-white leading-tight">
+                              {parsed.baseName}
+                            </h3>
+                            <p className="text-xs text-emerald-100/80 font-medium">
+                              Order #{order.orderNumber || order.id || 'N/A'} &bull; Customer: <strong className="text-white">{order.customerName}</strong>
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handlePrintKOT(selectedProductDetails)}
+                              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                              title="Print Kitchen Order Ticket (KOT) Slip"
+                            >
+                              <Printer className="w-3.5 h-3.5 text-emerald-300" />
+                              <span className="hidden sm:inline">Print KOT</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedProductDetails(null)}
+                              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer"
+                              title="Close Dossier"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* MODAL BODY (SCROLLABLE) */}
+                        <div className="p-4 sm:p-6 space-y-5 max-h-[78vh] overflow-y-auto text-xs">
+
+                          {/* 1. PRODUCT SUMMARY HERO CARD */}
+                          <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-greesal-beige flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                            <img
+                              src={image}
+                              alt={parsed.baseName}
+                              className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-2 border-white shadow-md flex-shrink-0"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80';
+                              }}
+                            />
+                            <div className="flex-1 w-full space-y-2 text-center sm:text-left">
+                              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                                <span className="px-2.5 py-0.5 rounded-full bg-[#123B2B] text-white text-[10px] font-black uppercase tracking-wider">
+                                  {saladData?.tag || 'Handcrafted Fresh Salad'}
+                                </span>
+                                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200 text-[10px] font-extrabold">
+                                  {portionLabel}
+                                </span>
+                                <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-extrabold">
+                                  Qty: {itemQty} Bowl{itemQty > 1 ? 's' : ''}
+                                </span>
+                              </div>
+
+                              <div className="flex flex-wrap items-baseline justify-center sm:justify-start gap-3 pt-1">
+                                <span className="text-xl sm:text-2xl font-black text-[#123B2B]">
+                                  ₹{lineTotal}
+                                </span>
+                                {itemQty > 1 && (
+                                  <span className="text-xs text-gray-500 font-semibold">
+                                    (₹{rawPrice} each)
+                                  </span>
+                                )}
+                                <span className="text-gray-300">&bull;</span>
+                                <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-white px-2 py-0.5 rounded-md border border-emerald-200">
+                                  <Flame className="w-3.5 h-3.5 text-amber-500" />
+                                  {calories}
+                                </span>
+                                <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-white px-2 py-0.5 rounded-md border border-emerald-200">
+                                  <Activity className="w-3.5 h-3.5 text-emerald-600" />
+                                  {protein}
+                                </span>
+                              </div>
+
+                              <p className="text-[11px] text-gray-600 font-medium">
+                                100% Satvik Goodness &bull; Triple Ozone-Washed &bull; 100% Freeze-Dried Nutrient Lock &bull; Farm Fresh
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* 2. CHEF CUSTOMIZATION WARNING BANNER */}
+                          {parsed.withoutItems.length > 0 ? (
+                            <div className="p-4 rounded-2xl bg-red-50 border-2 border-red-300 text-red-900 space-y-2 shadow-xs">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center font-black text-xs flex-shrink-0">
+                                  ⚠️
+                                </span>
+                                <h4 className="font-black text-red-700 text-xs sm:text-sm uppercase tracking-wide">
+                                  Chef Preparation Alert: Customer Omitted Ingredients!
+                                </h4>
+                              </div>
+                              <p className="text-[11px] text-red-800 font-semibold">
+                                DO NOT ADD the following items into this bowl. Customer specifically removed them:
+                              </p>
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {parsed.withoutItems.map((rem, rIdx) => (
+                                  <span
+                                    key={rIdx}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border-2 border-red-500 text-red-700 font-black text-xs shadow-xs"
+                                  >
+                                    <span>🚫 DO NOT ADD:</span>
+                                    <strong className="underline text-red-900">{rem}</strong>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center gap-2.5">
+                              <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                              <div className="text-[11px]">
+                                <strong className="font-bold">Standard Chef Recipe:</strong> No ingredient exclusions requested by customer. Prepare full authentic recipe.
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 3. CRAFTED IN 3 FRESH PARTS (RECIPE BREAKDOWN) */}
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                              <h4 className="font-black text-sm text-[#123B2B] flex items-center gap-2">
+                                <Utensils className="w-4 h-4 text-emerald-700" />
+                                <span>Crafted in 3 Fresh Parts (Recipe Breakdown)</span>
+                              </h4>
+                              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                                100% Satvik Goodness
+                              </span>
+                            </div>
+
+                            {/* Part 1: Fresh Ingredients */}
+                            <div className="p-4 rounded-2xl bg-white border border-greesal-beige/90 space-y-2.5 shadow-2xs">
+                              <div className="flex items-center justify-between">
+                                <h5 className="font-extrabold text-xs text-emerald-900 flex items-center gap-2">
+                                  <Leaf className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Part 1: Fresh Ingredients ({ingredients.length})</span>
+                                </h5>
+                                <span className="text-[10px] font-bold text-gray-500">Hydroponic Crisp Greens &amp; Veggies</span>
+                              </div>
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {ingredients.map((ing, iIdx) => {
+                                  const isOmitted = parsed.withoutItems.some(
+                                    rem => ing.toLowerCase().includes(rem.toLowerCase()) || rem.toLowerCase().includes(ing.toLowerCase())
+                                  );
+                                  return (
+                                    <span
+                                      key={iIdx}
+                                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                        isOmitted
+                                          ? 'bg-red-50 border-2 border-red-300 text-red-600 line-through'
+                                          : 'bg-emerald-50/70 border border-emerald-200 text-emerald-950'
+                                      }`}
+                                    >
+                                      {isOmitted ? (
+                                        <>
+                                          <span className="text-red-600 font-black no-underline">🚫</span>
+                                          <span>{ing}</span>
+                                          <span className="text-[10px] bg-red-600 text-white px-1.5 py-0.2 rounded font-black no-underline">REMOVED</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Check className="w-3 h-3 text-emerald-600" />
+                                          <span>{ing}</span>
+                                        </>
+                                      )}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Part 2: Handcrafted Dressing */}
+                            {dressing.length > 0 && (
+                              <div className="p-4 rounded-2xl bg-white border border-greesal-beige/90 space-y-2.5 shadow-2xs">
+                                <div className="flex items-center justify-between">
+                                  <h5 className="font-extrabold text-xs text-amber-900 flex items-center gap-2">
+                                    <Droplets className="w-3.5 h-3.5 text-amber-600" />
+                                    <span>Part 2: Handcrafted Dressing ({dressing.length})</span>
+                                  </h5>
+                                  <span className="text-[10px] font-bold text-gray-500">Cold Blended &bull; Separate Dip Container</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                  {dressing.map((dItem, dIdx) => (
+                                    <span
+                                      key={dIdx}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50/60 border border-amber-200 text-amber-950"
+                                    >
+                                      <Sparkles className="w-3 h-3 text-amber-600" />
+                                      <span>{dItem}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Part 3: Signature Crunch */}
+                            {crunch.length > 0 && (
+                              <div className="p-4 rounded-2xl bg-white border border-greesal-beige/90 space-y-2.5 shadow-2xs">
+                                <div className="flex items-center justify-between">
+                                  <h5 className="font-extrabold text-xs text-stone-900 flex items-center gap-2">
+                                    <Zap className="w-3.5 h-3.5 text-[#C89D4B]" />
+                                    <span>Part 3: Signature Crunch &amp; Seeds ({crunch.length})</span>
+                                  </h5>
+                                  <span className="text-[10px] font-bold text-gray-500">Slow Roasted Seeds &amp; Nuts</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                  {crunch.map((cItem, cIdx) => (
+                                    <span
+                                      key={cIdx}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#FAF6F0] border border-[#EBE2D3] text-stone-900"
+                                    >
+                                      <span className="text-amber-600 text-xs font-black">✨</span>
+                                      <span>{cItem}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 4. COMPLETE NUTRITION FACTS (A to Z) */}
+                          <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-greesal-beige space-y-3">
+                            <div className="flex items-center justify-between border-b border-greesal-beige/80 pb-2">
+                              <h4 className="font-black text-xs text-[#123B2B] flex items-center gap-2">
+                                <Activity className="w-3.5 h-3.5 text-emerald-700" />
+                                <span>Complete Nutritional Profile (Per Serving)</span>
+                              </h4>
+                              <span className="text-[10px] font-bold text-gray-500">Certified Lab Verified</span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                              <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
+                                <div className="text-gray-500 font-medium text-[10px]">Calories</div>
+                                <div className="font-black text-[#123B2B] text-xs">{calories}</div>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
+                                <div className="text-gray-500 font-medium text-[10px]">Protein</div>
+                                <div className="font-black text-emerald-800 text-xs">{protein}</div>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
+                                <div className="text-gray-500 font-medium text-[10px]">Carbs</div>
+                                <div className="font-black text-greesal-dark text-xs">{nutrition.carbs || '67g'}</div>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
+                                <div className="text-gray-500 font-medium text-[10px]">Dietary Fiber</div>
+                                <div className="font-black text-emerald-800 text-xs">{nutrition.fiber || '13g'}</div>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
+                                <div className="text-gray-500 font-medium text-[10px]">Total Fat</div>
+                                <div className="font-bold text-gray-800 text-xs">{nutrition.totalFat || '5g'}</div>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
+                                <div className="text-gray-500 font-medium text-[10px]">Sodium</div>
+                                <div className="font-bold text-gray-800 text-xs">{nutrition.sodium || '42 mg'}</div>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
+                                <div className="text-gray-500 font-medium text-[10px]">Calcium</div>
+                                <div className="font-bold text-gray-800 text-xs">{nutrition.calcium || '124 mg'}</div>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
+                                <div className="text-gray-500 font-medium text-[10px]">Iron</div>
+                                <div className="font-bold text-gray-800 text-xs">{nutrition.iron || '6 mg'}</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 5. HEALTH BENEFITS & TARGET LIFESTYLE */}
+                          {healthBenefits.length > 0 && (
+                            <div className="p-4 rounded-2xl bg-white border border-greesal-beige/90 space-y-2.5 shadow-2xs">
+                              <h4 className="font-black text-xs text-[#123B2B] flex items-center gap-2">
+                                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Key Health &amp; Wellness Benefits</span>
+                              </h4>
+                              <ul className="space-y-1.5 text-[11px] text-gray-600 font-medium">
+                                {healthBenefits.map((bItem, bIdx) => (
+                                  <li key={bIdx} className="flex items-start gap-2">
+                                    <span className="text-emerald-600 font-black flex-shrink-0">&bull;</span>
+                                    <span>{bItem}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* 6. ORDER & DELIVERY CONTEXT */}
+                          <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-greesal-beige space-y-2.5">
+                            <h4 className="font-black text-xs text-[#123B2B] flex items-center gap-2">
+                              <Truck className="w-3.5 h-3.5 text-emerald-700" />
+                              <span>Order &amp; Kitchen Dispatch Info</span>
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-gray-700">
+                              <div>
+                                <strong>Customer:</strong> {order.customerName || 'N/A'} ({order.customerMobile || 'N/A'})
+                              </div>
+                              <div>
+                                <strong>Delivery Slot:</strong> <span className="font-bold text-emerald-800">{order.deliverySlot || 'Express 30-45 mins'}</span>
+                              </div>
+                              <div className="sm:col-span-2">
+                                <strong>Address:</strong> {order.deliveryAddress || 'N/A'}
+                              </div>
+                              <div>
+                                <strong>Kitchen Status:</strong> <span className="font-black text-amber-700 uppercase">{order.status || 'PREPARING'}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                        </div>
+
+                        {/* MODAL FOOTER */}
+                        <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handlePrintKOT(selectedProductDetails)}
+                            className="px-4 py-2 rounded-xl bg-[#123B2B] hover:bg-[#1b4d39] text-white font-bold text-xs flex items-center gap-2 transition-all shadow-xs cursor-pointer"
+                          >
+                            <Printer className="w-4 h-4 text-emerald-300" />
+                            <span>Print Kitchen KOT Slip</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedProductDetails(null)}
+                            className="px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-xs transition-all cursor-pointer"
+                          >
+                            Close Details
+                          </button>
+                        </div>
+
                       </div>
                     </div>
                   );
