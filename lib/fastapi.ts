@@ -115,7 +115,10 @@ export async function proxyToFastAPI(req: NextRequest, path: string) {
 
     const responseHeaders = new Headers();
     res.headers.forEach((value, key) => {
-      responseHeaders.set(key, value);
+      const lower = key.toLowerCase();
+      if (!['content-length', 'content-encoding', 'transfer-encoding', 'connection'].includes(lower)) {
+        responseHeaders.set(key, value);
+      }
     });
 
     const contentType = res.headers.get('content-type') || '';

@@ -1,6 +1,8 @@
 import time
 import random
 import re
+import json
+from pathlib import Path
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query, Request, status
@@ -8,6 +10,49 @@ from bson import ObjectId
 from backend.database import get_db
 
 router = APIRouter(tags=["Orders"])
+
+LOCAL_ORDERS_FILE = Path(__file__).parent.parent / "local_orders.json"
+LOCAL_SALADS_FILE = Path(__file__).parent.parent / "local_salads.json"
+
+def get_real_salad_image(salad_name: str) -> Optional[str]:
+    """Look up original high-resolution salad image from local_salads.json or database."""
+    if not salad_name:
+        return None
+    # Strip (300g), (Without: ...), etc.
+    clean_name = re.sub(r"\(.*?\)", "", salad_name).strip().lower()
+    if not clean_name:
+        return None
+    try:
+        if LOCAL_SALADS_FILE.exists():
+            with open(LOCAL_SALADS_FILE, "r", encoding="utf-8") as f:
+                salads_list = json.load(f)
+                if isinstance(salads_list, list):
+                    for s in salads_list:
+                        s_name = str(s.get("name", "")).strip().lower()
+                        if s_name and (clean_name in s_name or s_name in clean_name):
+                            if s.get("image"):
+                                return s.get("image")
+    except Exception:
+        pass
+    return None
+
+def load_local_orders() -> List[Dict[str, Any]]:
+    if LOCAL_ORDERS_FILE.exists():
+        try:
+            with open(LOCAL_ORDERS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    return data
+        except Exception as e:
+            print(f"Warning: Failed to load local orders: {e}")
+    return []
+
+def save_local_orders(orders: List[Dict[str, Any]]):
+    try:
+        with open(LOCAL_ORDERS_FILE, "w", encoding="utf-8") as f:
+            json.dump(orders, f, indent=2, default=str)
+    except Exception as e:
+        print(f"Warning: Failed to save local orders: {e}")
 
 DEFAULT_ORDERS: List[Dict[str, Any]] = []
 
@@ -25,22 +70,45 @@ def format_order_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
     res["customerMobile"] = str(res.get("customerMobile") or "")
     res["customerEmail"] = str(res.get("customerEmail") or "")
     res["deliveryAddress"] = str(res.get("deliveryAddress") or "Surat Doorstep")
+    res["deliverySlot"] = str(res.get("deliverySlot") or "Immediate")
     res["date"] = str(res.get("date") or "Recently")
     res["timestamp"] = int(res.get("timestamp") or time.time() * 1000)
+    res["addressMode"] = str(res.get("addressMode") or ("google_map" if (res.get("mapsUrl") or res.get("locationCoords")) else "manual"))
+    res["manualAddressDetails"] = res.get("manualAddressDetails") or {}
+    
+    location_coords = res.get("locationCoords")
+    maps_url = res.get("mapsUrl")
+    if not maps_url and location_coords and isinstance(location_coords, dict):
+        maps_url = f"https://maps.google.com/?q={location_coords.get('lat')},{location_coords.get('lng')}"
+    elif not maps_url and res.get("deliveryAddress"):
+        maps_url = f"https://www.google.com/maps/search/?api=1&query={res.get('deliveryAddress')}"
+    res["mapsUrl"] = maps_url or ""
+    res["locationCoords"] = location_coords
 
-    # Normalize items array and ensure item.price is formatted properly
+    # Normalize items array and ensure actual salad images are retained
     raw_items = res.get("items") or []
     norm_items = []
     for it in raw_items:
         if isinstance(it, dict):
             p = it.get("price", "0")
             p_str = f"₹{str(p).replace('₹', '').strip()}" if p is not None else "₹0"
+            img = it.get("image") or ""
+            item_name = str(it.get("name") or "Salad Bowl")
+
+            # If image is empty or the generic unsplash placeholder, restore the authentic salad image!
+            if not img or "photo-1540420773420-3366772f4999" in str(img):
+                real_salad_img = get_real_salad_image(item_name)
+                if real_salad_img:
+                    img = real_salad_img
+                elif not img:
+                    img = "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80"
+
             norm_items.append({
                 **it,
-                "name": str(it.get("name") or "Salad Bowl"),
+                "name": item_name,
                 "price": p_str,
                 "quantity": int(it.get("quantity") or 1),
-                "image": it.get("image") or "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80"
+                "image": img
             })
     res["items"] = norm_items
 
@@ -65,6 +133,9 @@ def get_orders(
 ):
     db = get_db()
     if db is None:
+        local = load_local_orders()
+        if local:
+            return local
         return [
             {**o, "_id": f"temp-{idx}", "id": o.get("orderNumber")}
             for idx, o in enumerate(DEFAULT_ORDERS)
@@ -97,8 +168,15 @@ def get_orders(
                 continue
             formatted.append(doc)
 
+        if not mobile and not email and formatted:
+            save_local_orders(formatted)
+
         return formatted
     except Exception as e:
+        print(f"Error fetching orders from DB: {e}")
+        local = load_local_orders()
+        if local:
+            return local
         return [
             {**o, "_id": f"temp-{idx}", "id": o.get("orderNumber")}
             for idx, o in enumerate(DEFAULT_ORDERS)
@@ -123,6 +201,9 @@ async def create_order(request: Request):
     if not maps_url and location_coords and isinstance(location_coords, dict):
         maps_url = f"https://maps.google.com/?q={location_coords.get('lat')},{location_coords.get('lng')}"
 
+    address_mode = data.get("addressMode") or ("google_map" if (maps_url or location_coords) else "manual")
+    manual_details = data.get("manualAddressDetails") or {}
+
     new_order = {
         "id": order_num,
         "orderNumber": order_num,
@@ -138,6 +219,8 @@ async def create_order(request: Request):
         "total": float(data.get("total", 0)),
         "deliveryAddress": str(data.get("deliveryAddress", "")).strip(),
         "deliverySlot": data.get("deliverySlot", "lunch"),
+        "addressMode": address_mode,
+        "manualAddressDetails": manual_details,
         "mapsUrl": maps_url or "",
         "locationCoords": location_coords,
         "notes": str(data.get("notes", "")).strip(),
@@ -156,6 +239,15 @@ async def create_order(request: Request):
             new_order["_id"] = f"order-{int(time.time())}"
     else:
         new_order["_id"] = f"order-{int(time.time())}"
+
+    # Sync to local backup
+    try:
+        current_locals = load_local_orders()
+        formatted_new = format_order_doc(new_order)
+        current_locals = [formatted_new] + [o for o in current_locals if o.get("id") != formatted_new.get("id")]
+        save_local_orders(current_locals)
+    except Exception as e:
+        print(f"Warning: Failed to save to local backup: {e}")
 
     return {
         "success": True,
@@ -179,9 +271,20 @@ async def update_order_status(request: Request, order_id: Optional[str] = None):
     if not new_status:
         raise HTTPException(status_code=400, detail="Status is required")
 
+    # Update in local backup
+    try:
+        current_locals = load_local_orders()
+        for idx, o in enumerate(current_locals):
+            if o.get("id") == target_id or o.get("orderNumber") == target_id or o.get("_id") == target_id:
+                current_locals[idx]["status"] = new_status
+                break
+        save_local_orders(current_locals)
+    except Exception as e:
+        print(f"Warning: Failed to update local backup: {e}")
+
     db = get_db()
     if db is None:
-        raise HTTPException(status_code=503, detail="Database not available")
+        return {"message": "Order status updated in local store", "modifiedCount": 1}
 
     try:
         query_list = [{"id": target_id}, {"orderNumber": target_id}, {"_id": target_id}]
@@ -192,9 +295,6 @@ async def update_order_status(request: Request, order_id: Optional[str] = None):
             {"$or": query_list},
             {"$set": {"status": new_status, "updatedAt": int(time.time())}}
         )
-
-        if result.matched_count == 0:
-            raise HTTPException(status_code=404, detail="Order not found")
 
         return {"message": "Order status updated successfully", "modifiedCount": result.modified_count}
     except HTTPException:
@@ -213,9 +313,17 @@ def delete_order(order_id: Optional[str] = None, id: Optional[str] = Query(None)
     if not target_id:
         raise HTTPException(status_code=400, detail="Order ID is required")
 
+    # Remove from local backup
+    try:
+        current_locals = load_local_orders()
+        current_locals = [o for o in current_locals if o.get("id") != target_id and o.get("orderNumber") != target_id and o.get("_id") != target_id]
+        save_local_orders(current_locals)
+    except Exception as e:
+        print(f"Warning: Failed to delete from local backup: {e}")
+
     db = get_db()
     if db is None:
-        raise HTTPException(status_code=503, detail="Database not available")
+        return {"message": "Order deleted from local store"}
 
     try:
         query_list = [{"id": target_id}, {"orderNumber": target_id}, {"_id": target_id}]
@@ -223,9 +331,6 @@ def delete_order(order_id: Optional[str] = None, id: Optional[str] = Query(None)
             query_list.append({"_id": ObjectId(target_id)})
 
         result = db.orders.delete_one({"$or": query_list})
-        if result.deleted_count == 0:
-            raise HTTPException(status_code=404, detail="Order not found")
-
         return {"message": "Order deleted successfully"}
     except HTTPException:
         raise

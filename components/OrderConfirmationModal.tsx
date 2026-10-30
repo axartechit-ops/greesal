@@ -30,6 +30,14 @@ export interface ConfirmedOrderData {
   deliveryAddress: string;
   deliverySlot: string;
   mapsUrl?: string;
+  locationCoords?: { lat: number; lng: number } | null;
+  addressMode?: 'google_map' | 'manual';
+  manualAddressDetails?: {
+    flatNo?: string;
+    areaLocality?: string;
+    landmark?: string;
+    cityPincode?: string;
+  };
   notes?: string;
   paymentMethod?: string;
 }
@@ -172,22 +180,35 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
               </div>
 
               {/* Delivery Address */}
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 space-y-1">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-[#20493c]" />
-                  <span>Delivery Address in Surat</span>
-                </span>
-                <p className="text-gray-900 font-semibold text-xs leading-relaxed">
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-[#20493c]" />
+                    <span>Delivery Address in Surat</span>
+                  </span>
+                  {order.addressMode === 'google_map' ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      📍 Google Map Pin
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                      ✍️ Manual Address
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-gray-900 font-bold text-xs leading-relaxed">
                   {order.deliveryAddress}
                 </p>
+
                 {order.mapsUrl && (
                   <a
                     href={order.mapsUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#20493c] hover:underline pt-1"
+                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#20493c] hover:text-[#123B2B] bg-white px-2.5 py-1 rounded-lg border border-gray-200 shadow-2xs transition-colors pt-1"
                   >
-                    <span>📍 View Attached Google Maps Location Pin</span>
+                    <span>📍 Open in Google Maps</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
@@ -200,35 +221,48 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                   <span>Order Items ({order.items.reduce((sum, it) => sum + it.quantity, 0)})</span>
                 </span>
 
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                   {order.items.map((item, idx) => {
                     const priceNum = parseInt(String(item.price || 0).replace(/[^\d]/g, ''), 10) || 0;
+                    const rawName = item.name || 'Salad Bowl';
+                    const withoutMatch = rawName.match(/\((?:Without|without|no|No):\s*([^)]+)\)/i);
+                    const withoutStr = withoutMatch ? withoutMatch[1] : null;
+                    const cleanName = rawName.replace(/\((?:Without|without|no|No):\s*([^)]+)\)/i, '').trim();
+
                     return (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-2.5 rounded-xl border border-gray-100 bg-white shadow-2xs"
+                        className="p-2.5 rounded-xl border border-gray-100 bg-white shadow-2xs space-y-1.5"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src =
-                                'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80';
-                            }}
-                          />
-                          <div className="truncate">
-                            <p className="font-bold text-[#123B2B] truncate">{item.name}</p>
-                            <span className="text-[11px] text-gray-500 font-medium">
-                              Qty: {item.quantity} &times; ₹{priceNum}
-                            </span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <img
+                              src={item.image}
+                              alt={cleanName}
+                              className="w-11 h-11 rounded-lg object-cover flex-shrink-0 border border-gray-200"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src =
+                                  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80';
+                              }}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="font-bold text-[#123B2B] truncate text-xs">{cleanName}</p>
+                              <span className="text-[11px] text-gray-500 font-medium">
+                                Qty: {item.quantity} &times; ₹{priceNum}
+                              </span>
+                            </div>
                           </div>
+
+                          <span className="font-black text-[#123B2B] text-xs flex-shrink-0">
+                            ₹{priceNum * item.quantity}
+                          </span>
                         </div>
 
-                        <span className="font-black text-[#123B2B] text-xs flex-shrink-0">
-                          ₹{priceNum * item.quantity}
-                        </span>
+                        {withoutStr && (
+                          <div className="text-[10px] bg-red-50 text-red-800 font-bold px-2 py-0.5 rounded-md border border-red-200">
+                            🚫 Without: {withoutStr}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

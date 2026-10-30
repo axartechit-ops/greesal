@@ -9,6 +9,7 @@ import { TopLeftLeafBranch } from '@/components/LeafDecoration';
 import { ProfileModal, OrderItem } from '@/components/ProfileModal';
 import { InvoiceModal, InvoiceOrder } from '@/components/InvoiceModal';
 import { LoginModal } from '@/components/LoginModal';
+import { GoogleMapPickerModal } from '@/components/GoogleMapPickerModal';
 import { getLiveDetailedLocation } from '@/lib/geolocation';
 import { sendOrderToWhatsApp } from '@/lib/whatsapp';
 import { DEFAULT_SALADS, DEFAULT_SALAD_ADDONS, getSaladByIdOrSlug, Salad, SaladAddOn, SaladPortion, getSaladPortions, getSaladIngredients, getSaladDressing, getSaladCrunch, slugify } from '@/lib/salads';
@@ -43,7 +44,10 @@ import {
   Check,
   Utensils,
   Phone,
-  Globe
+  Globe,
+  Navigation,
+  Edit3,
+  ExternalLink
 } from 'lucide-react';
 
 interface CartItem {
@@ -84,6 +88,17 @@ export default function SaladDetailPage() {
   const [selectedAddOns, setSelectedAddOns] = useState<Array<{ name: string; price: number }>>([]);
   const [isAddedAnimation, setIsAddedAnimation] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [removedItems, setRemovedItems] = useState<string[]>([]);
+
+  useEffect(() => {
+    setRemovedItems([]);
+  }, [salad?.id, salad?._id, salad?.name]);
+
+  const toggleRemoveItem = (item: string) => {
+    setRemovedItems((prev) =>
+      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
+    );
+  };
 
   // User Profile and Auth state
   const [customName, setCustomName] = useState<string | null>(null);
@@ -125,12 +140,24 @@ export default function SaladDetailPage() {
   const [latestPlacedOrder, setLatestPlacedOrder] = useState<InvoiceOrder | null>(null);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
 
-  // Delivery Address
+  // Delivery Address & Google Map State
   const [deliveryAddress, setDeliveryAddress] = useState('Katargam, Surat - 395004');
   const [isEditingAddressInCart, setIsEditingAddressInCart] = useState(false);
   const [cartAddressInput, setCartAddressInput] = useState('Katargam, Surat - 395004');
   const [isDetectingLocationInCart, setIsDetectingLocationInCart] = useState(false);
   const [deliveryNote, setDeliveryNote] = useState('');
+  const [addressMode, setAddressMode] = useState<'google_map' | 'manual'>('google_map');
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapsUrl, setMapsUrl] = useState<string>('');
+  const [flatNo, setFlatNo] = useState<string>('');
+  const [areaLocality, setAreaLocality] = useState<string>('');
+  const [landmark, setLandmark] = useState<string>('');
+  const [cityPincode, setCityPincode] = useState<string>('Surat - 395007');
+  const [deliverySlot, setDeliverySlot] = useState<'immediate' | 'lunch' | 'evening' | 'pickup'>('immediate');
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [locationSuccessMsg, setLocationSuccessMsg] = useState<string | null>(null);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState<boolean>(false);
 
   // Shop Timing & Notice Settings from Admin
   const [isOpen, setIsOpen] = useState<boolean>(true);
@@ -201,6 +228,12 @@ export default function SaladDetailPage() {
         setDeliveryAddress(savedAddress);
         setCartAddressInput(savedAddress);
       }
+      const savedFlat = localStorage.getItem('greesal_flat_no');
+      if (savedFlat) setFlatNo(savedFlat);
+      const savedArea = localStorage.getItem('greesal_area_locality');
+      if (savedArea) setAreaLocality(savedArea);
+      const savedLandmark = localStorage.getItem('greesal_landmark');
+      if (savedLandmark) setLandmark(savedLandmark);
 
       const savedFavs = JSON.parse(localStorage.getItem('greesal_favorites') || '[]');
       if (salad && savedFavs.includes(salad._id || salad.name)) {
@@ -251,8 +284,11 @@ export default function SaladDetailPage() {
     if (!salad) return;
     const portionKey = `${selectedPortion.grams}g`;
     const addOnKey = selectedAddOns.map(a => a.name).sort().join('|');
-    const itemId = `${salad._id || salad.name}_${portionKey}${addOnKey ? `_${addOnKey}` : ''}`;
+    const removedKey = removedItems.sort().join('|');
+    const itemId = `${salad._id || salad.name}_${portionKey}${addOnKey ? `_${addOnKey}` : ''}${removedKey ? `_no_${removedKey}` : ''}`;
     const existing = cart.find((i) => i.id === itemId);
+
+    const nameSuffix = removedItems.length > 0 ? ` (Without: ${removedItems.join(', ')})` : '';
 
     let updatedCart: CartItem[];
     if (existing) {
@@ -264,7 +300,7 @@ export default function SaladDetailPage() {
         ...cart,
         {
           id: itemId,
-          name: `${salad.name} (${selectedPortion.grams}g)`,
+          name: `${salad.name} (${selectedPortion.grams}g)${nameSuffix}`,
           price: `₹${mainItemCalculatedPrice}`,
           image: salad.image,
           quantity: quantity,
@@ -310,76 +346,203 @@ export default function SaladDetailPage() {
   const userImage = session?.user?.image || null;
   const initialLetter = displayName.charAt(0).toUpperCase() || 'G';
 
-  const handleUseCurrentLocationInCart = async () => {
+  const handleGetCurrentLocation = async () => {
     setIsDetectingLocationInCart(true);
+    setValidationError(null);
     try {
-      const loc = await getLiveDetailedLocation();
-      setDeliveryAddress(loc.formattedAddress);
-      setCartAddressInput(loc.formattedAddress);
-      localStorage.setItem('greesal_user_address', loc.formattedAddress);
-      setIsEditingAddressInCart(false);
+      if (typeof window !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            setLocationCoords({ lat, lng });
+            const directMap = `https://maps.google.com/?q=${lat},${lng}`;
+            setMapsUrl(directMap);
+
+            try {
+              const res = await fetch(`/api/location/reverse-geocode?lat=${lat}&lng=${lng}`);
+              if (res.ok) {
+                const data = await res.json();
+                if (data.address) {
+                  setDeliveryAddress(data.address);
+                  setCartAddressInput(data.address);
+                  setLocationSuccessMsg(`📍 GPS Location Verified (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+                  localStorage.setItem('greesal_user_address', data.address);
+                  setIsDetectingLocationInCart(false);
+                  return;
+                }
+              }
+            } catch (e) {}
+
+            try {
+              const loc = await getLiveDetailedLocation();
+              if (loc.formattedAddress) {
+                setDeliveryAddress(loc.formattedAddress);
+                setCartAddressInput(loc.formattedAddress);
+                setLocationSuccessMsg(`📍 GPS Location Verified (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+                localStorage.setItem('greesal_user_address', loc.formattedAddress);
+                setIsDetectingLocationInCart(false);
+                return;
+              }
+            } catch (e) {}
+
+            const fallbackAddr = `GPS Pin (${lat.toFixed(4)}, ${lng.toFixed(4)}), Surat, Gujarat`;
+            setDeliveryAddress(fallbackAddr);
+            setCartAddressInput(fallbackAddr);
+            setLocationSuccessMsg(`📍 GPS Pinned (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+            setIsDetectingLocationInCart(false);
+          },
+          (err) => {
+            console.warn('Geolocation error:', err);
+            setIsDetectingLocationInCart(false);
+            setValidationError('⚠️ Location permission denied or unavailable. Please pick your location on Google Map or enter address manually.');
+          },
+          { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+        );
+      } else {
+        setIsDetectingLocationInCart(false);
+        setValidationError('⚠️ Geolocation not supported by your browser.');
+      }
     } catch (err: any) {
-      alert(err.message || 'Could not detect live location.');
-    } finally {
       setIsDetectingLocationInCart(false);
+      setValidationError(err.message || '⚠️ Could not detect live GPS.');
     }
+  };
+
+  const handleConfirmMapLocation = (locationData: { address: string; lat: number; lng: number; mapsUrl: string }) => {
+    setDeliveryAddress(locationData.address);
+    setCartAddressInput(locationData.address);
+    setLocationCoords({ lat: locationData.lat, lng: locationData.lng });
+    setMapsUrl(locationData.mapsUrl);
+    setLocationSuccessMsg(`📍 Location selected from Google Map`);
+    localStorage.setItem('greesal_user_address', locationData.address);
+    setIsMapPickerOpen(false);
+    if (validationError) setValidationError(null);
   };
 
   const executeOrder = async (userData?: { name: string; email: string; mobile: string }) => {
     if (cart.length === 0) return;
+    setValidationError(null);
 
-    const customerName = userData?.name || customName || session?.user?.name || 'Valued Salad Customer';
+    const trimmedName = (userData?.name || customName || session?.user?.name || '').trim();
+    const phoneRaw = (userData?.mobile || customMobile || '').replace(/\D/g, '');
+
+    if (!trimmedName) {
+      setValidationError('⚠️ Please enter your Full Name to place order.');
+      return;
+    }
+    if (!phoneRaw || phoneRaw.length < 10) {
+      setValidationError('⚠️ Please enter a valid 10-digit WhatsApp mobile number.');
+      return;
+    }
+
+    // Address verification
+    let finalDeliveryAddress = '';
+    if (addressMode === 'manual') {
+      if (!areaLocality.trim() && !deliveryAddress.trim()) {
+        setValidationError('⚠️ Please select or enter your Area / Locality in Surat.');
+        return;
+      }
+      const parts = [
+        flatNo.trim(),
+        areaLocality.trim() || deliveryAddress.trim(),
+        landmark.trim() ? `Landmark: ${landmark.trim()}` : '',
+        cityPincode.trim() || 'Surat'
+      ].filter(Boolean);
+      finalDeliveryAddress = parts.join(', ');
+    } else {
+      // google_map mode
+      if (!deliveryAddress.trim()) {
+        setValidationError('⚠️ Please click "Pick on Google Map" or "Use Live GPS" to set your delivery address.');
+        return;
+      }
+      finalDeliveryAddress = flatNo.trim() ? `${flatNo.trim()}, ${deliveryAddress.trim()}` : deliveryAddress.trim();
+    }
+
+    const mapsLink = mapsUrl || (locationCoords
+      ? `https://maps.google.com/?q=${locationCoords.lat},${locationCoords.lng}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(finalDeliveryAddress + ' Surat')}`);
+
+    const slotLabels: Record<string, string> = {
+      immediate: 'Immediate (30-45m)',
+      lunch: 'Lunch (11:00 AM - 02:00 PM)',
+      evening: 'Evening (04:00 PM - 07:00 PM)',
+      pickup: 'Store PickUp (Katargam)'
+    };
+
     const customerEmail = userData?.email || session?.user?.email || 'customer@greesal.in';
-    const customerMobile = userData?.mobile || customMobile || '9925836117';
-    const finalAddress = deliveryNote ? `${deliveryAddress} (Note: ${deliveryNote})` : deliveryAddress;
-
     const orderId = `GRS-${Math.floor(100000 + Math.random() * 900000)}`;
     const now = new Date();
     const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    const newOrder: InvoiceOrder = {
+    const orderPayload = {
       id: orderId,
       orderNumber: orderId,
-      customerName,
+      customerName: trimmedName,
       customerEmail,
-      customerMobile,
+      customerMobile: phoneRaw,
       date: `Today, ${timeString}`,
       timestamp: Date.now(),
-      status: 'Preparing',
+      status: 'Placed' as const,
       items: [...cart],
       subtotal: getSubtotal(),
       deliveryFee: 0,
       total: getSubtotal(),
-      deliveryAddress: finalAddress,
-      paymentMethod: 'Google Pay (UPI)'
+      deliveryAddress: finalDeliveryAddress,
+      deliverySlot: slotLabels[deliverySlot] || 'Immediate (30-45m)',
+      addressMode,
+      manualAddressDetails: {
+        flatNo: flatNo.trim(),
+        areaLocality: areaLocality.trim(),
+        landmark: landmark.trim(),
+        cityPincode: cityPincode.trim()
+      },
+      mapsUrl: mapsLink,
+      locationCoords,
+      notes: deliveryNote.trim(),
+      paymentMethod: 'Cash on Delivery / UPI on Delivery'
     };
 
+    setIsSubmittingOrder(true);
     try {
+      localStorage.setItem('greesal_custom_name', trimmedName);
+      localStorage.setItem('greesal_custom_mobile', phoneRaw);
+      localStorage.setItem('greesal_user_address', finalDeliveryAddress);
+      if (flatNo.trim()) localStorage.setItem('greesal_flat_no', flatNo.trim());
+      if (areaLocality.trim()) localStorage.setItem('greesal_area_locality', areaLocality.trim());
+      if (landmark.trim()) localStorage.setItem('greesal_landmark', landmark.trim());
+
       const existingOrders = JSON.parse(localStorage.getItem('greesal_orders_history') || '[]');
-      const updated = [newOrder, ...existingOrders];
+      const updated = [orderPayload, ...existingOrders];
       localStorage.setItem('greesal_orders_history', JSON.stringify(updated));
 
+      // Post to backend database
       await fetch('/api/admin/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newOrder)
+        body: JSON.stringify(orderPayload)
       });
-    } catch (e) { }
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload)
+      }).catch(() => {});
+    } catch (e) {
+      console.warn('Backend order save warning:', e);
+    } finally {
+      setIsSubmittingOrder(false);
+    }
 
-    setLatestPlacedOrder(newOrder);
+    setLatestPlacedOrder(orderPayload);
     saveCart([]);
     setIsCartOpen(false);
     setIsCheckoutSuccess(true);
-    sendOrderToWhatsApp(newOrder, '9925836117');
+    sendOrderToWhatsApp(orderPayload, '9925836117');
   };
 
   const handleProceedToCheckout = () => {
     if (cart.length === 0) return;
-    if (!isAuthenticated) {
-      setIsLoginModalOpen(true);
-    } else {
-      executeOrder();
-    }
+    executeOrder();
   };
 
   const handleLoginModalSuccess = (userData: { name: string; email: string; mobile: string }) => {
@@ -603,11 +766,24 @@ export default function SaladDetailPage() {
                     <span className="w-2 h-2 rounded-full bg-[#C89D4B]" />
                     <span>Crafted in 3 Fresh Parts</span>
                   </h3>
-                  <p className="text-xs text-gray-500">Every bowl is handcrafted with separate, harmonious culinary layers.</p>
+                  <p className="text-xs text-gray-500">
+                    Handcrafted layers. Tap <strong className="text-red-700 bg-red-50 px-1 py-0.2 rounded border border-red-200">−</strong> on any item to remove it.
+                  </p>
                 </div>
-                <span className="text-xs font-black text-[#237357] bg-[#E8F3EE] px-3 py-1 rounded-full border border-[#237357]/20 self-start sm:self-auto">
-                  100% Satvik Goodness
-                </span>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  {removedItems.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setRemovedItems([])}
+                      className="text-xs font-bold text-red-700 hover:text-red-900 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-full transition-colors cursor-pointer"
+                    >
+                      Reset ({removedItems.length} removed)
+                    </button>
+                  )}
+                  <span className="text-xs font-black text-[#237357] bg-[#E8F3EE] px-3 py-1 rounded-full border border-[#237357]/20">
+                    100% Satvik Goodness
+                  </span>
+                </div>
               </div>
 
               {/* Part 1: Farm-Fresh Ingredients */}
@@ -629,15 +805,38 @@ export default function SaladDetailPage() {
                     Hydroponic crisp greens, sprouted organic legumes, crunchy garden veggies, and protein cubes.
                   </p>
                   <div className="flex flex-wrap gap-2 pt-1">
-                    {getSaladIngredients(salad).map((ing, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FAF6F0] border border-[#EBE2D3] text-xs font-bold text-[#123B2B] hover:border-[#123B2B]/40 transition-colors"
-                      >
-                        <Leaf className="w-3 h-3 text-[#237357]" />
-                        <span>{ing}</span>
-                      </span>
-                    ))}
+                    {getSaladIngredients(salad).map((ing, idx) => {
+                      const isRemoved = removedItems.includes(ing);
+                      return (
+                        <span
+                          key={idx}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                            isRemoved
+                              ? 'bg-red-50/80 border border-red-200 text-red-600 line-through opacity-70'
+                              : 'bg-[#FAF6F0] border border-[#EBE2D3] text-[#123B2B] hover:border-[#123B2B]/40'
+                          }`}
+                        >
+                          <Leaf className={`w-3 h-3 ${isRemoved ? 'text-red-400' : 'text-[#237357]'}`} />
+                          <span>{ing}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              toggleRemoveItem(ing);
+                            }}
+                            className={`ml-1 w-4 h-4 rounded-full flex items-center justify-center text-xs font-black transition-all hover:scale-110 cursor-pointer ${
+                              isRemoved
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700 no-underline'
+                                : 'bg-red-100 text-red-700 hover:bg-red-200'
+                            }`}
+                            title={isRemoved ? `Re-add ${ing}` : `Remove ${ing} using -`}
+                            aria-label={isRemoved ? `Re-add ${ing}` : `Remove ${ing}`}
+                          >
+                            {isRemoved ? '+' : '−'}
+                          </button>
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -661,15 +860,38 @@ export default function SaladDetailPage() {
                     Crafted daily in small batches with cold-pressed olive oil, herbs, lemon zing, and zero preservatives.
                   </p>
                   <div className="flex flex-wrap gap-2 pt-1">
-                    {getSaladDressing(salad).map((item, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50/60 border border-amber-200/70 text-xs font-bold text-amber-950"
-                      >
-                        <Sparkles className="w-3 h-3 text-amber-600" />
-                        <span>{item}</span>
-                      </span>
-                    ))}
+                    {getSaladDressing(salad).map((item, idx) => {
+                      const isRemoved = removedItems.includes(item);
+                      return (
+                        <span
+                          key={idx}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                            isRemoved
+                              ? 'bg-red-50/80 border border-red-200 text-red-600 line-through opacity-70'
+                              : 'bg-amber-50/60 border border-amber-200/70 text-amber-950 hover:border-amber-400'
+                          }`}
+                        >
+                          <Sparkles className={`w-3 h-3 ${isRemoved ? 'text-red-400' : 'text-amber-600'}`} />
+                          <span>{item}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              toggleRemoveItem(item);
+                            }}
+                            className={`ml-1 w-4 h-4 rounded-full flex items-center justify-center text-xs font-black transition-all hover:scale-110 cursor-pointer ${
+                              isRemoved
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700 no-underline'
+                                : 'bg-red-100 text-red-700 hover:bg-red-200'
+                            }`}
+                            title={isRemoved ? `Re-add ${item}` : `Remove ${item} using -`}
+                            aria-label={isRemoved ? `Re-add ${item}` : `Remove ${item}`}
+                          >
+                            {isRemoved ? '+' : '−'}
+                          </button>
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -693,15 +915,38 @@ export default function SaladDetailPage() {
                     Toasted seeds, crunchy nuts, and crisp croutons that deliver maximum taste & satisfying crunch.
                   </p>
                   <div className="flex flex-wrap gap-2 pt-1">
-                    {getSaladCrunch(salad).map((item, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FAF6F0] border border-[#EBE2D3] text-xs font-bold text-stone-900"
-                      >
-                        <span className="text-amber-600 text-xs font-black">✨</span>
-                        <span>{item}</span>
-                      </span>
-                    ))}
+                    {getSaladCrunch(salad).map((item, idx) => {
+                      const isRemoved = removedItems.includes(item);
+                      return (
+                        <span
+                          key={idx}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                            isRemoved
+                              ? 'bg-red-50/80 border border-red-200 text-red-600 line-through opacity-70'
+                              : 'bg-[#FAF6F0] border border-[#EBE2D3] text-stone-900 hover:border-stone-400'
+                          }`}
+                        >
+                          <span className="text-amber-600 text-xs font-black">✨</span>
+                          <span>{item}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              toggleRemoveItem(item);
+                            }}
+                            className={`ml-1 w-4 h-4 rounded-full flex items-center justify-center text-xs font-black transition-all hover:scale-110 cursor-pointer ${
+                              isRemoved
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700 no-underline'
+                                : 'bg-red-100 text-red-700 hover:bg-red-200'
+                            }`}
+                            title={isRemoved ? `Re-add ${item}` : `Remove ${item} using -`}
+                            aria-label={isRemoved ? `Re-add ${item}` : `Remove ${item}`}
+                          >
+                            {isRemoved ? '+' : '−'}
+                          </button>
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1397,6 +1642,328 @@ export default function SaladDetailPage() {
                   </div>
                 ))
               )}
+
+              {cart.length > 0 && (
+                <div className="space-y-4 pt-3 border-t border-[#E8E1D5]">
+                  {/* 1. Delivery Slot Selection */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider text-[#123B2B]">
+                      ⏰ Delivery Slot in Surat
+                    </label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[
+                        { id: 'immediate', label: 'Express', time: '30-45 min' },
+                        { id: 'lunch', label: 'Lunch', time: '11am-2pm' },
+                        { id: 'evening', label: 'Dinner', time: '4pm-7pm' },
+                        { id: 'pickup', label: 'PickUp', time: 'Katargam' },
+                      ].map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => setDeliverySlot(s.id as any)}
+                          className={`py-2 px-1 rounded-xl border text-center transition-all cursor-pointer ${
+                            deliverySlot === s.id
+                              ? 'border-[#123B2B] bg-[#123B2B] text-white shadow-2xs font-bold'
+                              : 'border-gray-200 bg-[#FAF6F0] text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          <div className="text-[11px] font-bold leading-tight">{s.label}</div>
+                          <div className="text-[9px] opacity-75 mt-0.5 leading-tight">{s.time}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 2. Customer Fast Checkout Card */}
+                  <div className="p-3.5 rounded-2xl bg-[#FAF6F0] border border-[#E8E1D5] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase text-[#123B2B] tracking-wide flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-[#C89D4B]" />
+                        <span>Customer Information</span>
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                        Instant Order
+                      </span>
+                    </div>
+
+                    {validationError && (
+                      <div className="p-2.5 rounded-xl bg-red-50 border border-red-300 text-red-700 text-xs font-bold animate-pulse">
+                        {validationError}
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-600 mb-1">
+                          Full Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Sanket Patel"
+                          value={customName || ''}
+                          onChange={(e) => {
+                            setCustomName(e.target.value);
+                            if (validationError) setValidationError(null);
+                          }}
+                          className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-greesal-dark focus:outline-none focus:border-[#123B2B]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-600 mb-1">
+                          WhatsApp Mobile <span className="text-red-500">* (10 digits)</span>
+                        </label>
+                        <input
+                          type="tel"
+                          maxLength={10}
+                          placeholder="e.g. 9825112345"
+                          value={customMobile || ''}
+                          onChange={(e) => {
+                            setCustomMobile(e.target.value);
+                            if (validationError) setValidationError(null);
+                          }}
+                          className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-greesal-dark focus:outline-none focus:border-[#123B2B]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. Delivery Address Section with Google Map & Manual Tabs */}
+                  <div className="p-3.5 rounded-2xl bg-[#FAF6F0] border border-[#E8E1D5] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[11px] font-black uppercase text-[#123B2B] tracking-wide flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>Delivery Address in Surat <span className="text-red-500">*</span></span>
+                      </label>
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                        Doorstep Delivery
+                      </span>
+                    </div>
+
+                    {/* Mode Switcher Tabs */}
+                    <div className="grid grid-cols-2 p-1 rounded-xl bg-gray-200/70 border border-gray-300">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddressMode('google_map');
+                          if (validationError) setValidationError(null);
+                        }}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          addressMode === 'google_map'
+                            ? 'bg-[#123B2B] text-white shadow-xs'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>📍 Google Map / GPS</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddressMode('manual');
+                          if (validationError) setValidationError(null);
+                        }}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          addressMode === 'manual'
+                            ? 'bg-[#123B2B] text-white shadow-xs'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>✍️ Manual Address</span>
+                      </button>
+                    </div>
+
+                    {/* Tab 1: Google Map / GPS Mode */}
+                    {addressMode === 'google_map' ? (
+                      <div className="space-y-2.5">
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setIsMapPickerOpen(true)}
+                            className="py-2.5 px-3 rounded-xl bg-amber-100/70 hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 cursor-pointer"
+                          >
+                            <MapPin className="w-4 h-4 text-amber-800" />
+                            <span>Pick on Google Map</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleGetCurrentLocation}
+                            disabled={isDetectingLocationInCart}
+                            className="py-2.5 px-3 rounded-xl bg-emerald-100/70 hover:bg-emerald-100 text-emerald-950 border border-emerald-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 cursor-pointer disabled:opacity-60"
+                          >
+                            {isDetectingLocationInCart ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
+                                <span>Detecting GPS...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Navigation className="w-4 h-4 text-emerald-700" />
+                                <span>Use Live GPS</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {locationSuccessMsg && (
+                          <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-800 flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                              <span className="truncate">{locationSuccessMsg}</span>
+                            </div>
+                            {mapsUrl && (
+                              <a
+                                href={mapsUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[10px] text-emerald-900 underline flex items-center gap-0.5 ml-1 flex-shrink-0"
+                              >
+                                <span>View</span>
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Current Detected Address Textarea */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 mb-1">
+                            Pinned Delivery Address
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={deliveryAddress}
+                            onChange={(e) => {
+                              setDeliveryAddress(e.target.value);
+                              if (validationError) setValidationError(null);
+                            }}
+                            placeholder="Address will be auto-filled by Google Map or GPS..."
+                            className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-greesal-dark focus:outline-none focus:border-[#123B2B] resize-none"
+                          />
+                        </div>
+
+                        {/* Flat / House No / Floor */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-600 mb-1">
+                            Flat / House No. / Building Floor <span className="text-gray-400 font-normal">(Optional)</span>
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Flat 402, Block B, Someshwara Enclave"
+                            value={flatNo}
+                            onChange={(e) => setFlatNo(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-greesal-dark focus:outline-none focus:border-[#123B2B]"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      /* Tab 2: Manual Structured Address Mode */
+                      <div className="space-y-2.5">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-600 mb-1">
+                            Flat / House No. / Building <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Flat 301, Silver Leaf Apartments"
+                            value={flatNo}
+                            onChange={(e) => {
+                              setFlatNo(e.target.value);
+                              if (validationError) setValidationError(null);
+                            }}
+                            className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-greesal-dark focus:outline-none focus:border-[#123B2B]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-600 mb-1">
+                            Street / Area / Locality <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. VIP Road, Vesu"
+                            value={areaLocality}
+                            onChange={(e) => {
+                              setAreaLocality(e.target.value);
+                              if (validationError) setValidationError(null);
+                            }}
+                            className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-greesal-dark focus:outline-none focus:border-[#123B2B]"
+                          />
+                        </div>
+
+                        {/* Quick Surat Locality Selector Pills */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 mb-1.5">
+                            Quick Select Surat Area:
+                          </label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {['Vesu', 'Adajan', 'Pal', 'Piplod', 'City Light', 'Althan', 'Varachha', 'Katargam'].map((loc) => (
+                              <button
+                                key={loc}
+                                type="button"
+                                onClick={() => {
+                                  setAreaLocality(loc + ', Surat');
+                                  if (validationError) setValidationError(null);
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                                  areaLocality.includes(loc)
+                                    ? 'bg-[#123B2B] text-white shadow-2xs'
+                                    : 'bg-white text-gray-700 border border-gray-300 hover:border-[#123B2B]'
+                                }`}
+                              >
+                                + {loc}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-bold text-gray-600 mb-1">
+                              Landmark
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Opp. Star Bazaar"
+                              value={landmark}
+                              onChange={(e) => setLandmark(e.target.value)}
+                              className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-greesal-dark focus:outline-none focus:border-[#123B2B]"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-gray-600 mb-1">
+                              City &amp; Pincode
+                            </label>
+                            <input
+                              type="text"
+                              value={cityPincode}
+                              onChange={(e) => setCityPincode(e.target.value)}
+                              className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-greesal-dark focus:outline-none focus:border-[#123B2B]"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Special Kitchen Notes */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-600 mb-1">
+                        Delivery / Kitchen Instructions <span className="text-gray-400 font-normal">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Please ring the doorbell twice, less dressing..."
+                        value={deliveryNote}
+                        onChange={(e) => setDeliveryNote(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-greesal-dark focus:outline-none focus:border-[#123B2B]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {cart.length > 0 && (
@@ -1419,10 +1986,20 @@ export default function SaladDetailPage() {
                 <button
                   type="button"
                   onClick={handleProceedToCheckout}
-                  className="w-full py-3.5 rounded-2xl bg-[#123B2B] hover:bg-[#1C4D3A] text-white font-extrabold text-sm shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                  disabled={isSubmittingOrder}
+                  className="w-full py-3.5 rounded-2xl bg-[#123B2B] hover:bg-[#1C4D3A] text-white font-extrabold text-sm shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
                 >
-                  <ShoppingBag className="w-4 h-4 text-[#C89D4B]" />
-                  <span>Place Order (₹{getSubtotal()})</span>
+                  {isSubmittingOrder ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-[#C89D4B]" />
+                      <span>Placing Your Order...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBag className="w-4 h-4 text-[#C89D4B]" />
+                      <span>Place Order (₹{getSubtotal()})</span>
+                    </>
+                  )}
                 </button>
               </div>
             )}
@@ -1515,6 +2092,16 @@ export default function SaladDetailPage() {
         isOpen={isInvoiceOpen}
         onClose={() => setIsInvoiceOpen(false)}
         order={latestPlacedOrder}
+      />
+
+      {/* Google Map Picker Modal */}
+      <GoogleMapPickerModal
+        isOpen={isMapPickerOpen}
+        onClose={() => setIsMapPickerOpen(false)}
+        onConfirmLocation={handleConfirmMapLocation}
+        initialAddress={deliveryAddress}
+        initialLat={locationCoords?.lat}
+        initialLng={locationCoords?.lng}
       />
 
       {/* Login Modal */}

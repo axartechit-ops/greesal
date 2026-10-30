@@ -15,7 +15,11 @@ import {
   Navigation,
   Loader2,
   CheckCircle2,
-  Map
+  Map,
+  Edit3,
+  Building,
+  Compass,
+  ExternalLink
 } from 'lucide-react';
 import { GoogleMapPickerModal } from '@/components/GoogleMapPickerModal';
 import { OrderConfirmationModal, ConfirmedOrderData } from '@/components/OrderConfirmationModal';
@@ -61,6 +65,13 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
   const [notes, setNotes] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
+  // Address Input Mode: 'google_map' or 'manual'
+  const [addressMode, setAddressMode] = useState<'google_map' | 'manual'>('google_map');
+  const [flatNo, setFlatNo] = useState('');
+  const [areaLocality, setAreaLocality] = useState('');
+  const [landmark, setLandmark] = useState('');
+  const [cityPincode, setCityPincode] = useState('Surat - 395007');
+
   // GPS & Google Map Location States
   const [isLocating, setIsLocating] = useState(false);
   const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -87,10 +98,16 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
       const savedAddress = localStorage.getItem('greesal_user_address') || '';
       const savedLat = localStorage.getItem('greesal_user_lat');
       const savedLng = localStorage.getItem('greesal_user_lng');
+      const savedFlat = localStorage.getItem('greesal_user_flat') || '';
+      const savedArea = localStorage.getItem('greesal_user_area') || '';
+      const savedLandmark = localStorage.getItem('greesal_user_landmark') || '';
 
       if (savedName && !customerName) setCustomerName(savedName);
       if (savedPhone && !customerPhone) setCustomerPhone(savedPhone);
       if (savedAddress && !address) setAddress(savedAddress);
+      if (savedFlat && !flatNo) setFlatNo(savedFlat);
+      if (savedArea && !areaLocality) setAreaLocality(savedArea);
+      if (savedLandmark && !landmark) setLandmark(savedLandmark);
       if (savedLat && savedLng && !locationCoords) {
         setLocationCoords({ lat: parseFloat(savedLat), lng: parseFloat(savedLng) });
       }
@@ -172,13 +189,18 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
   // Quick Area Select Handler
   const handleSelectSuratArea = (area: string) => {
     setValidationError(null);
-    if (!address.includes(area)) {
-      setAddress((prev) => {
-        const cleanPrev = prev.replace(/^Near\s+/i, '').trim();
-        return cleanPrev ? `${cleanPrev}, ${area}, Surat` : `${area}, Surat`;
-      });
+    if (addressMode === 'manual') {
+      setAreaLocality(area);
+      setLocationSuccessMsg(`📍 Selected Surat Area: ${area}`);
+    } else {
+      if (!address.includes(area)) {
+        setAddress((prev) => {
+          const cleanPrev = prev.replace(/^Near\s+/i, '').trim();
+          return cleanPrev ? `${cleanPrev}, ${area}, Surat` : `${area}, Surat`;
+        });
+      }
+      setLocationSuccessMsg(`📍 Area Set to ${area}, Surat`);
     }
-    setLocationSuccessMsg(`📍 Area Set to ${area}, Surat`);
   };
 
   const totalAmount = cartItems.reduce((sum, item) => {
@@ -217,12 +239,43 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
       return;
     }
 
-    // 2. Persist verified Fast Checkout details
-    localStorage.setItem('greesal_custom_name', trimmedName);
-    localStorage.setItem('greesal_custom_mobile', customerPhone.trim());
-    if (address.trim()) {
-      localStorage.setItem('greesal_user_address', address.trim());
+    // 2. Validate and build Delivery Address
+    let finalDeliveryAddress = '';
+    if (addressMode === 'manual') {
+      const parts = [
+        flatNo.trim(),
+        areaLocality.trim(),
+        landmark.trim() ? `Near ${landmark.trim()}` : '',
+        cityPincode.trim() || 'Surat'
+      ].filter(Boolean);
+      finalDeliveryAddress = parts.join(', ');
+    } else {
+      // Google Map mode
+      const parts = [
+        flatNo.trim(),
+        address.trim() || 'Surat'
+      ].filter(Boolean);
+      finalDeliveryAddress = parts.join(', ');
     }
+
+    if (!finalDeliveryAddress || finalDeliveryAddress === 'Surat') {
+      setValidationError('⚠️ Delivery Address Required: Please select your Google Map location or enter address manually below.');
+      return;
+    }
+
+    // 3. Persist verified Fast Checkout details
+    try {
+      localStorage.setItem('greesal_custom_name', trimmedName);
+      localStorage.setItem('greesal_custom_mobile', customerPhone.trim());
+      localStorage.setItem('greesal_user_address', finalDeliveryAddress);
+      if (flatNo.trim()) localStorage.setItem('greesal_user_flat', flatNo.trim());
+      if (areaLocality.trim()) localStorage.setItem('greesal_user_area', areaLocality.trim());
+      if (landmark.trim()) localStorage.setItem('greesal_user_landmark', landmark.trim());
+      if (locationCoords) {
+        localStorage.setItem('greesal_user_lat', locationCoords.lat.toString());
+        localStorage.setItem('greesal_user_lng', locationCoords.lng.toString());
+      }
+    } catch (e) {}
 
     const slotNames = {
       immediate: 'Immediate Delivery (30-45 Mins)',
@@ -235,15 +288,23 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
 
     const mapsLink = locationCoords
       ? `https://maps.google.com/?q=${locationCoords.lat},${locationCoords.lng}`
-      : '';
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(finalDeliveryAddress)}`;
 
     const orderPayload: ConfirmedOrderData = {
       orderNumber,
       customerName: trimmedName,
       customerMobile: customerPhone.trim(),
-      deliveryAddress: address.trim() || 'Surat Doorstep',
+      deliveryAddress: finalDeliveryAddress,
       deliverySlot: slotNames[slot],
       mapsUrl: mapsLink,
+      locationCoords,
+      addressMode,
+      manualAddressDetails: {
+        flatNo: flatNo.trim(),
+        areaLocality: areaLocality.trim(),
+        landmark: landmark.trim(),
+        cityPincode: cityPincode.trim(),
+      },
       notes: notes.trim(),
       items: cartItems.map((it) => {
         const portionText = it.salad.selectedPortion ? ` (${it.salad.selectedPortion.grams}g)` : '';
@@ -260,7 +321,7 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
       paymentMethod: 'Cash on Delivery / UPI',
     };
 
-    // 3. Save Order into MongoDB Database via /api/orders
+    // 4. Save Order into MongoDB Database via /api/orders
     setIsSubmitting(true);
     try {
       await fetch('/api/orders', {
@@ -270,8 +331,15 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
           orderNumber,
           customerName: trimmedName,
           customerMobile: customerPhone.trim(),
-          deliveryAddress: address.trim() || 'Surat Doorstep',
+          deliveryAddress: finalDeliveryAddress,
           deliverySlot: slotNames[slot],
+          addressMode,
+          manualAddressDetails: {
+            flatNo: flatNo.trim(),
+            areaLocality: areaLocality.trim(),
+            landmark: landmark.trim(),
+            cityPincode: cityPincode.trim(),
+          },
           mapsUrl: mapsLink,
           locationCoords,
           notes: notes.trim(),
@@ -487,7 +555,7 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
                   </label>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { id: 'immediate', label: 'Immediate', time: '30-45 min' },
+                      { id: 'immediate', label: 'Express', time: '30-45 min' },
                       { id: 'lunch', label: 'Lunch', time: '11am-2pm' },
                       { id: 'evening', label: 'Evening', time: '4pm-7pm' },
                       { id: 'pickup', label: 'PickUp', time: '10am-6:30pm' },
@@ -573,91 +641,227 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
                       />
                     </div>
 
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                    {/* Delivery Address Section with Google Map & Manual Tabs */}
+                    <div className="pt-1 space-y-2">
+                      <div className="flex items-center justify-between">
                         <label className="block text-[11px] font-bold text-[#123B2B]">
-                          Delivery Address in Surat
+                          Delivery Address in Surat <span className="text-red-500">*</span>
                         </label>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setIsMapPickerOpen(true)}
-                            className="inline-flex items-center gap-1 text-[10px] font-bold text-[#20493c] hover:text-[#123B2B] bg-[#fbce45]/30 hover:bg-[#fbce45]/50 px-2.5 py-1 rounded-full border border-[#fbce45] transition-all cursor-pointer shadow-2xs active:scale-95"
-                          >
-                            <MapPin className="w-3 h-3 text-[#20493c]" />
-                            <span>📍 Google Map Pin</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={handleGetCurrentLocation}
-                            disabled={isLocating}
-                            className="inline-flex items-center gap-1 text-[10px] font-bold text-[#20493c] hover:text-[#123B2B] bg-[#e8f7f2] hover:bg-[#d5f0e6] px-2.5 py-1 rounded-full border border-[#6ac6ac]/40 transition-all cursor-pointer shadow-2xs active:scale-95"
-                          >
-                            {isLocating ? (
-                              <>
-                                <Loader2 className="w-3 h-3 animate-spin text-[#20493c]" />
-                                <span>GPS...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Navigation className="w-3 h-3 text-[#20493c]" />
-                                <span>🎯 Live GPS</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                          Doorstep Delivery
+                        </span>
                       </div>
 
-                      {locationSuccessMsg && (
-                        <div className="mb-1.5 flex items-center justify-between gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 animate-fadeIn">
-                          <div className="flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600 flex-shrink-0" />
-                            <span>{locationSuccessMsg}</span>
-                          </div>
-                          {locationCoords && (
-                            <a
-                              href={`https://maps.google.com/?q=${locationCoords.lat},${locationCoords.lng}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[10px] underline text-emerald-800 font-bold hover:text-emerald-950"
+                      {/* Mode Switcher Tabs */}
+                      <div className="grid grid-cols-2 p-1 rounded-xl bg-gray-100 border border-gray-200">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddressMode('google_map');
+                            if (validationError) setValidationError(null);
+                          }}
+                          className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                            addressMode === 'google_map'
+                              ? 'bg-[#123B2B] text-white shadow-xs'
+                              : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                        >
+                          <MapPin className="w-3.5 h-3.5" />
+                          <span>Google Map / GPS</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddressMode('manual');
+                            if (validationError) setValidationError(null);
+                          }}
+                          className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                            addressMode === 'manual'
+                              ? 'bg-[#123B2B] text-white shadow-xs'
+                              : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Manual Address</span>
+                        </button>
+                      </div>
+
+                      {/* Tab 1: Google Map / GPS Mode */}
+                      {addressMode === 'google_map' ? (
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setIsMapPickerOpen(true)}
+                              className="py-2 px-3 rounded-xl bg-[#fbce45]/20 hover:bg-[#fbce45]/35 text-[#20493c] border border-[#fbce45] text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 cursor-pointer"
                             >
-                              View Pin &rarr;
-                            </a>
+                              <MapPin className="w-4 h-4 text-[#20493c]" />
+                              <span>Pick on Google Map</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={handleGetCurrentLocation}
+                              disabled={isLocating}
+                              className="py-2 px-3 rounded-xl bg-[#e8f7f2] hover:bg-[#d5f0e6] text-[#123B2B] border border-[#6ac6ac]/50 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 cursor-pointer disabled:opacity-60"
+                            >
+                              {isLocating ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin text-[#20493c]" />
+                                  <span>Locating...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Navigation className="w-4 h-4 text-[#20493c]" />
+                                  <span>Use Live GPS</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {locationSuccessMsg && (
+                            <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-800 flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                                <span className="truncate">{locationSuccessMsg}</span>
+                              </div>
+                              {locationCoords && (
+                                <a
+                                  href={`https://maps.google.com/?q=${locationCoords.lat},${locationCoords.lng}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] underline text-emerald-900 font-bold hover:text-black flex items-center gap-0.5 flex-shrink-0"
+                                >
+                                  <span>Map</span>
+                                  <ExternalLink className="w-2.5 h-2.5" />
+                                </a>
+                              )}
+                            </div>
                           )}
+
+                          {/* Flat / House No field for Google Map mode */}
+                          <div>
+                            <input
+                              type="text"
+                              placeholder="Flat / Floor / House No. & Building Name"
+                              value={flatNo}
+                              onChange={(e) => setFlatNo(e.target.value)}
+                              className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#20493c]/40 font-medium"
+                            />
+                          </div>
+
+                          {/* Selected Location / Area text */}
+                          <div>
+                            <input
+                              type="text"
+                              placeholder="Street / Area in Surat (or pick on map above)"
+                              value={address}
+                              onChange={(e) => setAddress(e.target.value)}
+                              className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#20493c]/40 font-medium"
+                            />
+                          </div>
+
+                          {/* Surat Quick Area Selector Chips */}
+                          <div>
+                            <span className="text-[10px] font-bold text-gray-500 block mb-1">
+                              📍 Or quick select your Surat area:
+                            </span>
+                            <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto pr-1">
+                              {SURAT_POPULAR_AREAS.map((area) => (
+                                <button
+                                  key={area}
+                                  type="button"
+                                  onClick={() => handleSelectSuratArea(area)}
+                                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                                    address.includes(area)
+                                      ? 'bg-[#20493c] text-white border-[#20493c]'
+                                      : 'bg-white text-gray-700 border-gray-200 hover:border-[#6ac6ac] hover:bg-[#eef8f3]'
+                                  }`}
+                                >
+                                  + {area}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Tab 2: Manual Address Entry Mode */
+                        <div className="space-y-2">
+                          <div>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Flat / House / Floor No. & Apartment / Building Name *"
+                              value={flatNo}
+                              onChange={(e) => {
+                                setFlatNo(e.target.value);
+                                if (validationError) setValidationError(null);
+                              }}
+                              className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#20493c]/40 font-medium"
+                            />
+                          </div>
+
+                          <div>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Street / Road / Locality in Surat *"
+                              value={areaLocality}
+                              onChange={(e) => {
+                                setAreaLocality(e.target.value);
+                                if (validationError) setValidationError(null);
+                              }}
+                              className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#20493c]/40 font-medium"
+                            />
+                          </div>
+
+                          {/* Quick Surat Area Chips for quick filling */}
+                          <div>
+                            <span className="text-[10px] font-bold text-gray-500 block mb-1">
+                              📍 Tap to fill Surat Area:
+                            </span>
+                            <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto pr-1">
+                              {SURAT_POPULAR_AREAS.map((area) => (
+                                <button
+                                  key={area}
+                                  type="button"
+                                  onClick={() => handleSelectSuratArea(area)}
+                                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                                    areaLocality.includes(area)
+                                      ? 'bg-[#20493c] text-white border-[#20493c]'
+                                      : 'bg-white text-gray-700 border-gray-200 hover:border-[#6ac6ac] hover:bg-[#eef8f3]'
+                                  }`}
+                                >
+                                  + {area}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <input
+                                type="text"
+                                placeholder="Nearby Landmark (Optional)"
+                                value={landmark}
+                                onChange={(e) => setLandmark(e.target.value)}
+                                className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#20493c]/40 font-medium"
+                              />
+                            </div>
+
+                            <div>
+                              <input
+                                type="text"
+                                placeholder="City / Pincode"
+                                value={cityPincode}
+                                onChange={(e) => setCityPincode(e.target.value)}
+                                className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#20493c]/40 font-medium font-bold text-gray-700"
+                              />
+                            </div>
+                          </div>
                         </div>
                       )}
-
-                      <textarea
-                        rows={2}
-                        placeholder="Flat / Building Name, Street / Area in Surat (or tap Use Current Location / Quick Area below)"
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs text-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#20493c]/40 font-medium"
-                      />
-
-                      {/* Surat Quick Area Selector Chips */}
-                      <div className="mt-2">
-                        <span className="text-[10px] font-bold text-gray-500 block mb-1">
-                          📍 Quick Tap Surat Area / Locality:
-                        </span>
-                        <div className="flex flex-wrap gap-1.5 max-h-16 overflow-y-auto pr-1">
-                          {SURAT_POPULAR_AREAS.map((area) => (
-                            <button
-                              key={area}
-                              type="button"
-                              onClick={() => handleSelectSuratArea(area)}
-                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
-                                address.includes(area)
-                                  ? 'bg-[#20493c] text-white border-[#20493c]'
-                                  : 'bg-white text-gray-700 border-gray-200 hover:border-[#6ac6ac] hover:bg-[#eef8f3]'
-                              }`}
-                            >
-                              + {area}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -739,6 +943,7 @@ export const SaladCartDrawer: React.FC<SaladCartDrawerProps> = ({
         setAddress(loc.address);
         setLocationCoords({ lat: loc.lat, lng: loc.lng });
         setLocationSuccessMsg(`📍 Google Map Pin Attached (${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)})`);
+        setAddressMode('google_map');
       }}
     />
 

@@ -39,6 +39,14 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
 
   const saladId = salad.id || salad._id || salad.slug || salad.name;
   const portions = getSaladPortions(salad);
+  const [removedItems, setRemovedItems] = useState<string[]>([]);
+
+  const toggleRemoveItem = (item: string) => {
+    setRemovedItems((prev) =>
+      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
+    );
+  };
+
   const [selectedPortion, setSelectedPortion] = useState<SaladPortion>(() => {
     return portions.find((p) => p.isDefault) || portions[0];
   });
@@ -47,22 +55,26 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
     if (salad) {
       const pList = getSaladPortions(salad);
       setSelectedPortion(pList.find((p) => p.isDefault) || pList[0]);
+      setRemovedItems([]);
     }
   }, [salad]);
 
   const activePrice = selectedPortion ? `₹${selectedPortion.price}` : (salad.price.startsWith('₹') ? salad.price : `₹${salad.price}`);
   const preparedSalad: Salad = {
     ...salad,
+    name: removedItems.length > 0 ? `${salad.name} (Without: ${removedItems.join(', ')})` : salad.name,
     price: activePrice,
     selectedPortion,
   };
 
   const handleWhatsAppOrder = () => {
+    const withoutText = removedItems.length > 0 ? `\nWithout: *${removedItems.join(', ')}*` : '';
     const text = encodeURIComponent(
       `🥗 *ORDER FROM GREESAL WEBSITE* 🥗\n\n` +
       `Item: *${salad.name}*\n` +
-      `Portion Size: *${selectedPortion ? `${selectedPortion.grams}g (${selectedPortion.label || 'Standard'})` : 'Standard Bowl'}*\n` +
-      `Price: *${activePrice}*\n` +
+      `Portion Size: *${selectedPortion ? `${selectedPortion.grams}g (${selectedPortion.label || 'Standard'})` : 'Standard Bowl'}*` +
+      withoutText +
+      `\nPrice: *${activePrice}*\n` +
       `Calories: *${salad.calories || 'Balanced'}*\n` +
       `Protein: *${salad.protein || 'High Protein'}*\n` +
       `City: *Surat (Free Delivery)*\n\n` +
@@ -244,11 +256,22 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-wider text-[#20493c] flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#C89D4B]" />
-                  <span>Crafted in 3 Fresh Parts</span>
+                  <span>Crafted in 3 Parts (Tap − to remove)</span>
                 </span>
-                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                  100% Satvik Clean
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {removedItems.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setRemovedItems([])}
+                      className="text-[10px] font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
+                    >
+                      Reset ({removedItems.length})
+                    </button>
+                  )}
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    100% Satvik Clean
+                  </span>
+                </div>
               </div>
 
               {/* Part 1: Fresh Base Ingredients */}
@@ -259,14 +282,33 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
                     <span>Part 1: Fresh Ingredients ({getSaladIngredients(salad).length})</span>
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {getSaladIngredients(salad).map((ing, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2.5 py-1 rounded-lg bg-white border border-[#EBE2D3] text-gray-800 text-[11px] font-semibold shadow-2xs"
-                      >
-                        {ing}
-                      </span>
-                    ))}
+                    {getSaladIngredients(salad).map((ing, idx) => {
+                      const isRemoved = removedItems.includes(ing);
+                      return (
+                        <span
+                          key={idx}
+                          className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold shadow-2xs inline-flex items-center gap-1.5 transition-all ${
+                            isRemoved
+                              ? 'bg-red-50/80 border-red-200 text-red-600 line-through opacity-70'
+                              : 'bg-white border-[#EBE2D3] text-gray-800'
+                          }`}
+                        >
+                          <span>{ing}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleRemoveItem(ing)}
+                            className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[10px] font-black transition-all hover:scale-110 cursor-pointer ${
+                              isRemoved
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-red-100 text-red-700 hover:bg-red-200'
+                            }`}
+                            title={isRemoved ? `Re-add ${ing}` : `Remove ${ing} using -`}
+                          >
+                            {isRemoved ? '+' : '−'}
+                          </button>
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -279,15 +321,34 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
                     <span>Part 2: Handcrafted Dressing ({getSaladDressing(salad).length})</span>
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {getSaladDressing(salad).map((item, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2.5 py-1 rounded-lg bg-white border border-amber-200 text-amber-950 text-[11px] font-semibold shadow-2xs flex items-center gap-1"
-                      >
-                        <Sparkles className="w-2.5 h-2.5 text-amber-600" />
-                        <span>{item}</span>
-                      </span>
-                    ))}
+                    {getSaladDressing(salad).map((item, idx) => {
+                      const isRemoved = removedItems.includes(item);
+                      return (
+                        <span
+                          key={idx}
+                          className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold shadow-2xs inline-flex items-center gap-1 transition-all ${
+                            isRemoved
+                              ? 'bg-red-50/80 border-red-200 text-red-600 line-through opacity-70'
+                              : 'bg-white border-amber-200 text-amber-950'
+                          }`}
+                        >
+                          <Sparkles className={`w-2.5 h-2.5 ${isRemoved ? 'text-red-400' : 'text-amber-600'}`} />
+                          <span>{item}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleRemoveItem(item)}
+                            className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[10px] font-black transition-all hover:scale-110 cursor-pointer ${
+                              isRemoved
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-red-100 text-red-700 hover:bg-red-200'
+                            }`}
+                            title={isRemoved ? `Re-add ${item}` : `Remove ${item} using -`}
+                          >
+                            {isRemoved ? '+' : '−'}
+                          </button>
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -300,15 +361,34 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
                     <span>Part 3: Signature Crunch ({getSaladCrunch(salad).length})</span>
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {getSaladCrunch(salad).map((item, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2.5 py-1 rounded-lg bg-white border border-stone-200 text-stone-900 text-[11px] font-semibold shadow-2xs flex items-center gap-1"
-                      >
-                        <span className="text-[10px]">✨</span>
-                        <span>{item}</span>
-                      </span>
-                    ))}
+                    {getSaladCrunch(salad).map((item, idx) => {
+                      const isRemoved = removedItems.includes(item);
+                      return (
+                        <span
+                          key={idx}
+                          className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold shadow-2xs inline-flex items-center gap-1 transition-all ${
+                            isRemoved
+                              ? 'bg-red-50/80 border-red-200 text-red-600 line-through opacity-70'
+                              : 'bg-white border-stone-200 text-stone-900'
+                          }`}
+                        >
+                          <span className="text-[10px]">✨</span>
+                          <span>{item}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleRemoveItem(item)}
+                            className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[10px] font-black transition-all hover:scale-110 cursor-pointer ${
+                              isRemoved
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-red-100 text-red-700 hover:bg-red-200'
+                            }`}
+                            title={isRemoved ? `Re-add ${item}` : `Remove ${item} using -`}
+                          >
+                            {isRemoved ? '+' : '−'}
+                          </button>
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               )}

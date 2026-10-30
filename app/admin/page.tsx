@@ -11,7 +11,7 @@ import { AdminSiteTextsTab } from '@/components/admin/AdminSiteTextsTab';
 import { AdminReviewsTab } from '@/components/admin/AdminReviewsTab';
 import { AdminSliderTab } from '@/components/admin/AdminSliderTab';
 import { SiteCategory, SiteSettings, DEFAULT_CATEGORIES, DEFAULT_SITE_SETTINGS } from '@/lib/siteSettings';
-import { SaladPortion, getSaladPortions, getSaladPriceForPortion } from '@/lib/salads';
+import { SaladPortion, getSaladPortions, getSaladPriceForPortion, DEFAULT_SALADS } from '@/lib/salads';
 import { 
   Save, 
   Plus, 
@@ -58,7 +58,16 @@ import {
   FolderTree,
   Monitor,
   Smartphone,
-  Eye
+  Eye,
+  Copy,
+  CheckCircle2,
+  Calendar,
+  Flame,
+  ArrowUpDown,
+  SlidersHorizontal,
+  Receipt,
+  LayoutGrid,
+  Table
 } from 'lucide-react';
 
 interface Salad {
@@ -126,6 +135,14 @@ interface AdminOrder {
   deliveryAddress: string;
   deliverySlot?: string;
   mapsUrl?: string;
+  locationCoords?: { lat: number; lng: number } | null;
+  addressMode?: 'google_map' | 'manual';
+  manualAddressDetails?: {
+    flatNo?: string;
+    areaLocality?: string;
+    landmark?: string;
+    cityPincode?: string;
+  };
   notes?: string;
   orderType?: string;
   dietPreference?: string;
@@ -159,7 +176,13 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [orderFilter, setOrderFilter] = useState<string>('all');
   const [orderSearch, setOrderSearch] = useState<string>('');
+  const [orderSortBy, setOrderSortBy] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest');
+  const [orderViewLayout, setOrderViewLayout] = useState<'cards' | 'table'>('table');
+  const [orderAddressFilter, setOrderAddressFilter] = useState<'all' | 'google_map' | 'manual'>('all');
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [isOrdersLoading, setIsOrdersLoading] = useState<boolean>(false);
+  const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState<AdminOrder | null>(null);
 
   // Admin Invoice Modal State
   const [adminInvoiceOrder, setAdminInvoiceOrder] = useState<InvoiceOrder | null>(null);
@@ -449,13 +472,13 @@ export default function AdminPage() {
 
     // 3. Fetch Orders list
     try {
-      const ordersRes = await fetch('/api/admin/orders');
+      let ordersRes = await fetch('/api/admin/orders');
+      if (!ordersRes.ok) {
+        ordersRes = await fetch('/api/orders');
+      }
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json();
-        const cleaned = Array.isArray(ordersData)
-          ? ordersData.filter((o: any) => !['GRS-84920', 'GRS-79214', 'GRS-61803'].includes(o.orderNumber || o.id))
-          : [];
-        setOrders(cleaned);
+        setOrders(Array.isArray(ordersData) ? ordersData : []);
       }
     } catch (err: any) {
       console.warn('Failed to load orders:', err);
@@ -464,30 +487,46 @@ export default function AdminPage() {
     setIsLoading(false);
   };
 
-  const fetchOrdersOnly = async () => {
+  const fetchOrdersOnly = async (silent = false) => {
+    if (!silent) setIsOrdersLoading(true);
     try {
-      const ordersRes = await fetch('/api/admin/orders');
-      const ordersData = await ordersRes.json();
-      if (ordersRes.ok && Array.isArray(ordersData)) {
-        const cleaned = ordersData.filter(
-          (o: any) => !['GRS-84920', 'GRS-79214', 'GRS-61803'].includes(o.orderNumber || o.id)
-        );
-        setOrders(cleaned);
+      let ordersRes = await fetch('/api/admin/orders');
+      if (!ordersRes.ok) {
+        ordersRes = await fetch('/api/orders');
+      }
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
+        if (Array.isArray(ordersData)) {
+          setOrders(ordersData);
+        }
       }
     } catch (e) {
-      // ignore
+      console.warn('Failed to fetch orders:', e);
+    } finally {
+      if (!silent) setIsOrdersLoading(false);
     }
   };
 
-  // Poll orders every 12 seconds when on Orders tab
+  // Poll orders when on Orders tab & fetch immediately upon tab switch
   useEffect(() => {
     if (activeTab === 'orders') {
+      fetchOrdersOnly(false);
       const interval = setInterval(() => {
-        fetchOrdersOnly();
-      }, 12000);
+        fetchOrdersOnly(true);
+      }, 10000);
       return () => clearInterval(interval);
     }
   }, [activeTab]);
+
+  const handleCopyOrderId = (id: string) => {
+    try {
+      navigator.clipboard?.writeText(id);
+      setCopiedOrderId(id);
+      setTimeout(() => setCopiedOrderId(null), 2000);
+    } catch (e) {
+      // fallback
+    }
+  };
 
   // Update Order Status
   const handleUpdateOrderStatus = async (order: AdminOrder, newStatus: string) => {
@@ -1142,99 +1181,231 @@ export default function AdminPage() {
             <Loader2 className="w-8 h-8 text-[#123B2B] animate-spin" />
           </div>
         ) : activeTab === 'orders' ? (
-          /* TAB 1: CUSTOMER ORDERS MANAGEMENT */
+          /* TAB 1: CUSTOMER ORDERS MANAGEMENT - ENHANCED BATTER VIEW */
           <div className="space-y-6 text-left">
-            {/* KPI Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-5 rounded-2xl border border-greesal-beige shadow-2xs">
-                <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase tracking-wider">
-                  <span>Total Orders</span>
-                  <PackageCheck className="w-4 h-4 text-greesal-forest" />
+            {/* KPI Summary Dashboard Cards */}
+            {(() => {
+              const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+              const activeCount = orders.filter(o => ['Placed', 'Preparing', 'On the Way'].includes(o.status)).length;
+              const deliveredCount = orders.filter(o => o.status === 'Delivered').length;
+              const avgOrderValue = orders.length > 0 ? Math.round(totalRevenue / orders.length) : 0;
+
+              return (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  {/* Card 1: Total Orders */}
+                  <div className="bg-white p-5 rounded-2xl border border-greesal-beige/90 shadow-2xs relative overflow-hidden group hover:border-[#123B2B]/40 transition-all">
+                    <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase tracking-wider">
+                      <span>Total Orders</span>
+                      <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#123B2B] flex items-center justify-center">
+                        <PackageCheck className="w-4 h-4 text-emerald-700" />
+                      </div>
+                    </div>
+                    <p className="text-2xl sm:text-3xl font-black text-greesal-dark mt-2 tracking-tight">{orders.length}</p>
+                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-1 font-medium">
+                      <ShoppingBag className="w-3 h-3 text-emerald-600" />
+                      <span>Avg ₹{avgOrderValue} / bowl order</span>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Total Revenue */}
+                  <div className="bg-white p-5 rounded-2xl border border-greesal-beige/90 shadow-2xs relative overflow-hidden group hover:border-emerald-300 transition-all">
+                    <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase tracking-wider">
+                      <span>Total Revenue</span>
+                      <div className="w-8 h-8 rounded-xl bg-emerald-100/70 text-emerald-800 flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-emerald-700" />
+                      </div>
+                    </div>
+                    <p className="text-2xl sm:text-3xl font-black text-emerald-700 mt-2 tracking-tight">₹{totalRevenue.toLocaleString('en-IN')}</p>
+                    <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold mt-1">
+                      <Sparkles className="w-3 h-3 text-[#C89D4B]" />
+                      <span>Gross customer sales</span>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Active Kitchen Orders */}
+                  <div className="bg-white p-5 rounded-2xl border border-greesal-beige/90 shadow-2xs relative overflow-hidden group hover:border-amber-300 transition-all">
+                    <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase tracking-wider">
+                      <span>In Kitchen / Active</span>
+                      <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                        <Flame className="w-4 h-4 text-amber-600" />
+                      </div>
+                    </div>
+                    <div className="flex items-baseline gap-2 mt-2">
+                      <p className="text-2xl sm:text-3xl font-black text-amber-600 tracking-tight">{activeCount}</p>
+                      {activeCount > 0 && (
+                        <span className="flex items-center gap-1 text-[10px] font-black uppercase text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full animate-pulse">
+                          Live Queue
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-1 font-medium">Placed, preparing & on the way</p>
+                  </div>
+
+                  {/* Card 4: Delivered */}
+                  <div className="bg-white p-5 rounded-2xl border border-greesal-beige/90 shadow-2xs relative overflow-hidden group hover:border-emerald-400 transition-all">
+                    <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase tracking-wider">
+                      <span>Delivered Bowls</span>
+                      <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
+                        <Truck className="w-4 h-4 text-emerald-700" />
+                      </div>
+                    </div>
+                    <p className="text-2xl sm:text-3xl font-black text-emerald-800 mt-2 tracking-tight">{deliveredCount}</p>
+                    <p className="text-[11px] text-gray-400 mt-1 font-medium">
+                      {orders.length > 0 ? `${Math.round((deliveredCount / orders.length) * 100)}% completion rate` : 'Fully completed'}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-2xl sm:text-3xl font-black text-greesal-dark mt-2">{orders.length}</p>
-                <p className="text-[11px] text-gray-400 mt-1 font-medium">All recorded orders</p>
-              </div>
+              );
+            })()}
 
-              <div className="bg-white p-5 rounded-2xl border border-greesal-beige shadow-2xs">
-                <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase tracking-wider">
-                  <span>Total Revenue</span>
-                  <DollarSign className="w-4 h-4 text-emerald-600" />
+            {/* Smart Search, Sort, Filter & Refresh Bar */}
+            <div className="bg-white p-4 sm:p-5 rounded-3xl border border-greesal-beige/90 shadow-2xs space-y-3">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                {/* Search Box */}
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search by Order #, Customer Name, Mobile, Address or Salad..."
+                    value={orderSearch}
+                    onChange={(e) => setOrderSearch(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2.5 bg-[#FAF6F0] rounded-2xl border border-greesal-beige text-xs text-greesal-dark font-medium focus:outline-none focus:border-greesal-emerald transition-colors"
+                  />
+                  {orderSearch && (
+                    <button
+                      onClick={() => setOrderSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 text-xs"
+                      title="Clear Search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
-                <p className="text-2xl sm:text-3xl font-black text-emerald-700 mt-2">
-                  ₹{orders.reduce((sum, o) => sum + (o.total || 0), 0)}
-                </p>
-                <p className="text-[11px] text-gray-400 mt-1 font-medium">Gross salad sales</p>
-              </div>
 
-              <div className="bg-white p-5 rounded-2xl border border-greesal-beige shadow-2xs">
-                <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase tracking-wider">
-                  <span>In-Kitchen / Active</span>
-                  <Clock className="w-4 h-4 text-amber-600" />
-                </div>
-                <p className="text-2xl sm:text-3xl font-black text-amber-600 mt-2">
-                  {orders.filter(o => o.status === 'Placed' || o.status === 'Preparing' || o.status === 'On the Way').length}
-                </p>
-                <p className="text-[11px] text-gray-400 mt-1 font-medium">Requiring fulfillment</p>
-              </div>
+                {/* Right controls: View Toggle, Sort selector and Refresh button */}
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  {/* View Mode Toggle: Table vs Cards */}
+                  <div className="flex items-center bg-[#FAF6F0] p-1 rounded-2xl border border-greesal-beige">
+                    <button
+                      onClick={() => setOrderViewLayout('table')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        orderViewLayout === 'table'
+                          ? 'bg-[#123B2B] text-white shadow-2xs'
+                          : 'text-gray-600 hover:text-greesal-dark'
+                      }`}
+                      title="Compact Table View"
+                    >
+                      <Table className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Table</span>
+                    </button>
+                    <button
+                      onClick={() => setOrderViewLayout('cards')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        orderViewLayout === 'cards'
+                          ? 'bg-[#123B2B] text-white shadow-2xs'
+                          : 'text-gray-600 hover:text-greesal-dark'
+                      }`}
+                      title="Detailed Cards View"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Cards</span>
+                    </button>
+                  </div>
 
-              <div className="bg-white p-5 rounded-2xl border border-greesal-beige shadow-2xs">
-                <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase tracking-wider">
-                  <span>Delivered Meals</span>
-                  <Truck className="w-4 h-4 text-emerald-600" />
-                </div>
-                <p className="text-2xl sm:text-3xl font-black text-emerald-800 mt-2">
-                  {orders.filter(o => o.status === 'Delivered').length}
-                </p>
-                <p className="text-[11px] text-gray-400 mt-1 font-medium">Successfully completed</p>
-              </div>
-            </div>
+                  {/* Sort Selector */}
+                  <div className="flex items-center gap-1.5 px-3 py-2 bg-[#FAF6F0] rounded-2xl border border-greesal-beige text-xs text-greesal-dark font-medium">
+                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-500" />
+                    <span className="text-gray-400 text-[11px]">Sort:</span>
+                    <select
+                      value={orderSortBy}
+                      onChange={(e) => setOrderSortBy(e.target.value as any)}
+                      className="bg-transparent font-bold text-xs text-greesal-dark focus:outline-none cursor-pointer"
+                    >
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="highest">Highest Amount</option>
+                      <option value="lowest">Lowest Amount</option>
+                    </select>
+                  </div>
 
-            {/* Filter & Search Bar */}
-            <div className="bg-white p-4 rounded-2xl border border-greesal-beige shadow-2xs flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="relative w-full md:w-96">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search customer, phone, order ID, or salad..."
-                  value={orderSearch}
-                  onChange={(e) => setOrderSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 bg-[#FAF6F0] rounded-xl border border-greesal-beige text-xs text-greesal-dark font-medium focus:outline-none focus:border-greesal-emerald"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto">
-                <button
-                  onClick={fetchOrdersOnly}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-                  title="Reload Latest Orders from Database"
-                >
-                  <RotateCcw className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Refresh Orders</span>
-                </button>
-
-                <div className="h-5 w-px bg-gray-200 hidden sm:block" />
-
-                {['all', 'Placed', 'Preparing', 'On the Way', 'Delivered'].map((st) => (
+                  {/* Refresh Button */}
                   <button
-                    key={st}
-                    onClick={() => setOrderFilter(st)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                      orderFilter === st
-                        ? 'bg-[#123B2B] text-white shadow-sm'
-                        : 'bg-[#FAF6F0] text-gray-600 border border-greesal-beige/80 hover:bg-gray-100'
-                    }`}
+                    onClick={() => fetchOrdersOnly(false)}
+                    disabled={isOrdersLoading}
+                    className="px-3.5 py-2 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50"
+                    title="Reload Orders from Database"
                   >
-                    {st === 'all' ? 'All Orders' : st}
+                    <RotateCcw className={`w-3.5 h-3.5 text-emerald-700 ${isOrdersLoading ? 'animate-spin' : ''}`} />
+                    <span>{isOrdersLoading ? 'Updating...' : 'Refresh'}</span>
                   </button>
-                ))}
+                </div>
+              </div>
+
+              {/* Status & Address Mode Filter Tabs */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-gray-100">
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                  {(() => {
+                    const tabs = [
+                      { key: 'all', label: 'All Orders', count: orders.length },
+                      { key: 'Placed', label: 'Placed', count: orders.filter(o => o.status === 'Placed').length, color: 'text-purple-700 bg-purple-100' },
+                      { key: 'Preparing', label: 'In Kitchen', count: orders.filter(o => o.status === 'Preparing').length, color: 'text-amber-700 bg-amber-100' },
+                      { key: 'On the Way', label: 'On the Way', count: orders.filter(o => o.status === 'On the Way').length, color: 'text-blue-700 bg-blue-100' },
+                      { key: 'Delivered', label: 'Delivered', count: orders.filter(o => o.status === 'Delivered').length, color: 'text-emerald-700 bg-emerald-100' },
+                      { key: 'Cancelled', label: 'Cancelled', count: orders.filter(o => o.status === 'Cancelled').length, color: 'text-red-700 bg-red-100' },
+                    ];
+
+                    return tabs.map((tab) => {
+                      const isSelected = orderFilter.toLowerCase() === tab.key.toLowerCase();
+                      return (
+                        <button
+                          key={tab.key}
+                          onClick={() => setOrderFilter(tab.key)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                            isSelected
+                              ? 'bg-[#123B2B] text-white shadow-sm'
+                              : 'bg-[#FAF6F0] text-gray-600 border border-greesal-beige/80 hover:bg-gray-100'
+                          }`}
+                        >
+                          <span>{tab.label}</span>
+                          <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${isSelected ? 'bg-white/25 text-white' : (tab.color || 'bg-gray-200 text-gray-700')}`}>
+                            {tab.count}
+                          </span>
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+
+                {/* Address Mode Filter */}
+                <div className="flex items-center gap-1 flex-shrink-0 pt-1 sm:pt-0">
+                  <span className="text-[11px] font-bold text-gray-400 mr-1">Address:</span>
+                  {[
+                    { key: 'all', label: 'All' },
+                    { key: 'google_map', label: '📍 Map Pin' },
+                    { key: 'manual', label: '✍️ Manual' }
+                  ].map((m) => (
+                    <button
+                      key={m.key}
+                      onClick={() => setOrderAddressFilter(m.key as any)}
+                      className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                        orderAddressFilter === m.key
+                          ? 'bg-emerald-900 text-white shadow-2xs'
+                          : 'bg-[#FAF6F0] text-gray-600 border border-greesal-beige/80 hover:bg-gray-100'
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Orders List Table / Card View */}
+            {/* Orders Feed */}
             {(() => {
               const query = orderSearch.toLowerCase().trim();
-              const filtered = orders.filter(order => {
+              let filtered = orders.filter(order => {
                 const matchesFilter = orderFilter === 'all' || (order.status || '').toLowerCase() === orderFilter.toLowerCase();
+                const matchesAddress = orderAddressFilter === 'all' || (order.addressMode || 'manual') === orderAddressFilter;
                 const matchesSearch = query === '' ||
                   (order.id && order.id.toLowerCase().includes(query)) ||
                   (order.orderNumber && order.orderNumber.toLowerCase().includes(query)) ||
@@ -1243,8 +1414,31 @@ export default function AdminPage() {
                   (order.customerEmail && order.customerEmail.toLowerCase().includes(query)) ||
                   (order.deliveryAddress && order.deliveryAddress.toLowerCase().includes(query)) ||
                   (Array.isArray(order.items) && order.items.some(item => (item?.name || '').toLowerCase().includes(query)));
-                return matchesFilter && matchesSearch;
+                return matchesFilter && matchesAddress && matchesSearch;
               });
+
+              // Apply sorting
+              filtered = [...filtered].sort((a, b) => {
+                if (orderSortBy === 'oldest') {
+                  return (a.timestamp || 0) - (b.timestamp || 0);
+                } else if (orderSortBy === 'highest') {
+                  return (b.total || 0) - (a.total || 0);
+                } else if (orderSortBy === 'lowest') {
+                  return (a.total || 0) - (b.total || 0);
+                }
+                // default newest
+                return (b.timestamp || 0) - (a.timestamp || 0);
+              });
+
+              if (isOrdersLoading && orders.length === 0) {
+                return (
+                  <div className="bg-white rounded-3xl p-16 text-center border border-greesal-beige space-y-4">
+                    <Loader2 className="w-10 h-10 text-[#123B2B] animate-spin mx-auto" />
+                    <h3 className="font-extrabold text-base text-greesal-dark">Fetching Customer Orders...</h3>
+                    <p className="text-xs text-greesal-muted">Connecting with kitchen database</p>
+                  </div>
+                );
+              }
 
               if (filtered.length === 0) {
                 return (
@@ -1252,201 +1446,767 @@ export default function AdminPage() {
                     <ShoppingBag className="w-12 h-12 text-[#123B2B]/30 mx-auto stroke-[1.5]" />
                     <h3 className="font-extrabold text-lg text-greesal-dark">No Orders Found</h3>
                     <p className="text-xs text-greesal-muted max-w-sm mx-auto">
-                      {orderSearch ? 'No orders match your search keyword. Try adjusting filters.' : 'No customer orders have been placed yet.'}
+                      {orderSearch ? `No orders matched "${orderSearch}". Try clearing the search keyword.` : 'No customer orders recorded under this status filter.'}
                     </p>
+                    {orderSearch && (
+                      <button
+                        onClick={() => setOrderSearch('')}
+                        className="px-4 py-2 bg-[#123B2B] text-white text-xs font-bold rounded-xl hover:bg-[#1b4d39] transition-all cursor-pointer"
+                      >
+                        Clear Search Filter
+                      </button>
+                    )}
                   </div>
                 );
               }
 
-              const getStatusBadge = (status: AdminOrder['status']) => {
+              const getStatusConfig = (status: AdminOrder['status']) => {
                 switch (status) {
-                  case 'Delivered':
-                    return 'bg-emerald-100 text-emerald-800 border-emerald-300';
-                  case 'On the Way':
-                    return 'bg-blue-100 text-blue-800 border-blue-300';
-                  case 'Preparing':
-                    return 'bg-amber-100 text-amber-800 border-amber-300';
                   case 'Placed':
-                    return 'bg-purple-100 text-purple-800 border-purple-300';
+                    return {
+                      bg: 'bg-purple-50',
+                      text: 'text-purple-800',
+                      border: 'border-purple-300',
+                      badge: 'bg-purple-100 text-purple-900 border-purple-300',
+                      borderLeft: 'border-l-purple-500',
+                      nextStatus: 'Preparing' as const,
+                      nextLabel: 'Start Preparing 🍳',
+                      icon: Clock
+                    };
+                  case 'Preparing':
+                    return {
+                      bg: 'bg-amber-50',
+                      text: 'text-amber-800',
+                      border: 'border-amber-300',
+                      badge: 'bg-amber-100 text-amber-900 border-amber-300',
+                      borderLeft: 'border-l-amber-500',
+                      nextStatus: 'On the Way' as const,
+                      nextLabel: 'Dispatch for Delivery 🛵',
+                      icon: Flame
+                    };
+                  case 'On the Way':
+                    return {
+                      bg: 'bg-blue-50',
+                      text: 'text-blue-800',
+                      border: 'border-blue-300',
+                      badge: 'bg-blue-100 text-blue-900 border-blue-300',
+                      borderLeft: 'border-l-blue-500',
+                      nextStatus: 'Delivered' as const,
+                      nextLabel: 'Mark Delivered ✅',
+                      icon: Truck
+                    };
+                  case 'Delivered':
+                    return {
+                      bg: 'bg-emerald-50',
+                      text: 'text-emerald-800',
+                      border: 'border-emerald-300',
+                      badge: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+                      borderLeft: 'border-l-emerald-500',
+                      nextStatus: null,
+                      nextLabel: null,
+                      icon: CheckCircle2
+                    };
+                  case 'Cancelled':
+                    return {
+                      bg: 'bg-red-50',
+                      text: 'text-red-800',
+                      border: 'border-red-300',
+                      badge: 'bg-red-100 text-red-900 border-red-300',
+                      borderLeft: 'border-l-red-500',
+                      nextStatus: null,
+                      nextLabel: null,
+                      icon: X
+                    };
                   default:
-                    return 'bg-gray-100 text-gray-800 border-gray-300';
+                    return {
+                      bg: 'bg-gray-50',
+                      text: 'text-gray-800',
+                      border: 'border-gray-300',
+                      badge: 'bg-gray-100 text-gray-900 border-gray-300',
+                      borderLeft: 'border-l-gray-400',
+                      nextStatus: 'Preparing' as const,
+                      nextLabel: 'Start Preparing 🍳',
+                      icon: Clock
+                    };
                 }
               };
 
+              // Parser for item name to extract bowl name, portion, and removed ingredients
+              const parseItemDetails = (rawName: string) => {
+                const withoutMatch = rawName.match(/\((?:Without|without|no|No):\s*([^)]+)\)/i);
+                const withoutText = withoutMatch ? withoutMatch[1] : null;
+                const cleanName = rawName.replace(/\((?:Without|without|no|No):\s*([^)]+)\)/i, '').trim();
+                const portionMatch = cleanName.match(/\(([^)]+)\)/);
+                const portionText = portionMatch ? portionMatch[1] : null;
+                const baseName = cleanName.replace(/\(([^)]+)\)/, '').trim();
+
+                return {
+                  baseName: baseName || rawName,
+                  portion: portionText,
+                  withoutItems: withoutText ? withoutText.split(',').map(s => s.trim()).filter(Boolean) : []
+                };
+              };
+
+              // Helper to resolve genuine salad image from salads catalog if item image is missing or placeholder
+              const resolveSaladImage = (itemName: string, originalImg?: string) => {
+                if (originalImg && !originalImg.includes('photo-1540420773420-3366772f4999') && originalImg.trim() !== '') {
+                  return originalImg;
+                }
+                const clean = itemName.toLowerCase().replace(/\(.*?\)/g, '').trim();
+                const found = salads.find(s => {
+                  const sName = s.name.toLowerCase().trim();
+                  return sName.includes(clean) || clean.includes(sName);
+                });
+                if (found?.image) return found.image;
+                const def = DEFAULT_SALADS.find(s => {
+                  const sName = s.name.toLowerCase().trim();
+                  return sName.includes(clean) || clean.includes(sName);
+                });
+                if (def?.image) return def.image;
+                return originalImg || 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80';
+              };
+
               return (
-                <div className="space-y-4">
+                <>
+                  {orderViewLayout === 'table' ? (
+                    /* 1. COMPACT PROFESSIONAL TABLE VIEW */
+                    <div className="bg-white rounded-3xl border border-greesal-beige/90 shadow-2xs overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse min-w-[950px]">
+                          <thead>
+                            <tr className="bg-[#FAF6F0] border-b border-gray-200/80 text-[11px] font-black uppercase text-gray-500 tracking-wider">
+                              <th className="py-4 px-4">Order ID &amp; Date</th>
+                              <th className="py-4 px-4">Customer</th>
+                              <th className="py-4 px-4">Ordered Bowls</th>
+                              <th className="py-4 px-4">Delivery Destination</th>
+                              <th className="py-4 px-4">Total Amount</th>
+                              <th className="py-4 px-4">Kitchen Status</th>
+                              <th className="py-4 px-4 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {filtered.map((order) => {
+                              const orderId = order.orderNumber || order.id || 'GRS-ORDER';
+                              const isUpdating = updatingOrderId === (order._id || order.id || order.orderNumber);
+                              const statusConfig = getStatusConfig(order.status);
+                              const cleanPhone = order.customerMobile ? order.customerMobile.replace(/\D/g, '') : '';
+                              const totalBowlCount = (Array.isArray(order.items) ? order.items : []).reduce((acc, i) => acc + (Number(i.quantity) || 1), 0);
+                              const mapsLink = order.mapsUrl || (order.deliveryAddress
+                                ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.deliveryAddress + ' Surat')}`
+                                : null);
+
+                              return (
+                                <tr key={order._id || order.id || orderId} className="hover:bg-emerald-50/30 transition-colors">
+                                  {/* 1. Order ID & Date */}
+                                  <td className="py-3.5 px-4 align-top">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-black text-sm text-greesal-dark">#{orderId}</span>
+                                      <button
+                                        onClick={() => handleCopyOrderId(orderId)}
+                                        className="text-gray-400 hover:text-emerald-700 p-0.5 rounded transition-colors"
+                                        title="Copy Order ID"
+                                      >
+                                        {copiedOrderId === orderId ? (
+                                          <span className="text-[9px] text-emerald-700 font-black">Copied!</span>
+                                        ) : (
+                                          <Copy className="w-3 h-3" />
+                                        )}
+                                      </button>
+                                    </div>
+                                    <div className="text-[11px] text-gray-500 font-medium mt-0.5">
+                                      {order.date}
+                                    </div>
+                                    {order.deliverySlot && (
+                                      <span className="inline-block mt-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-[10px] font-bold capitalize">
+                                        ⏰ {order.deliverySlot}
+                                      </span>
+                                    )}
+                                  </td>
+
+                                  {/* 2. Customer */}
+                                  <td className="py-3.5 px-4 align-top">
+                                    <div className="font-black text-greesal-dark text-xs flex items-center gap-1.5">
+                                      <div className="w-6 h-6 rounded-full bg-[#123B2B] text-white flex items-center justify-center font-bold text-[10px] flex-shrink-0">
+                                        {(order.customerName || 'G')[0].toUpperCase()}
+                                      </div>
+                                      <span className="truncate max-w-[130px]">{order.customerName || 'Greesal Member'}</span>
+                                    </div>
+                                    {order.customerMobile && (
+                                      <div className="flex items-center gap-1.5 mt-1">
+                                        <a href={`tel:${order.customerMobile}`} className="text-[11px] text-gray-600 hover:text-emerald-700 font-bold">
+                                          {order.customerMobile}
+                                        </a>
+                                        {cleanPhone && (
+                                          <a
+                                            href={`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Hello ${order.customerName || 'Customer'}, regarding your Greesal order #${orderId}: `)}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="p-1 rounded-md bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#128C7E] transition-colors"
+                                            title="Chat on WhatsApp"
+                                          >
+                                            <MessageSquare className="w-3 h-3" />
+                                          </a>
+                                        )}
+                                      </div>
+                                    )}
+                                  </td>
+
+                                  {/* 3. Ordered Bowls */}
+                                  <td className="py-3.5 px-4 align-top">
+                                    <div className="space-y-1.5 max-w-[240px]">
+                                      <div className="text-[11px] font-black text-emerald-800">
+                                        {totalBowlCount} bowl{totalBowlCount > 1 ? 's' : ''}
+                                      </div>
+                                      {(Array.isArray(order.items) ? order.items : []).map((item, iIdx) => {
+                                        const parsed = parseItemDetails(item.name || 'Salad Bowl');
+                                        const actualImage = resolveSaladImage(parsed.baseName || item.name, item.image);
+                                        return (
+                                          <div key={iIdx} className="flex items-start gap-2 bg-[#FAF6F0] p-1.5 rounded-xl border border-greesal-beige/70">
+                                            <img
+                                              src={actualImage}
+                                              alt={parsed.baseName}
+                                              className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-greesal-beige"
+                                              onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80'; }}
+                                            />
+                                            <div className="min-w-0 flex-1 text-[11px]">
+                                              <div className="font-bold text-greesal-dark truncate leading-tight">
+                                                {parsed.baseName}
+                                              </div>
+                                              <div className="text-[10px] text-gray-500 font-medium">
+                                                Qty: {item.quantity || 1} {parsed.portion ? `• ${parsed.portion}` : ''}
+                                              </div>
+                                              {parsed.withoutItems.length > 0 && (
+                                                <div className="text-[9px] text-red-700 font-bold truncate">
+                                                  🚫 -{parsed.withoutItems.join(', -')}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </td>
+
+                                  {/* 4. Delivery Address & Mode */}
+                                  <td className="py-3.5 px-4 align-top max-w-[220px]">
+                                    <div className="space-y-1">
+                                      {order.addressMode === 'google_map' ? (
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                                          <MapPin className="w-2.5 h-2.5 text-emerald-700" />
+                                          <span>📍 Google Map Pin</span>
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                                          <Edit2 className="w-2.5 h-2.5 text-amber-700" />
+                                          <span>✍️ Manual Address</span>
+                                        </span>
+                                      )}
+
+                                      <p className="text-[11px] text-greesal-dark font-medium line-clamp-2 leading-tight">
+                                        {order.deliveryAddress || 'Surat Doorstep'}
+                                      </p>
+
+                                      {order.manualAddressDetails && (order.manualAddressDetails.flatNo || order.manualAddressDetails.landmark) && (
+                                        <div className="text-[10px] text-gray-500 font-medium truncate">
+                                          {order.manualAddressDetails.flatNo && <span>🏠 {order.manualAddressDetails.flatNo} </span>}
+                                          {order.manualAddressDetails.landmark && <span>🚩 {order.manualAddressDetails.landmark}</span>}
+                                        </div>
+                                      )}
+
+                                      {mapsLink && (
+                                        <a
+                                          href={mapsLink}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-900 hover:text-black mt-0.5 underline"
+                                        >
+                                          <MapPin className="w-2.5 h-2.5 text-emerald-700" />
+                                          <span>Open in Maps ↗</span>
+                                        </a>
+                                      )}
+                                    </div>
+                                  </td>
+
+                                  {/* 5. Total Amount & Payment */}
+                                  <td className="py-3.5 px-4 align-top whitespace-nowrap">
+                                    <div className="font-black text-sm text-[#123B2B]">₹{order.total}</div>
+                                    <div className="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-900 text-[10px] font-bold">
+                                      {order.paymentMethod || 'COD / UPI'}
+                                    </div>
+                                  </td>
+
+                                  {/* 6. Kitchen Status & Quick Dropdown */}
+                                  <td className="py-3.5 px-4 align-top">
+                                    <div className="space-y-1.5">
+                                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black border uppercase tracking-wider ${statusConfig.badge}`}>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                                        <span>{order.status}</span>
+                                      </span>
+
+                                      <div>
+                                        <select
+                                          value={order.status}
+                                          disabled={isUpdating}
+                                          onChange={(e) => handleUpdateOrderStatus(order, e.target.value)}
+                                          className="bg-[#FAF6F0] px-2 py-1 rounded-lg border border-greesal-beige text-[11px] font-bold text-greesal-dark focus:outline-none cursor-pointer"
+                                        >
+                                          <option value="Placed">Placed</option>
+                                          <option value="Preparing">Preparing</option>
+                                          <option value="On the Way">On the Way</option>
+                                          <option value="Delivered">Delivered</option>
+                                          <option value="Cancelled">Cancelled</option>
+                                        </select>
+                                      </div>
+                                    </div>
+                                  </td>
+
+                                  {/* 7. Actions */}
+                                  <td className="py-3.5 px-4 align-top text-right">
+                                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                      <button
+                                        onClick={() => setSelectedOrderDetails(order)}
+                                        className="px-2.5 py-1.5 rounded-lg bg-[#123B2B] hover:bg-[#1b4d39] text-white text-[11px] font-bold flex items-center gap-1 transition-colors shadow-2xs"
+                                        title="View Full Order Details & Embedded Map"
+                                      >
+                                        <Eye className="w-3 h-3 text-emerald-300" />
+                                        <span>Details</span>
+                                      </button>
+
+                                      <button
+                                        onClick={() => {
+                                          setAdminInvoiceOrder({
+                                            id: order.id || order.orderNumber || 'GRS-ORDER',
+                                            orderNumber: order.orderNumber || order.id,
+                                            customerName: order.customerName || 'Greesal Member',
+                                            customerEmail: order.customerEmail || 'customer@greesal.com',
+                                            customerMobile: order.customerMobile || '+91 98765 43210',
+                                            date: order.date,
+                                            timestamp: order.timestamp,
+                                            status: order.status,
+                                            items: order.items,
+                                            subtotal: order.subtotal,
+                                            deliveryFee: order.deliveryFee,
+                                            total: order.total,
+                                            deliveryAddress: order.deliveryAddress,
+                                            paymentMethod: order.paymentMethod
+                                          });
+                                          setIsAdminInvoiceOpen(true);
+                                        }}
+                                        className="p-1.5 rounded-lg bg-[#FAF6F0] hover:bg-[#F3EDE2] text-[#123B2B] border border-[#EBE2D3] transition-colors"
+                                        title="View / Print Bill"
+                                      >
+                                        <FileText className="w-3.5 h-3.5 text-[#C89D4B]" />
+                                      </button>
+
+                                      <button
+                                        onClick={() => handleDeleteOrder(order._id || order.id || order.orderNumber || '')}
+                                        className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+                                        title="Delete Order"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    /* 2. EXPANDED CARDS VIEW */
+                    <div className="space-y-4">
                   {filtered.map((order) => {
                     const orderId = order.orderNumber || order.id || 'GRS-ORDER';
                     const isUpdating = updatingOrderId === (order._id || order.id || order.orderNumber);
+                    const statusConfig = getStatusConfig(order.status);
+                    const StatusIcon = statusConfig.icon;
+                    const cleanPhone = order.customerMobile ? order.customerMobile.replace(/\D/g, '') : '';
+                    const totalBowlCount = (Array.isArray(order.items) ? order.items : []).reduce((acc, i) => acc + (Number(i.quantity) || 1), 0);
+
+                    // Auto Google Maps Link fallback
+                    const mapsLink = order.mapsUrl || (order.deliveryAddress
+                      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.deliveryAddress + ' Surat')}`
+                      : null);
 
                     return (
                       <div
-                        key={order._id || order.id}
-                        className="bg-white rounded-3xl p-5 sm:p-6 border border-greesal-beige/90 shadow-sm hover:shadow-md transition-all space-y-4 text-left"
+                        key={order._id || order.id || orderId}
+                        className={`bg-white rounded-3xl p-5 sm:p-6 border border-greesal-beige/90 shadow-2xs hover:shadow-md transition-all space-y-4 text-left border-l-4 ${statusConfig.borderLeft}`}
                       >
-                        {/* Order Header: ID, Customer & Status */}
+                        {/* 1. TOP HEADER: Order ID, Date/Time, Status Badge & Quick Indicators */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
                           <div className="flex items-start sm:items-center gap-3">
-                            <div className="w-12 h-12 rounded-2xl bg-greesal-lightgreen/70 border border-greesal-emerald/25 flex items-center justify-center text-greesal-forest font-black text-sm flex-shrink-0 shadow-2xs">
-                              <ShoppingBag className="w-5 h-5 text-emerald-700" />
+                            <div className="w-11 h-11 rounded-2xl bg-[#FAF6F0] border border-greesal-beige flex items-center justify-center text-[#123B2B] flex-shrink-0 shadow-2xs">
+                              <StatusIcon className="w-5 h-5 text-emerald-800" />
                             </div>
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
-                                <h3 className="font-extrabold text-base text-greesal-dark">{orderId}</h3>
-                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${getStatusBadge(order.status)}`}>
-                                  {order.status}
+                                <span className="font-black text-lg text-greesal-dark tracking-tight">#{orderId}</span>
+                                
+                                {/* Copy Order ID */}
+                                <button
+                                  onClick={() => handleCopyOrderId(orderId)}
+                                  className="text-gray-400 hover:text-emerald-700 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                                  title="Copy Order ID"
+                                >
+                                  {copiedOrderId === orderId ? (
+                                    <span className="text-[10px] text-emerald-700 font-black">Copied!</span>
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+
+                                {/* Main Status Badge */}
+                                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black border uppercase tracking-wider flex items-center gap-1 ${statusConfig.badge}`}>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                                  <span>{order.status}</span>
                                 </span>
                               </div>
-                              <p className="text-xs text-gray-400 font-medium flex items-center gap-1.5 mt-0.5">
-                                <Clock className="w-3.5 h-3.5" /> {order.date}
-                              </p>
+
+                              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-gray-400 font-medium mt-1">
+                                <span className="flex items-center gap-1 text-gray-500">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  <span>{order.date}</span>
+                                </span>
+                                <span>&bull;</span>
+                                <span className="text-gray-500 font-bold">{totalBowlCount} bowl{totalBowlCount > 1 ? 's' : ''}</span>
+                              </div>
                             </div>
                           </div>
 
-                          {/* Customer Details Pill */}
-                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs bg-gray-50 p-2.5 rounded-2xl border border-gray-100">
-                            <div className="flex items-center gap-1.5 font-bold text-greesal-dark">
-                              <User className="w-3.5 h-3.5 text-greesal-forest" />
-                              <span>{order.customerName || 'Greesal Member'}</span>
-                            </div>
-                            {order.customerMobile && (
-                              <a
-                                href={`tel:${order.customerMobile}`}
-                                className="flex items-center gap-1 text-emerald-700 font-bold hover:underline"
-                              >
-                                <Phone className="w-3 h-3" />
-                                <span>{order.customerMobile}</span>
-                              </a>
-                            )}
-                            {order.customerEmail && (
-                              <span className="hidden md:flex items-center gap-1 text-gray-500">
-                                <Mail className="w-3 h-3" />
-                                <span>{order.customerEmail}</span>
+                          {/* Top Right Pills: Slot & Payment Method */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {order.deliverySlot && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 font-bold text-[11px]">
+                                <Clock className="w-3 h-3 text-amber-700" />
+                                <span className="capitalize">{order.deliverySlot} Delivery</span>
                               </span>
                             )}
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold text-[11px]">
+                              <Receipt className="w-3 h-3 text-emerald-700" />
+                              <span>{order.paymentMethod || 'COD / UPI'}</span>
+                            </span>
                           </div>
                         </div>
 
-                        {/* Order Items Table / Visual Grid */}
-                        <div className="space-y-2.5">
-                          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                            <ShoppingBag className="w-3.5 h-3.5 text-[#123B2B]" />
-                            <span>Ordered Salad Bowls ({(Array.isArray(order.items) ? order.items : []).reduce((acc, i) => acc + (Number(i.quantity) || 1), 0)})</span>
-                          </h4>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {(Array.isArray(order.items) ? order.items : []).map((item, idx) => (
-                              <div
-                                key={idx}
-                                className="flex items-center gap-3 p-3 rounded-2xl bg-[#FAF6F0] border border-greesal-beige/80 text-xs"
-                              >
-                                <img
-                                  src={item.image || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80'}
-                                  alt={item.name || 'Salad'}
-                                  className="w-12 h-12 object-cover rounded-xl border border-greesal-beige flex-shrink-0"
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <p className="font-bold text-greesal-dark truncate">{item.name || 'Salad Bowl'}</p>
-                                  <p className="text-[11px] text-gray-500 mt-0.5">
-                                    Qty: <strong className="text-greesal-dark font-bold">{item.quantity || 1}</strong> &bull; {typeof item.price === 'number' ? `₹${item.price}` : (item.price || '₹0')}
-                                  </p>
-                                </div>
-                                <span className="font-black text-greesal-forest text-xs">
-                                  ₹{(parseInt(String(item.price || 0).replace(/[^\d]/g, ''), 10) || 0) * (Number(item.quantity) || 1)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Delivery Location, Slot & Bill Row */}
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-2 text-xs">
-                          <div className="md:col-span-8 p-3 rounded-xl bg-gray-50 border border-gray-100 space-y-2">
-                            <div className="flex items-start gap-2">
-                              <MapPin className="w-4 h-4 text-emerald-700 flex-shrink-0 mt-0.5" />
-                              <div className="flex-1">
-                                <p className="font-bold text-gray-600 text-[11px]">Delivery Destination:</p>
-                                <p className="text-greesal-dark font-semibold leading-relaxed">{order.deliveryAddress || 'Standard Delivery Location'}</p>
+                        {/* 2. CUSTOMER & DELIVERY ADDRESS INFORMATION */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                          {/* Customer Contact Details */}
+                          <div className="p-3.5 rounded-2xl bg-[#FAF6F0] border border-greesal-beige/80 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Customer Details</span>
+                              <div className="flex items-center gap-1">
+                                {order.customerMobile && (
+                                  <a
+                                    href={`tel:${order.customerMobile}`}
+                                    className="p-1 rounded-lg bg-emerald-100/70 hover:bg-emerald-200 text-emerald-800 transition-colors"
+                                    title="Call Customer Directly"
+                                  >
+                                    <Phone className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                                {cleanPhone && (
+                                  <a
+                                    href={`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Hello ${order.customerName || 'Customer'}, regarding your Greesal order #${orderId}: `)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="p-1 rounded-lg bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#128C7E] transition-colors"
+                                    title="Chat with Customer on WhatsApp"
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
                               </div>
                             </div>
 
-                            {/* Slot, Google Maps Pin & Notes */}
-                            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-gray-200/60">
-                              {order.deliverySlot && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-900 font-bold text-[11px]">
-                                  <Clock className="w-3 h-3 text-emerald-700" />
-                                  <span>{order.deliverySlot}</span>
-                                </span>
-                              )}
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-[#123B2B] text-white flex items-center justify-center font-black text-xs flex-shrink-0">
+                                {(order.customerName || 'G')[0].toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-black text-greesal-dark text-sm truncate">{order.customerName || 'Greesal Member'}</p>
+                                <div className="flex flex-wrap items-center gap-2 text-gray-500 font-medium text-[11px] mt-0.5">
+                                  {order.customerMobile && (
+                                    <a href={`tel:${order.customerMobile}`} className="hover:text-emerald-700 font-bold">
+                                      {order.customerMobile}
+                                    </a>
+                                  )}
+                                  {order.customerEmail && (
+                                    <>
+                                      <span>&bull;</span>
+                                      <span className="truncate max-w-[160px]">{order.customerEmail}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
 
-                              {order.mapsUrl && (
+                          {/* Delivery Address & Maps Button with Google Map & Manual Info */}
+                          <div className="p-3.5 rounded-2xl bg-[#FAF6F0] border border-greesal-beige/80 space-y-2 flex flex-col justify-between">
+                            <div>
+                              <div className="flex items-center justify-between gap-1 flex-wrap">
+                                <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Delivery Destination</span>
+                                {order.addressMode === 'google_map' ? (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                                    <MapPin className="w-2.5 h-2.5 text-emerald-700" />
+                                    <span>📍 Google Map Pin</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                                    <Edit2 className="w-2.5 h-2.5 text-amber-700" />
+                                    <span>✍️ Manual Address</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="text-greesal-dark font-bold leading-snug mt-1.5 flex items-start gap-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0 mt-0.5" />
+                                <span>{order.deliveryAddress || 'Surat Doorstep Delivery'}</span>
+                              </p>
+
+                              {/* Structured Manual Details if present */}
+                              {order.manualAddressDetails && (order.manualAddressDetails.flatNo || order.manualAddressDetails.landmark) && (
+                                <div className="mt-1.5 text-[11px] text-gray-600 bg-white/80 p-2 rounded-xl border border-greesal-beige/80 flex flex-wrap gap-2">
+                                  {order.manualAddressDetails.flatNo && (
+                                    <span>🏠 <strong>{order.manualAddressDetails.flatNo}</strong></span>
+                                  )}
+                                  {order.manualAddressDetails.landmark && (
+                                    <span>🚩 Landmark: <strong>{order.manualAddressDetails.landmark}</strong></span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Google Map Link & Coordinates */}
+                            <div className="pt-1.5 flex items-center justify-between flex-wrap gap-1.5 border-t border-gray-200/60">
+                              {mapsLink && (
                                 <a
-                                  href={order.mapsUrl}
+                                  href={mapsLink}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#20493c] text-white hover:bg-[#123B2B] font-bold text-[11px] transition-colors shadow-2xs"
+                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-900 hover:text-black bg-white px-2.5 py-1 rounded-lg border border-emerald-300 shadow-2xs transition-colors"
+                                  title="Open in Google Maps Navigation"
                                 >
-                                  <MapPin className="w-3 h-3 text-[#fbce45]" />
-                                  <span>📍 View Google Maps Pin</span>
+                                  <MapPin className="w-3 h-3 text-emerald-700" />
+                                  <span>🗺️ Open in Google Maps</span>
                                   <ExternalLink className="w-2.5 h-2.5 opacity-70" />
                                 </a>
                               )}
 
-                              {order.notes && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-medium text-[11px]">
-                                  <span>📝 Note: {order.notes}</span>
+                              {order.locationCoords && (
+                                <span className="text-[10px] text-gray-500 font-mono">
+                                  GPS: {order.locationCoords.lat.toFixed(4)}, {order.locationCoords.lng.toFixed(4)}
                                 </span>
                               )}
                             </div>
-                          </div>
 
-                          <div className="md:col-span-4 p-3 rounded-xl bg-greesal-cream border border-greesal-beige/80 flex flex-col justify-between">
-                            <div>
-                              <p className="text-[11px] text-gray-500 font-bold">Total Bill Amount</p>
-                              <p className="text-[10px] text-emerald-700 font-medium">Mode: {order.paymentMethod || 'Online UPI / COD'}</p>
-                            </div>
-                            <span className="text-2xl font-black text-[#123B2B] mt-1">₹{order.total}</span>
+                            {/* Customer Notes if provided */}
+                            {order.notes && (
+                              <div className="p-2 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-[11px] font-medium flex items-start gap-1.5">
+                                <span className="font-bold flex-shrink-0">📝 Kitchen Note:</span>
+                                <span>{order.notes}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
 
-                        {/* Admin Status Controls & Action Bar */}
-                        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-bold text-gray-600">Update Status:</span>
-                            {(['Placed', 'Preparing', 'On the Way', 'Delivered'] as const).map((st) => (
-                              <button
-                                key={st}
-                                disabled={isUpdating || order.status === st}
-                                onClick={() => handleUpdateOrderStatus(order, st)}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                                  order.status === st
-                                    ? 'bg-[#123B2B] text-white shadow-xs'
-                                    : 'bg-gray-100 hover:bg-emerald-50 text-gray-700 hover:text-emerald-900 border border-gray-200'
-                                } disabled:opacity-60`}
-                              >
-                                {order.status === st && <Check className="w-3 h-3 text-emerald-300" />}
-                                <span>{st}</span>
-                              </button>
-                            ))}
+                        {/* 3. ORDERED ITEMS LIST WITH INGREDIENT REMOVAL BADGES & REAL SALAD IMAGES */}
+                        <div className="space-y-2 pt-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-black text-gray-600 uppercase tracking-wider flex items-center gap-1.5">
+                              <Utensils className="w-3.5 h-3.5 text-[#123B2B]" />
+                              <span>Ordered Bowls ({totalBowlCount})</span>
+                            </span>
                           </div>
 
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                            {(Array.isArray(order.items) ? order.items : []).map((item, idx) => {
+                              const parsed = parseItemDetails(item.name || 'Salad Bowl');
+                              const itemQty = Number(item.quantity) || 1;
+                              const rawPrice = parseInt(String(item.price || 0).replace(/[^\d]/g, ''), 10) || 0;
+                              const lineTotal = rawPrice * itemQty;
+                              const actualImage = resolveSaladImage(parsed.baseName || item.name, item.image);
+
+                              return (
+                                <div
+                                  key={idx}
+                                  className="p-3 rounded-2xl bg-white border border-greesal-beige/90 shadow-2xs space-y-2 text-xs hover:border-[#123B2B]/30 transition-all"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <img
+                                      src={actualImage}
+                                      alt={parsed.baseName}
+                                      className="w-13 h-13 object-cover rounded-xl border border-greesal-beige flex-shrink-0"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80';
+                                      }}
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <h5 className="font-black text-greesal-dark text-xs sm:text-sm leading-snug">
+                                          {parsed.baseName}
+                                        </h5>
+                                        <span className="font-black text-emerald-800 text-xs sm:text-sm flex-shrink-0">
+                                          ₹{lineTotal}
+                                        </span>
+                                      </div>
+
+                                      <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-gray-500 font-medium">
+                                        <span className="bg-[#FAF6F0] px-2 py-0.5 rounded-md font-bold text-greesal-dark border border-greesal-beige">
+                                          Qty: {itemQty}
+                                        </span>
+                                        {parsed.portion && (
+                                          <span className="bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md font-bold border border-emerald-200">
+                                            Portion: {parsed.portion}
+                                          </span>
+                                        )}
+                                        <span>&bull; ₹{rawPrice} each</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Customization: Removed Ingredients Alert Pill */}
+                                  {parsed.withoutItems.length > 0 && (
+                                    <div className="p-2 rounded-xl bg-red-50 border border-red-200 text-red-900 text-[11px] flex items-start gap-1.5">
+                                      <span className="font-black text-red-700 uppercase tracking-wide flex-shrink-0">
+                                        🚫 Omit Ingredients:
+                                      </span>
+                                      <div className="flex flex-wrap gap-1">
+                                        {parsed.withoutItems.map((ing, iIdx) => (
+                                          <span
+                                            key={iIdx}
+                                            className="px-1.5 py-0.5 rounded-md bg-white border border-red-300 font-bold text-red-800 text-[10px]"
+                                          >
+                                            − {ing}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* 4. BILL BREAKDOWN & WORKFLOW STEPPER */}
+                        <div className="p-3.5 rounded-2xl bg-[#FAF6F0] border border-greesal-beige/80 space-y-3 text-xs">
+                          {/* Financials Row */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200/60 pb-2.5">
+                            <div className="flex items-center gap-3 text-gray-600 font-medium text-xs">
+                              <span>Subtotal: <strong className="text-greesal-dark">₹{order.subtotal || order.total}</strong></span>
+                              <span>&bull;</span>
+                              <span>
+                                Delivery:{' '}
+                                {order.deliveryFee && order.deliveryFee > 0 ? (
+                                  <strong className="text-greesal-dark">₹{order.deliveryFee}</strong>
+                                ) : (
+                                  <strong className="text-emerald-700 font-bold">FREE</strong>
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-gray-500 font-bold">Grand Total:</span>
+                              <span className="text-xl sm:text-2xl font-black text-[#123B2B]">₹{order.total}</span>
+                            </div>
+                          </div>
+
+                          {/* Order Status Stepper Bar */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-[11px] font-bold text-gray-500">
+                              <span>Kitchen Workflow Pipeline</span>
+                              <span className="text-greesal-dark font-black">Current: {order.status}</span>
+                            </div>
+                            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                              {[
+                                { st: 'Placed', label: '1. Placed' },
+                                { st: 'Preparing', label: '2. Kitchen' },
+                                { st: 'On the Way', label: '3. Out for Delivery' },
+                                { st: 'Delivered', label: '4. Delivered' }
+                              ].map((step, sIdx) => {
+                                const stepOrder = ['Placed', 'Preparing', 'On the Way', 'Delivered'];
+                                const currentIndex = stepOrder.indexOf(order.status);
+                                const isPassed = currentIndex >= sIdx;
+                                const isCurrent = order.status === step.st;
+
+                                return (
+                                  <div
+                                    key={step.st}
+                                    className={`py-1.5 px-2 rounded-xl text-center font-bold text-[10px] transition-all border ${
+                                      isCurrent
+                                        ? 'bg-[#123B2B] text-white border-[#123B2B] shadow-2xs'
+                                        : isPassed
+                                        ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                        : 'bg-white text-gray-400 border-gray-200'
+                                    }`}
+                                  >
+                                    <span className="truncate block">{step.label}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 5. INTERACTIVE ACTION BAR: Status transitions, WhatsApp, Invoice & Delete */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100">
+                          {/* Left: Quick Status Transition Stepper Button */}
                           <div className="flex items-center gap-2 flex-wrap">
-                            {/* Contact Customer on WhatsApp */}
-                            {order.customerMobile && (
+                            {statusConfig.nextStatus && (
                               <button
-                                onClick={() => {
-                                  const cleanPhone = order.customerMobile?.replace(/\D/g, '') || '';
-                                  const msg = `Hello ${order.customerName || 'Customer'}, your Greesal order *${orderId}* is currently *${order.status}*. Let us know if you need anything! 🥗`;
-                                  window.open(`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-                                }}
-                                className="px-3 py-1.5 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                                title="Chat with customer on WhatsApp"
+                                disabled={isUpdating}
+                                onClick={() => handleUpdateOrderStatus(order, statusConfig.nextStatus!)}
+                                className="px-3.5 py-2 rounded-xl bg-[#123B2B] hover:bg-[#1b4d39] text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 disabled:opacity-50"
                               >
-                                <Phone className="w-3.5 h-3.5 fill-white" />
-                                <span>Notify Customer</span>
+                                {isUpdating ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="w-3.5 h-3.5 text-emerald-300" />
+                                )}
+                                <span>{statusConfig.nextLabel}</span>
                               </button>
                             )}
 
+                            {/* Dropdown to jump directly to any status */}
+                            <div className="flex items-center gap-1 text-xs">
+                              <span className="text-gray-400 text-[11px] font-bold hidden sm:inline">Set status:</span>
+                              <select
+                                value={order.status}
+                                disabled={isUpdating}
+                                onChange={(e) => handleUpdateOrderStatus(order, e.target.value)}
+                                className="bg-[#FAF6F0] px-2.5 py-1.5 rounded-xl border border-greesal-beige text-xs font-bold text-greesal-dark focus:outline-none cursor-pointer"
+                              >
+                                <option value="Placed">Placed</option>
+                                <option value="Preparing">Preparing</option>
+                                <option value="On the Way">On the Way</option>
+                                <option value="Delivered">Delivered</option>
+                                <option value="Cancelled">Cancelled</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Right: WhatsApp, Bill Invoice & Delete */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {/* WhatsApp Customer Button */}
+                            {cleanPhone && (
+                              <button
+                                onClick={() => {
+                                  const customerName = order.customerName || 'Greesal Member';
+                                  const msg = `Hello ${customerName}! 🥗 Your Greesal order *#${orderId}* is now *${order.status}*.\n\n📍 Delivery: ${order.deliveryAddress || 'Surat'}\n💰 Total: ₹${order.total}\n\nThank you for choosing farm-fresh healthy meals with Greesal!`;
+                                  window.open(`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs active:scale-95"
+                                title="Send live WhatsApp status to customer"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5 fill-white text-white" />
+                                <span>WhatsApp Customer</span>
+                              </button>
+                            )}
+
+                            {/* Print / View Invoice Modal */}
                             <button
                               onClick={() => {
                                 setAdminInvoiceOrder({
@@ -1467,13 +2227,24 @@ export default function AdminPage() {
                                 });
                                 setIsAdminInvoiceOpen(true);
                               }}
-                              className="px-3 py-1.5 rounded-xl bg-[#FAF6F0] hover:bg-[#F3EDE2] text-[#123B2B] border border-[#EBE2D3] text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                              className="px-3 py-1.5 rounded-xl bg-[#FAF6F0] hover:bg-[#F3EDE2] text-[#123B2B] border border-[#EBE2D3] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95"
                               title="Download/Print Bill"
                             >
                               <FileText className="w-3.5 h-3.5 text-[#C89D4B]" />
                               <span>Bill Receipt</span>
                             </button>
 
+                            {/* View Full Order Details Button */}
+                            <button
+                              onClick={() => setSelectedOrderDetails(order)}
+                              className="px-3 py-1.5 rounded-xl bg-[#123B2B] hover:bg-[#1b4d39] text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs active:scale-95"
+                              title="View Complete Order Details & Google Map"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-emerald-300" />
+                              <span>Order Details</span>
+                            </button>
+
+                            {/* Delete Order */}
                             <button
                               onClick={() => handleDeleteOrder(order._id || order.id || order.orderNumber || '')}
                               className="p-2 rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-100 transition-colors cursor-pointer text-xs font-bold flex items-center gap-1"
@@ -1488,6 +2259,285 @@ export default function AdminPage() {
                     );
                   })}
                 </div>
+              )}
+
+                {/* Detailed Order Dossier Modal with Interactive Google Map */}
+                {selectedOrderDetails && (() => {
+                  const sel = selectedOrderDetails;
+                  const selOrderId = sel.orderNumber || sel.id || 'GRS-ORDER';
+                  const selMapsLink = sel.mapsUrl || (sel.deliveryAddress
+                    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(sel.deliveryAddress + ' Surat')}`
+                    : null);
+                  const embedMapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(sel.deliveryAddress + ' Surat')}&z=15&output=embed`;
+                  const selCleanPhone = sel.customerMobile ? sel.customerMobile.replace(/\D/g, '') : '';
+
+                  return (
+                    <div className="fixed inset-0 z-50 overflow-y-auto font-dmsans">
+                      <div
+                        className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity"
+                        onClick={() => setSelectedOrderDetails(null)}
+                      />
+
+                      <div className="flex min-h-full items-center justify-center p-3 sm:p-4 text-center">
+                        <div className="w-full max-w-2xl transform overflow-hidden rounded-3xl bg-white text-left align-middle shadow-2xl transition-all border border-gray-200 relative animate-fadeIn flex flex-col max-h-[92vh]">
+                          
+                          {/* Header */}
+                          <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-[#f8faf9]">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-2xl bg-[#123B2B] text-white flex items-center justify-center font-black">
+                                <ShoppingBag className="w-5 h-5 text-emerald-300" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h3 className="font-montserrat font-extrabold text-base sm:text-lg text-[#123B2B]">
+                                    Order #{selOrderId}
+                                  </h3>
+                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    {sel.status}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-500 font-medium">Placed on {sel.date}</p>
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => setSelectedOrderDetails(null)}
+                              className="p-2 rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+
+                          {/* Modal Body */}
+                          <div className="p-4 sm:p-6 overflow-y-auto space-y-4 text-xs">
+                            {/* Customer Information Card */}
+                            <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-greesal-beige/80 space-y-2">
+                              <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider block">Customer Details</span>
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div>
+                                  <p className="font-black text-greesal-dark text-sm">{sel.customerName || 'Greesal Member'}</p>
+                                  <div className="flex items-center gap-2 text-gray-500 font-medium mt-0.5">
+                                    <span>📞 {sel.customerMobile}</span>
+                                    {sel.customerEmail && <span>&bull; {sel.customerEmail}</span>}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  {sel.customerMobile && (
+                                    <a
+                                      href={`tel:${sel.customerMobile}`}
+                                      className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 font-bold transition-colors flex items-center gap-1"
+                                    >
+                                      <Phone className="w-3.5 h-3.5" />
+                                      <span>Call</span>
+                                    </a>
+                                  )}
+                                  {selCleanPhone && (
+                                    <button
+                                      onClick={() => {
+                                        const msg = `Hello ${sel.customerName || 'Customer'}! 🥗 Regarding your Greesal order *#${selOrderId}*: `;
+                                        window.open(`https://wa.me/91${selCleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                                      }}
+                                      className="px-3 py-1.5 rounded-xl bg-[#25D366] text-white hover:bg-[#20BD5A] font-bold transition-colors flex items-center gap-1"
+                                    >
+                                      <MessageSquare className="w-3.5 h-3.5 fill-white" />
+                                      <span>WhatsApp</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Delivery Destination & Google Maps Dossier */}
+                            <div className="p-4 rounded-2xl bg-white border border-gray-200 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider flex items-center gap-1">
+                                  <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+                                  <span>Delivery Address &amp; Navigation</span>
+                                </span>
+                                {sel.addressMode === 'google_map' ? (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    📍 Google Map Pin
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                    ✍️ Manual Address
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="font-bold text-gray-800 text-sm leading-snug">
+                                {sel.deliveryAddress}
+                              </p>
+
+                              {sel.manualAddressDetails && (sel.manualAddressDetails.flatNo || sel.manualAddressDetails.landmark) && (
+                                <div className="p-2.5 rounded-xl bg-[#FAF6F0] border border-greesal-beige text-xs text-gray-700 flex flex-wrap gap-3">
+                                  {sel.manualAddressDetails.flatNo && (
+                                    <span>🏠 Flat / House: <strong>{sel.manualAddressDetails.flatNo}</strong></span>
+                                  )}
+                                  {sel.manualAddressDetails.landmark && (
+                                    <span>🚩 Landmark: <strong>{sel.manualAddressDetails.landmark}</strong></span>
+                                  )}
+                                  {sel.deliverySlot && (
+                                    <span>⏰ Slot: <strong>{sel.deliverySlot}</strong></span>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Embedded Google Map */}
+                              <div className="rounded-2xl overflow-hidden border border-gray-200 h-44 w-full relative bg-gray-100">
+                                <iframe
+                                  src={embedMapUrl}
+                                  className="w-full h-full border-0"
+                                  loading="lazy"
+                                  referrerPolicy="no-referrer-when-downgrade"
+                                  title="Google Map Delivery Pin"
+                                />
+                              </div>
+
+                              {selMapsLink && (
+                                <div className="pt-1">
+                                  <a
+                                    href={selMapsLink}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="w-full py-2 px-3 rounded-xl bg-[#123B2B] text-white hover:bg-[#1b4d39] font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs"
+                                  >
+                                    <MapPin className="w-3.5 h-3.5 text-emerald-300" />
+                                    <span>Open Live Navigation in Google Maps App</span>
+                                    <ExternalLink className="w-3 h-3 opacity-80" />
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Ordered Salad Bowls Breakdown */}
+                            <div className="space-y-2">
+                              <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider block">
+                                Ordered Bowls ({(sel.items || []).reduce((acc, i) => acc + (Number(i.quantity) || 1), 0)})
+                              </span>
+                              <div className="space-y-2">
+                                {(sel.items || []).map((item, idx) => {
+                                  const parsed = parseItemDetails(item.name || 'Salad Bowl');
+                                  const itemQty = Number(item.quantity) || 1;
+                                  const rawPrice = parseInt(String(item.price || 0).replace(/[^\d]/g, ''), 10) || 0;
+                                  const lineTotal = rawPrice * itemQty;
+                                  const actualImage = resolveSaladImage(parsed.baseName || item.name, item.image);
+
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className="p-3 rounded-2xl bg-[#FAF6F0] border border-greesal-beige/80 space-y-2"
+                                    >
+                                      <div className="flex items-start gap-3">
+                                        <img
+                                          src={actualImage}
+                                          alt={parsed.baseName}
+                                          className="w-14 h-14 object-cover rounded-xl border border-greesal-beige flex-shrink-0 shadow-2xs"
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80';
+                                          }}
+                                        />
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-start justify-between gap-2">
+                                            <h5 className="font-black text-greesal-dark text-sm leading-snug">
+                                              {parsed.baseName}
+                                            </h5>
+                                            <span className="font-black text-emerald-800 text-sm">
+                                              ₹{lineTotal}
+                                            </span>
+                                          </div>
+                                          <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-gray-500 font-medium">
+                                            <span className="bg-white px-2 py-0.5 rounded-md font-bold text-greesal-dark border border-gray-200">
+                                              Qty: {itemQty}
+                                            </span>
+                                            {parsed.portion && (
+                                              <span className="bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md font-bold border border-emerald-200">
+                                                Portion: {parsed.portion}
+                                              </span>
+                                            )}
+                                            <span>&bull; ₹{rawPrice} each</span>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Customization Note */}
+                                      {parsed.withoutItems.length > 0 && (
+                                        <div className="p-2 rounded-xl bg-red-50 border border-red-200 text-red-900 text-[11px] flex items-start gap-1.5">
+                                          <span className="font-black text-red-700 uppercase tracking-wide flex-shrink-0">
+                                            🚫 Customized Omissions:
+                                          </span>
+                                          <div className="flex flex-wrap gap-1">
+                                            {parsed.withoutItems.map((ing, iIdx) => (
+                                              <span
+                                                key={iIdx}
+                                                className="px-1.5 py-0.5 rounded-md bg-white border border-red-300 font-bold text-red-800 text-[10px]"
+                                              >
+                                                − {ing}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Bill Breakdown */}
+                            <div className="p-4 rounded-2xl bg-[#f8faf9] border border-gray-200 flex items-center justify-between">
+                              <div>
+                                <span className="text-gray-500 text-xs block">Total Bill Amount</span>
+                                <span className="text-[11px] text-emerald-800 font-bold">{sel.paymentMethod || 'Cash / UPI on Delivery'}</span>
+                              </div>
+                              <div className="text-2xl font-black text-[#123B2B]">
+                                ₹{sel.total}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Modal Footer */}
+                          <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-2 bg-[#f8faf9]">
+                            <button
+                              onClick={() => {
+                                setAdminInvoiceOrder({
+                                  id: sel.id || sel.orderNumber || 'GRS-ORDER',
+                                  orderNumber: sel.orderNumber || sel.id,
+                                  customerName: sel.customerName || 'Greesal Member',
+                                  customerEmail: sel.customerEmail || 'customer@greesal.com',
+                                  customerMobile: sel.customerMobile || '+91 98765 43210',
+                                  date: sel.date,
+                                  timestamp: sel.timestamp,
+                                  status: sel.status,
+                                  items: sel.items,
+                                  subtotal: sel.subtotal,
+                                  deliveryFee: sel.deliveryFee,
+                                  total: sel.total,
+                                  deliveryAddress: sel.deliveryAddress,
+                                  paymentMethod: sel.paymentMethod
+                                });
+                                setIsAdminInvoiceOpen(true);
+                              }}
+                              className="px-3.5 py-2 rounded-xl bg-white hover:bg-gray-100 text-[#123B2B] border border-gray-300 text-xs font-bold transition-colors flex items-center gap-1.5"
+                            >
+                              <FileText className="w-3.5 h-3.5 text-[#C89D4B]" />
+                              <span>Print Bill Receipt</span>
+                            </button>
+
+                            <button
+                              onClick={() => setSelectedOrderDetails(null)}
+                              className="px-4 py-2 rounded-xl bg-[#123B2B] hover:bg-[#1b4d39] text-white text-xs font-bold transition-all"
+                            >
+                              Close Details
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+                </>
               );
             })()}
           </div>
