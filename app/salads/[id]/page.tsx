@@ -12,7 +12,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { GoogleMapPickerModal } from '@/components/GoogleMapPickerModal';
 import { getLiveDetailedLocation } from '@/lib/geolocation';
 import { sendOrderToWhatsApp } from '@/lib/whatsapp';
-import { DEFAULT_SALADS, DEFAULT_SALAD_ADDONS, getSaladByIdOrSlug, Salad, SaladAddOn, SaladPortion, getSaladPortions, getSaladIngredients, getSaladDressing, getSaladCrunch, slugify } from '@/lib/salads';
+import { DEFAULT_SALAD_ADDONS, getSaladByIdOrSlug, Salad, SaladAddOn, SaladPortion, getSaladPortions, getSaladIngredients, getSaladDressing, getSaladCrunch, slugify } from '@/lib/salads';
 import {
   Sparkles,
   Leaf,
@@ -65,9 +65,10 @@ export default function SaladDetailPage() {
   const { data: session, status } = useSession();
   const rawId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string) || '';
 
-  const [allSalads, setAllSalads] = useState<Salad[]>(DEFAULT_SALADS);
-  const [activeSalad, setActiveSalad] = useState<Salad | null>(() => getSaladByIdOrSlug(rawId, DEFAULT_SALADS) || null);
-  const salad: Salad = activeSalad || getSaladByIdOrSlug(rawId, allSalads) || allSalads[0] || DEFAULT_SALADS[0];
+  const [allSalads, setAllSalads] = useState<Salad[]>([]);
+  const [isLoadingSalads, setIsLoadingSalads] = useState<boolean>(true);
+  const [activeSalad, setActiveSalad] = useState<Salad | null>(null);
+  const salad: Salad | null = activeSalad || getSaladByIdOrSlug(rawId, allSalads) || (allSalads.length > 0 ? allSalads[0] : null);
   const portions = useMemo(() => getSaladPortions(salad), [salad]);
   const [selectedPortion, setSelectedPortion] = useState<SaladPortion>(() => {
     const list = getSaladPortions(salad);
@@ -175,10 +176,16 @@ export default function SaladDetailPage() {
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          setAllSalads(data);
+          const realSalads = data.filter((s: any) => !String(s.id || '').startsWith('fallback-') && !String(s._id || '').startsWith('fallback-'));
+          setAllSalads(realSalads);
+          const found = getSaladByIdOrSlug(rawId, realSalads);
+          if (found) setActiveSalad(found);
         }
       })
-      .catch(() => { });
+      .catch(() => { })
+      .finally(() => {
+        setIsLoadingSalads(false);
+      });
 
     fetch('/api/admin/settings')
       .then((res) => res.json())
@@ -206,7 +213,7 @@ export default function SaladDetailPage() {
         setActiveSalad(found);
       } else {
         // Fallback to first salad
-        setActiveSalad(allSalads[0] || DEFAULT_SALADS[0]);
+        setActiveSalad(allSalads[0] || null);
       }
     }
   }, [rawId, allSalads]);
@@ -558,6 +565,42 @@ export default function SaladDetailPage() {
       setIsProfileOpen(true);
     }
   };
+
+  if (isLoadingSalads && !salad) {
+    return (
+      <div className="min-h-screen bg-[#FDFBF7] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-[#123B2B]/10 flex items-center justify-center mb-4 text-[#123B2B]">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+        <h2 className="text-xl font-black text-[#123B2B] mb-2 font-montserrat">Loading Fresh Salad Bowl...</h2>
+        <p className="text-sm text-gray-500 mb-6">Fetching handcrafted ingredients and portions</p>
+        <Link
+          href="/salads"
+          className="px-5 py-2.5 rounded-xl bg-[#123B2B] text-white text-xs font-bold hover:bg-[#1b4d39] transition-all"
+        >
+          &larr; Back to Salad Menu
+        </Link>
+      </div>
+    );
+  }
+
+  if (!salad) {
+    return (
+      <div className="min-h-screen bg-[#FDFBF7] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4 text-amber-700">
+          <Utensils className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-black text-[#123B2B] mb-2 font-montserrat">Salad Bowl Not Found</h2>
+        <p className="text-sm text-gray-500 mb-6">This bowl may have been updated or removed from the kitchen menu.</p>
+        <Link
+          href="/salads"
+          className="px-5 py-2.5 rounded-xl bg-[#123B2B] text-white text-xs font-bold hover:bg-[#1b4d39] transition-all"
+        >
+          &larr; View Available Salads
+        </Link>
+      </div>
+    );
+  }
 
   const rawPrice = parseInt(salad.price.replace(/[^\d]/g, '')) || 299;
   const originalPrice = Math.round(rawPrice * 1.15);
@@ -1445,7 +1488,7 @@ export default function SaladDetailPage() {
                 <span>Popular Salad Bowls</span>
               </h4>
               <ul className="space-y-2 text-xs font-medium text-[#0c2a20]/85">
-                {DEFAULT_SALADS.slice(0, 4).map((s) => (
+                {(allSalads.length > 0 ? allSalads : []).slice(0, 4).map((s) => (
                   <li key={s.slug}>
                     <Link
                       href={`/salads/${s.slug}`}

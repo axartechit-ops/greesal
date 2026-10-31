@@ -619,7 +619,7 @@ export const DEFAULT_SALADS: Salad[] = [
   }
 ];
 
-export function getSaladByIdOrSlug(idOrSlug: string, saladsList: Salad[] = DEFAULT_SALADS): Salad | undefined {
+export function getSaladByIdOrSlug(idOrSlug: string, saladsList: Salad[] = []): Salad | undefined {
   if (!idOrSlug) return undefined;
   const target = decodeURIComponent(idOrSlug).toLowerCase().trim();
   const targetSlug = slugify(target);

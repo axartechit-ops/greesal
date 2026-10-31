@@ -295,18 +295,16 @@ def load_local_salads() -> List[Dict[str, Any]]:
         try:
             with open(LOCAL_STORAGE_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if isinstance(data, list) and len(data) > 0:
-                    return data
+                if isinstance(data, list):
+                    # Filter out any fallback fake items, only return real admin uploaded salads
+                    return [
+                        s for s in data 
+                        if not str(s.get("id", "")).startswith("fallback-") and not str(s.get("_id", "")).startswith("fallback-")
+                    ]
         except Exception as e:
             logger.error(f"Failed to parse local_salads.json: {e}")
 
-    # Initialize from DEFAULT_SALADS_DATA
-    initial = [
-        {**s, "_id": f"fallback-{idx+1}", "id": f"fallback-{idx+1}", "slug": slugify(s["name"])}
-        for idx, s in enumerate(DEFAULT_SALADS_DATA)
-    ]
-    save_local_salads(initial)
-    return initial
+    return []
 
 def save_local_salads(salads: List[Dict[str, Any]]):
     try:
@@ -336,7 +334,7 @@ def sync_local_store_from_mongodb():
         return
 
     try:
-        salads = list(db.salads.find({}))
+        salads = list(db.salads.find({"id": {"$not": {"$regex": "^fallback-"}}, "_id": {"$not": {"$regex": "^fallback-"}}}))
         if salads:
             local_salads_store = [format_salad_doc(s) for s in salads]
             save_local_salads(local_salads_store)
@@ -401,7 +399,7 @@ def get_salads():
     db = get_db()
     if db is not None:
         try:
-            salads = list(db.salads.find({}))
+            salads = list(db.salads.find({"id": {"$not": {"$regex": "^fallback-"}}, "_id": {"$not": {"$regex": "^fallback-"}}}))
             if salads:
                 formatted = [format_salad_doc(s) for s in salads]
                 _salads_cache = formatted
@@ -410,7 +408,11 @@ def get_salads():
         except Exception as e:
             logger.error(f"Error reading salads from MongoDB: {e}")
 
-    formatted = [format_salad_doc(s) for s in local_salads_store]
+    real_salads = [
+        s for s in local_salads_store
+        if not str(s.get("id", "")).startswith("fallback-") and not str(s.get("_id", "")).startswith("fallback-")
+    ]
+    formatted = [format_salad_doc(s) for s in real_salads]
     _salads_cache = formatted
     _salads_cache_time = now
     return formatted

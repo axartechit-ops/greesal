@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { DEFAULT_SALADS, Salad, SaladPortion, getSaladPortions, getSaladNumericPrice } from '@/lib/salads';
+import { Salad, SaladPortion, getSaladPortions, getSaladNumericPrice } from '@/lib/salads';
 import { SaladIndiaHeader } from '@/components/SaladIndiaHeader';
 import { SaladStickyBar } from '@/components/SaladStickyBar';
 import { SaladMenuSection } from '@/components/SaladMenuSection';
@@ -26,8 +26,8 @@ export default function SaladsPage() {
   const { data: session, status } = useSession();
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
 
-  const [salads, setSalads] = useState<Salad[]>(DEFAULT_SALADS);
-  const [isLoadingSalads, setIsLoadingSalads] = useState<boolean>(false);
+  const [salads, setSalads] = useState<Salad[]>([]);
+  const [isLoadingSalads, setIsLoadingSalads] = useState<boolean>(true);
   const [cartQuantities, setCartQuantities] = useState<CartMap>({});
 
   // Modals state
@@ -114,16 +114,17 @@ export default function SaladsPage() {
         const res = await fetch('/api/salads');
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            setSalads(data);
+          if (Array.isArray(data)) {
+            const realSalads = data.filter((s: any) => !String(s.id || '').startsWith('fallback-') && !String(s._id || '').startsWith('fallback-'));
+            setSalads(realSalads);
           } else {
-            setSalads(DEFAULT_SALADS);
+            setSalads([]);
           }
         } else {
-          setSalads(DEFAULT_SALADS);
+          setSalads([]);
         }
       } catch (err) {
-        setSalads(DEFAULT_SALADS);
+        setSalads([]);
       } finally {
         setIsLoadingSalads(false);
       }

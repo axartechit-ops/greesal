@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Leaf, ArrowRight, Volume2, VolumeX, Sparkles, ShieldCheck, Clock, Play, Pause } from 'lucide-react';
+import { Leaf, ArrowRight, Sparkles, ShieldCheck, Clock, Play, Pause } from 'lucide-react';
 
 interface SaladProjectHeroProps {
   onExploreMenu?: () => void;
@@ -43,26 +43,20 @@ export const SaladProjectHero: React.FC<SaladProjectHeroProps> = ({
   howToOrderBtnText = 'Order Fresh Salad Now',
   howToOrderBtnLink = '/salads',
 }) => {
-  const [isSecondVideoMuted, setIsSecondVideoMuted] = useState(true);
   const secondVideoRef = useRef<HTMLVideoElement>(null);
-
-  const [isHowToOrderMuted, setIsHowToOrderMuted] = useState(true);
-  const [isHowToOrderPlaying, setIsHowToOrderPlaying] = useState(true);
   const howToOrderVideoRef = useRef<HTMLVideoElement>(null);
+  const [isHowToOrderPlaying, setIsHowToOrderPlaying] = useState(true);
 
-  const toggleSound = () => {
+  useEffect(() => {
     if (secondVideoRef.current) {
-      secondVideoRef.current.muted = !secondVideoRef.current.muted;
-      setIsSecondVideoMuted(secondVideoRef.current.muted);
+      secondVideoRef.current.muted = true;
+      secondVideoRef.current.volume = 0;
     }
-  };
-
-  const toggleHowToOrderSound = () => {
     if (howToOrderVideoRef.current) {
-      howToOrderVideoRef.current.muted = !howToOrderVideoRef.current.muted;
-      setIsHowToOrderMuted(howToOrderVideoRef.current.muted);
+      howToOrderVideoRef.current.muted = true;
+      howToOrderVideoRef.current.volume = 0;
     }
-  };
+  }, []);
 
   const toggleHowToOrderPlay = () => {
     if (howToOrderVideoRef.current) {
@@ -211,7 +205,7 @@ export const SaladProjectHero: React.FC<SaladProjectHeroProps> = ({
             <video
               ref={secondVideoRef}
               autoPlay
-              muted={isSecondVideoMuted}
+              muted
               loop
               playsInline
               poster={tableVideoPoster || undefined}
@@ -246,20 +240,7 @@ export const SaladProjectHero: React.FC<SaladProjectHeroProps> = ({
             </Link>
           </div>
 
-          {/* Audio Toggle in bottom corner */}
-          <button
-            type="button"
-            onClick={toggleSound}
-            aria-label="Toggle sound"
-            className="absolute bottom-5 right-5 z-20 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-[#123B2B] backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 shadow-lg cursor-pointer"
-          >
-            {isSecondVideoMuted ? (
-              <VolumeX className="w-4 h-4" />
-            ) : (
-              <Volume2 className="w-4 h-4 text-emerald-600" />
-            )}
-          </button>
-
+          
         </div>
       </section>
 
@@ -305,7 +286,7 @@ export const SaladProjectHero: React.FC<SaladProjectHeroProps> = ({
               <video
                 ref={howToOrderVideoRef}
                 autoPlay
-                muted={isHowToOrderMuted}
+                muted
                 loop
                 playsInline
                 poster={howToOrderVideoPoster}
@@ -343,18 +324,7 @@ export const SaladProjectHero: React.FC<SaladProjectHeroProps> = ({
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={toggleHowToOrderSound}
-                  aria-label="Toggle sound"
-                  className="w-9 h-9 rounded-full bg-white/85 hover:bg-white text-[#123B2B] backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 shadow-lg cursor-pointer"
-                >
-                  {isHowToOrderMuted ? (
-                    <VolumeX className="w-4 h-4" />
-                  ) : (
-                    <Volume2 className="w-4 h-4 text-emerald-600" />
-                  )}
-                </button>
+                
               </div>
             ) : (
               <div className="absolute bottom-4 right-4 z-20">

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Salad, DEFAULT_SALADS, SaladPortion, getSaladPortions, getSaladNumericPrice } from '@/lib/salads';
+import { Salad, SaladPortion, getSaladPortions, getSaladNumericPrice } from '@/lib/salads';
 import { SaladStickyBar } from '@/components/SaladStickyBar';
 import { SaladIndiaHeader } from '@/components/SaladIndiaHeader';
 import { SaladHeroSection } from '@/components/SaladHeroSection';
@@ -36,9 +36,9 @@ export default function SaladIndiaHome() {
   // Site dynamic content settings & categories managed by admin
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
 
-  // Salads list state - pre-populated with DEFAULT_SALADS for instant zero-latency load
-  const [salads, setSalads] = useState<Salad[]>(DEFAULT_SALADS);
-  const [isLoadingSalads, setIsLoadingSalads] = useState<boolean>(false);
+  // Salads list state - only admin uploaded salads
+  const [salads, setSalads] = useState<Salad[]>([]);
+  const [isLoadingSalads, setIsLoadingSalads] = useState<boolean>(true);
 
   // Cart state: map of saladId -> quantity
   const [cartQuantities, setCartQuantities] = useState<CartMap>({});
@@ -126,16 +126,17 @@ export default function SaladIndiaHome() {
         const res = await fetch('/api/salads');
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            setSalads(data);
+          if (Array.isArray(data)) {
+            const realSalads = data.filter((s: any) => !String(s.id || '').startsWith('fallback-') && !String(s._id || '').startsWith('fallback-'));
+            setSalads(realSalads);
           } else {
-            setSalads(DEFAULT_SALADS);
+            setSalads([]);
           }
         } else {
-          setSalads(DEFAULT_SALADS);
+          setSalads([]);
         }
       } catch (err) {
-        setSalads(DEFAULT_SALADS);
+        setSalads([]);
       } finally {
         setIsLoadingSalads(false);
       }
