@@ -118,6 +118,10 @@ export interface SiteSettings {
   noticeType: 'announcement' | 'info' | 'alert' | 'discount';
   closedMessage: string;
 
+  // Full-width Cinematic Table Hero Video / GIF
+  tableVideoUrl?: string;
+  tableVideoPoster?: string;
+
   // "Get more from your lunch and dinner" - How To Order Section
   howToOrderBadge?: string;
   howToOrderHeading?: string;
@@ -131,6 +135,26 @@ export interface SiteSettings {
   howToOrderHighlight3?: string;
   howToOrderBtnText?: string;
   howToOrderBtnLink?: string;
+
+  // Greesal Daily & Monthly Subscriptions
+  subscriptionModalBadge?: string;
+  subscriptionModalTitle?: string;
+  subscriptionModalSubtitle?: string;
+  subscriptionPlans?: SubscriptionPlan[];
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  duration: string;
+  daysCount?: number;
+  pricePerSalad: number;
+  totalPrice: number;
+  saving: string;
+  badge: string;
+  description?: string;
+  isActive?: boolean;
+  isPopular?: boolean;
 }
 
 export const DEFAULT_CATEGORIES: SiteCategory[] = [
@@ -140,6 +164,35 @@ export const DEFAULT_CATEGORIES: SiteCategory[] = [
   { id: 'Paneer Salad', label: 'Paneer Salad', count: '05 paneer punch', icon: '' },
   { id: 'Exotic Salad', label: 'Exotic Salad', count: '06 exotic salad', icon: '' },
   { id: 'Rice Bowl', label: 'Rice Bowl', count: '03 hot rice bowls', icon: '' },
+];
+
+export const DEFAULT_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
+  {
+    id: 'weekly',
+    name: 'Weekly Salad Plan',
+    duration: '6 Days (Mon - Sat)',
+    daysCount: 6,
+    pricePerSalad: 200,
+    totalPrice: 1200,
+    saving: 'Standard Plan',
+    badge: 'Flexible Routine',
+    description: 'Perfect for building a daily clean eating habit with fresh bowls.',
+    isActive: true,
+    isPopular: false,
+  },
+  {
+    id: 'monthly',
+    name: 'Monthly Salad Plan',
+    duration: '24 Days (4 Weeks)',
+    daysCount: 24,
+    pricePerSalad: 175,
+    totalPrice: 4200,
+    saving: 'Save ₹600 (₹25 OFF per salad)',
+    badge: 'Best Value • Most Popular',
+    description: 'Our #1 subscriber favorite. 21+ rotating daily varieties with VIP free delivery.',
+    isActive: true,
+    isPopular: true,
+  },
 ];
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -268,6 +321,10 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   noticeType: 'announcement',
   closedMessage: 'Our kitchen is currently closed. Opening again at 08:00 AM. Pre-orders are welcome!',
 
+  // Full-width Cinematic Table Hero Video / GIF
+  tableVideoUrl: '/videos/hero-table-salad.mp4',
+  tableVideoPoster: '',
+
   // "Get more from your lunch and dinner" - How To Order Section
   howToOrderBadge: 'How We Craft Your Salad',
   howToOrderHeading: 'Get more from your lunch and dinner.',
@@ -281,4 +338,10 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   howToOrderHighlight3: '✨ Free Delivery in Surat',
   howToOrderBtnText: 'Order Fresh Salad Now',
   howToOrderBtnLink: '/salads',
+
+  // Greesal Daily & Monthly Subscriptions
+  subscriptionModalBadge: 'Farm-Fresh Organic Salad Bowls',
+  subscriptionModalTitle: 'Greesal Subscriptions',
+  subscriptionModalSubtitle: 'Daily rotation of 21+ varieties • 100% handmade dressings • Free delivery in Surat',
+  subscriptionPlans: DEFAULT_SUBSCRIPTION_PLANS,
 };

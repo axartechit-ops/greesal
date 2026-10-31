@@ -8,6 +8,8 @@ interface SaladProjectHeroProps {
   onExploreMenu?: () => void;
   onSubscribeClick?: () => void;
   cityName?: string;
+  tableVideoUrl?: string;
+  tableVideoPoster?: string;
   howToOrderBadge?: string;
   howToOrderHeading?: string;
   howToOrderCardNumber?: string;
@@ -26,6 +28,8 @@ export const SaladProjectHero: React.FC<SaladProjectHeroProps> = ({
   onExploreMenu,
   onSubscribeClick,
   cityName = 'Surat',
+  tableVideoUrl = '/videos/hero-table-salad.mp4',
+  tableVideoPoster = '',
   howToOrderBadge = 'How We Craft Your Salad',
   howToOrderHeading = 'Get more from your lunch and dinner.',
   howToOrderCardNumber = '01',
@@ -196,21 +200,29 @@ export const SaladProjectHero: React.FC<SaladProjectHeroProps> = ({
       <section className="relative w-full p-3 sm:p-6 md:p-8 bg-[#F1ECDE]">
         <div className="relative w-full h-[70vh] sm:h-[80vh] min-h-[500px] max-h-[780px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl bg-black">
           
-          {/* Flatlay Table Video from Salad Project */}
-          <video
-            ref={secondVideoRef}
-            autoPlay
-            muted={isSecondVideoMuted}
-            loop
-            playsInline
-            poster="https://www.saladproject.co.uk/cdn/shop/files/preview_images/bec2d7b520d34e448f8c3127933c7db2.thumbnail.0000000000.jpg?v=1785165919&width=2400"
-            className="w-full h-full object-cover object-center"
-          >
-            <source
-              src="https://www.saladproject.co.uk/cdn/shop/videos/c/vp/bec2d7b520d34e448f8c3127933c7db2/bec2d7b520d34e448f8c3127933c7db2.HD-1080p-7.2Mbps-90024182.mp4?v=0"
-              type="video/mp4"
+          {/* Flatlay Table Video / GIF */}
+          {isGifOrImage(tableVideoUrl) ? (
+            <img
+              src={tableVideoUrl}
+              alt="Fresh Gourmet Salad Table at Greesal Kitchen"
+              className="w-full h-full object-cover object-center"
             />
-          </video>
+          ) : (
+            <video
+              ref={secondVideoRef}
+              autoPlay
+              muted={isSecondVideoMuted}
+              loop
+              playsInline
+              poster={tableVideoPoster || undefined}
+              className="w-full h-full object-cover object-center"
+            >
+              <source
+                src={tableVideoUrl}
+                type="video/mp4"
+              />
+            </video>
+          )}
 
           {/* Dark Cinematic Tint for Text Contrast */}
           <div className="absolute inset-0 bg-black/35 backdrop-brightness-95 pointer-events-none" />

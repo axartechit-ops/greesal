@@ -336,6 +336,8 @@ export default function SaladIndiaHome() {
           onExploreMenu={navigateToSalads}
           onSubscribeClick={() => setIsSubscriptionModalOpen(true)}
           cityName="Surat"
+          tableVideoUrl={siteSettings.tableVideoUrl}
+          tableVideoPoster={siteSettings.tableVideoPoster}
           howToOrderBadge={siteSettings.howToOrderBadge}
           howToOrderHeading={siteSettings.howToOrderHeading}
           howToOrderCardNumber={siteSettings.howToOrderCardNumber}
@@ -450,6 +452,10 @@ export default function SaladIndiaHome() {
       <SubscriptionModal
         isOpen={isSubscriptionModalOpen}
         onClose={() => setIsSubscriptionModalOpen(false)}
+        plans={siteSettings.subscriptionPlans}
+        modalBadge={siteSettings.subscriptionModalBadge}
+        modalTitle={siteSettings.subscriptionModalTitle}
+        modalSubtitle={siteSettings.subscriptionModalSubtitle}
       />
 
       <EventCateringModal

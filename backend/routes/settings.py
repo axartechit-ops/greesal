@@ -166,7 +166,40 @@ DEFAULT_SITE_SETTINGS: Dict[str, Any] = {
     "howToOrderHighlight2": "🥗 100% Satvik • No Onion Garlic",
     "howToOrderHighlight3": "✨ Free Delivery in Surat",
     "howToOrderBtnText": "Order Fresh Salad Now",
-    "howToOrderBtnLink": "/salads"
+    "howToOrderBtnLink": "/salads",
+
+    # Greesal Daily & Monthly Subscriptions
+    "subscriptionModalBadge": "Farm-Fresh Organic Salad Bowls",
+    "subscriptionModalTitle": "Greesal Subscriptions",
+    "subscriptionModalSubtitle": "Daily rotation of 21+ varieties • 100% handmade dressings • Free delivery in Surat",
+    "subscriptionPlans": [
+        {
+            "id": "weekly",
+            "name": "Weekly Salad Plan",
+            "duration": "6 Days (Mon - Sat)",
+            "daysCount": 6,
+            "pricePerSalad": 200,
+            "totalPrice": 1200,
+            "saving": "Standard Plan",
+            "badge": "Flexible Routine",
+            "description": "Perfect for building a daily clean eating habit with fresh bowls.",
+            "isActive": True,
+            "isPopular": False,
+        },
+        {
+            "id": "monthly",
+            "name": "Monthly Salad Plan",
+            "duration": "24 Days (4 Weeks)",
+            "daysCount": 24,
+            "pricePerSalad": 175,
+            "totalPrice": 4200,
+            "saving": "Save ₹600 (₹25 OFF per salad)",
+            "badge": "Best Value • Most Popular",
+            "description": "Our #1 subscriber favorite. 21+ rotating daily varieties with VIP free delivery.",
+            "isActive": True,
+            "isPopular": True,
+        },
+    ],
 }
 
 def sanitize_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
@@ -301,6 +334,8 @@ async def update_settings(request: Request):
         updated_data["differenceCards"] = existing_settings.get("differenceCards", DEFAULT_SITE_SETTINGS["differenceCards"])
     if "servicesCards" not in body or not isinstance(body["servicesCards"], list):
         updated_data["servicesCards"] = existing_settings.get("servicesCards", DEFAULT_SITE_SETTINGS["servicesCards"])
+    if "subscriptionPlans" not in body or not isinstance(body["subscriptionPlans"], list):
+        updated_data["subscriptionPlans"] = existing_settings.get("subscriptionPlans", DEFAULT_SITE_SETTINGS.get("subscriptionPlans", []))
 
     if "_id" in updated_data:
         del updated_data["_id"]

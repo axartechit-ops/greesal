@@ -9,6 +9,7 @@ import { sendOrderToWhatsApp } from '@/lib/whatsapp';
 import { AdminCategoriesTab } from '@/components/admin/AdminCategoriesTab';
 import { AdminSiteTextsTab } from '@/components/admin/AdminSiteTextsTab';
 import { AdminReviewsTab } from '@/components/admin/AdminReviewsTab';
+import { AdminSubscriptionsTab } from '@/components/admin/AdminSubscriptionsTab';
 import { AdminSliderTab } from '@/components/admin/AdminSliderTab';
 import { SiteCategory, SiteSettings, DEFAULT_CATEGORIES, DEFAULT_SITE_SETTINGS } from '@/lib/siteSettings';
 import { SaladPortion, getSaladPortions, getSaladPriceForPortion, DEFAULT_SALADS } from '@/lib/salads';
@@ -156,7 +157,7 @@ export default function AdminPage() {
   const [adminUser, setAdminUser] = useState<{ username: string } | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'salads' | 'slider' | 'timing' | 'banner' | 'categories' | 'siteTexts' | 'reviews'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'salads' | 'subscriptions' | 'slider' | 'timing' | 'banner' | 'categories' | 'siteTexts' | 'reviews'>('orders');
   const [formTab, setFormTab] = useState<'general' | 'portions' | 'ingredients' | 'benefits' | 'nutrition' | 'addons'>('general');
   
   // Custom gram size / portions editor states in salad form
@@ -1269,6 +1270,17 @@ export default function AdminPage() {
           >
             <Utensils className="w-4 h-4" />
             <span>Manage Salads ({salads.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('subscriptions')}
+            className={`pb-4 px-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+              activeTab === 'subscriptions'
+                ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
+                : 'text-gray-500 hover:text-[#123B2B]'
+            }`}
+          >
+            <Calendar className="w-4 h-4 text-emerald-600" />
+            <span>Subscriptions ({fullSiteSettings.subscriptionPlans?.length ?? 2})</span>
           </button>
           <button
             onClick={() => setActiveTab('slider')}
@@ -4568,6 +4580,12 @@ export default function AdminPage() {
             categories={categoriesState}
             salads={salads}
             onSaveCategories={handleSaveCategories}
+            isSaving={isActionLoading}
+          />
+        ) : activeTab === 'subscriptions' ? (
+          <AdminSubscriptionsTab
+            settings={fullSiteSettings}
+            onSaveSettings={handleSaveSiteTexts}
             isSaving={isActionLoading}
           />
         ) : activeTab === 'siteTexts' ? (

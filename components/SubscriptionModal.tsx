@@ -1,20 +1,78 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Check, Sparkles, Phone, MapPin, Navigation, Loader2, CheckCircle2 } from 'lucide-react';
 import { GoogleMapPickerModal } from './GoogleMapPickerModal';
 import { OrderConfirmationModal, ConfirmedOrderData } from './OrderConfirmationModal';
+import { SubscriptionPlan, DEFAULT_SUBSCRIPTION_PLANS } from '@/lib/siteSettings';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  defaultPlan?: 'weekly' | 'monthly';
+  defaultPlan?: string;
+  plans?: SubscriptionPlan[];
+  modalBadge?: string;
+  modalTitle?: string;
+  modalSubtitle?: string;
 }
 
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   isOpen,
   onClose,
   defaultPlan = 'weekly',
+  plans,
+  modalBadge,
+  modalTitle,
+  modalSubtitle,
 }) => {
-  const [selectedPlan, setSelectedPlan] = useState<'weekly' | 'monthly'>(defaultPlan);
+  const [loadedPlans, setLoadedPlans] = useState<SubscriptionPlan[]>(plans || DEFAULT_SUBSCRIPTION_PLANS);
+  const [badgeText, setBadgeText] = useState(modalBadge || 'Farm-Fresh Organic Salad Bowls');
+  const [titleText, setTitleText] = useState(modalTitle || 'Greesal Subscriptions');
+  const [subtitleText, setSubtitleText] = useState(
+    modalSubtitle || 'Daily rotation of 21+ varieties • 100% handmade dressings • Free delivery in Surat'
+  );
+
+  useEffect(() => {
+    if (plans && plans.length > 0) {
+      setLoadedPlans(plans);
+    }
+  }, [plans]);
+
+  useEffect(() => {
+    if (modalBadge) setBadgeText(modalBadge);
+    if (modalTitle) setTitleText(modalTitle);
+    if (modalSubtitle) setSubtitleText(modalSubtitle);
+  }, [modalBadge, modalTitle, modalSubtitle]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch('/api/settings')
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data.subscriptionPlans) && data.subscriptionPlans.length > 0) {
+            setLoadedPlans(data.subscriptionPlans);
+          }
+          if (data.subscriptionModalBadge) setBadgeText(data.subscriptionModalBadge);
+          if (data.subscriptionModalTitle) setTitleText(data.subscriptionModalTitle);
+          if (data.subscriptionModalSubtitle) setSubtitleText(data.subscriptionModalSubtitle);
+        })
+        .catch(() => {});
+    }
+  }, [isOpen]);
+
+  const activePlans = loadedPlans.filter((p) => p.isActive !== false);
+  const plansList = activePlans.length > 0 ? activePlans : DEFAULT_SUBSCRIPTION_PLANS;
+
+  const [selectedPlanId, setSelectedPlanId] = useState<string>(() => {
+    return defaultPlan || plansList.find((p) => p.isPopular)?.id || plansList[0]?.id || 'weekly';
+  });
+
+  useEffect(() => {
+    if (!plansList.some((p) => p.id === selectedPlanId)) {
+      setSelectedPlanId(plansList.find((p) => p.isPopular)?.id || plansList[0]?.id || 'weekly');
+    }
+  }, [plansList, selectedPlanId]);
+
+  const activePlan = plansList.find((p) => p.id === selectedPlanId) || plansList[0];
+
   const [deliverySlot, setDeliverySlot] = useState<'lunch' | 'evening' | 'pickup'>('lunch');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -116,26 +174,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     setLocationSuccessMsg(`📍 Area Set to ${area}, Surat`);
   };
 
-  const planDetails = {
-    weekly: {
-      name: 'Weekly Salad Plan',
-      duration: '6 Days (Mon - Sat)',
-      pricePerSalad: 200,
-      totalPrice: 1200,
-      saving: 'Standard Plan',
-      badge: 'Flexible Routine',
-    },
-    monthly: {
-      name: 'Monthly Salad Plan',
-      duration: '24 Days (4 Weeks)',
-      pricePerSalad: 175,
-      totalPrice: 4200,
-      saving: 'Save ₹600 (₹25 OFF per salad)',
-      badge: 'Best Value • Most Popular',
-    },
-  };
 
-  const activePlan = planDetails[selectedPlan];
 
   const handleBookOnWhatsApp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,58 +300,54 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
             {/* Modal Header */}
             <div className="mb-6">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#fbce45] text-[#20493c] text-xs font-bold uppercase tracking-wider mb-2">
-                <Sparkles className="w-3.5 h-3.5" /> Farm-Fresh Organic Salad Bowls
+                <Sparkles className="w-3.5 h-3.5" /> {badgeText}
               </span>
               <h3 className="font-montserrat font-extrabold text-2xl sm:text-3xl text-[#20493c]">
-                Greesal Subscriptions
+                {titleText}
               </h3>
               <p className="text-xs sm:text-sm text-[#20493c]/80 mt-1">
-                Daily rotation of 21+ varieties • 100% handmade dressings • Free delivery in Surat
+                {subtitleText}
               </p>
             </div>
 
-            {/* Plan Selector Buttons */}
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <button
-                type="button"
-                onClick={() => setSelectedPlan('weekly')}
-                className={`p-4 rounded-2xl border-2 text-left transition-all ${
-                  selectedPlan === 'weekly'
-                    ? 'border-[#20493c] bg-[#e8f7f2] shadow-sm'
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-[#6ac6ac] uppercase">Weekly</span>
-                  {selectedPlan === 'weekly' && <Check className="w-4 h-4 text-[#20493c]" />}
-                </div>
-                <div className="font-montserrat font-black text-2xl text-[#20493c]">
-                  ₹200<span className="text-xs font-normal text-[#20493c]/70">/salad</span>
-                </div>
-                <p className="text-xs text-[#20493c]/80 font-medium mt-1">6 Days • Total ₹1,200</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedPlan('monthly')}
-                className={`p-4 rounded-2xl border-2 text-left relative transition-all ${
-                  selectedPlan === 'monthly'
-                    ? 'border-[#20493c] bg-[#e8f7f2] shadow-sm'
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
-                }`}
-              >
-                <span className="absolute -top-2.5 right-3 bg-[#fbce45] text-[#20493c] text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
-                  Save ₹25/day
-                </span>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-[#20493c] uppercase">Monthly</span>
-                  {selectedPlan === 'monthly' && <Check className="w-4 h-4 text-[#20493c]" />}
-                </div>
-                <div className="font-montserrat font-black text-2xl text-[#20493c]">
-                  ₹175<span className="text-xs font-normal text-[#20493c]/70">/salad</span>
-                </div>
-                <p className="text-xs text-[#20493c]/80 font-medium mt-1">24 Days • Total ₹4,200</p>
-              </button>
+            {/* Dynamic Plan Selector Buttons */}
+            <div className={`grid gap-3 mb-6 ${plansList.length === 1 ? 'grid-cols-1' : plansList.length === 2 ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3'}`}>
+              {plansList.map((plan) => {
+                const isSelected = selectedPlanId === plan.id;
+                return (
+                  <button
+                    key={plan.id}
+                    type="button"
+                    onClick={() => setSelectedPlanId(plan.id)}
+                    className={`p-4 rounded-2xl border-2 text-left relative transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-[#20493c] bg-[#e8f7f2] shadow-sm'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
+                  >
+                    {(plan.badge || plan.saving) && (
+                      <span className="absolute -top-2.5 right-3 bg-[#fbce45] text-[#20493c] text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
+                        {plan.badge || plan.saving}
+                      </span>
+                    )}
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold text-[#20493c] uppercase">{plan.name}</span>
+                      {isSelected && <Check className="w-4 h-4 text-[#20493c]" />}
+                    </div>
+                    <div className="font-montserrat font-black text-2xl text-[#20493c]">
+                      ₹{plan.pricePerSalad}<span className="text-xs font-normal text-[#20493c]/70">/salad</span>
+                    </div>
+                    <p className="text-xs text-[#20493c]/80 font-medium mt-1">
+                      {plan.duration} • Total ₹{plan.totalPrice.toLocaleString('en-IN')}
+                    </p>
+                    {plan.saving && plan.saving !== 'Standard Plan' && (
+                      <p className="text-[10px] text-emerald-700 font-bold mt-0.5">
+                        {plan.saving}
+                      </p>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Form */}

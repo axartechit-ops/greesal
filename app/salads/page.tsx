@@ -354,6 +354,10 @@ export default function SaladsPage() {
       <SubscriptionModal
         isOpen={isSubscriptionModalOpen}
         onClose={() => setIsSubscriptionModalOpen(false)}
+        plans={siteSettings.subscriptionPlans}
+        modalBadge={siteSettings.subscriptionModalBadge}
+        modalTitle={siteSettings.subscriptionModalTitle}
+        modalSubtitle={siteSettings.subscriptionModalSubtitle}
       />
 
       {/* Event Catering Modal */}
