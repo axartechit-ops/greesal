@@ -1099,8 +1099,11 @@ export default function AdminPage() {
       const url = editingSaladId 
         ? `/api/admin/salads/${editingSaladId}` 
         : '/api/admin/salads';
+      const defaultPortion = (currentSalad.portions || []).find(p => p.isDefault) || (currentSalad.portions || [])[0];
+      const autoPrice = defaultPortion ? `₹${defaultPortion.price}` : (currentSalad.price || '₹240');
       const payload = { 
         ...currentSalad,
+        price: autoPrice,
         dressing: currentSalad.dressing || [],
         crunch: currentSalad.crunch || []
       };
@@ -4460,10 +4463,18 @@ export default function AdminPage() {
                             {salad.name}
                           </h3>
                           <div className="flex flex-wrap gap-2 text-xs text-greesal-muted font-semibold mt-1 items-center">
-                            <span>{salad.calories}</span>
-                            <span>•</span>
-                            <span>{salad.protein}</span>
-                            <span>•</span>
+                            {salad.calories && (
+                              <>
+                                <span>{salad.calories}</span>
+                                <span>•</span>
+                              </>
+                            )}
+                            {salad.protein && (
+                              <>
+                                <span>{salad.protein}</span>
+                                <span>•</span>
+                              </>
+                            )}
                             <span className="text-[#123B2B] font-extrabold">{salad.price}</span>
                             <span>•</span>
                             <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
@@ -4492,27 +4503,7 @@ export default function AdminPage() {
                       </div>
 
                       <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleSaladInSlider(salad)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
-                            (fullSiteSettings.topSliderSaladIds || []).some(
-                              (id) => id === salad._id || id === salad.id || id === salad.slug || id === salad.name
-                            )
-                              ? 'bg-[#56aa52] text-white border-[#56aa52] shadow-xs'
-                              : 'bg-gray-50 hover:bg-[#56aa52]/10 text-gray-600 border-gray-200'
-                          }`}
-                          title="Toggle display in Top Home Slider"
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>
-                            {(fullSiteSettings.topSliderSaladIds || []).some(
-                              (id) => id === salad._id || id === salad.id || id === salad.slug || id === salad.name
-                            )
-                              ? 'In Top Slider'
-                              : '+ Add to Slider'}
-                          </span>
-                        </button>
+
                         <button
                           type="button"
                           onClick={() => handleOpenEditModal(salad)}
@@ -4741,51 +4732,36 @@ export default function AdminPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-[#123B2B] block">
-                        Calories
+                        Calories <span className="text-gray-400 font-normal">(Optional)</span>
                       </label>
                       <input
                         type="text"
                         value={currentSalad.calories}
                         onChange={(e) => setCurrentSalad({ ...currentSalad, calories: e.target.value })}
-                        placeholder="e.g. 367 Kcal"
-                        required
+                        placeholder="e.g. 367 Kcal (Optional)"
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#123B2B]/40 focus:border-[#123B2B]"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-[#123B2B] block">
-                        Protein
+                        Protein <span className="text-gray-400 font-normal">(Optional)</span>
                       </label>
                       <input
                         type="text"
                         value={currentSalad.protein}
                         onChange={(e) => setCurrentSalad({ ...currentSalad, protein: e.target.value })}
-                        placeholder="e.g. 13g Protein"
-                        required
+                        placeholder="e.g. 13g Protein (Optional)"
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#123B2B]/40 focus:border-[#123B2B]"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
+                  {/* Category (Added by Admin) */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-[#123B2B] block">
-                        Price
+                        Category (Added by Admin) *
                       </label>
-                      <input
-                        type="text"
-                        value={currentSalad.price}
-                        onChange={(e) => setCurrentSalad({ ...currentSalad, price: e.target.value })}
-                        placeholder="e.g. ₹369"
-                        required
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#123B2B]/40 focus:border-[#123B2B]"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-[#123B2B] block">
-                          Category (Added by Admin) *
-                        </label>
                         <button
                           type="button"
                           onClick={() => setIsQuickAddCatOpen(!isQuickAddCatOpen)}
@@ -4856,7 +4832,6 @@ export default function AdminPage() {
                             </option>
                           )}
                       </select>
-                    </div>
                   </div>
 
                   {/* Salad Image Selection & Upload */}
@@ -5035,8 +5010,17 @@ export default function AdminPage() {
                         <span>Gram-Based Portion Sizes &amp; Prices</span>
                       </p>
                       <p className="text-[11px] text-gray-600 leading-relaxed">
-                        Configure different bowl weights in grams (e.g. 250g, 350g, 500g, or custom) with different prices. These options will be shown across all customer salad pages and update the price instantly!
+                        Configure different bowl weights in grams (e.g. 200g, 300g, 500g, or custom) with different prices. These options determine the salad price across customer pages!
                       </p>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#237357]/30 text-xs font-bold text-[#123B2B] shadow-2xs">
+                      <span className="text-gray-500 font-medium">Default Price:</span>
+                      <span className="text-emerald-700 font-black text-sm">
+                        {(() => {
+                          const defP = (currentSalad.portions || []).find(p => p.isDefault) || (currentSalad.portions || [])[0];
+                          return defP ? `₹${defP.price}` : (currentSalad.price || '₹0');
+                        })()}
+                      </span>
                     </div>
                     <button
                       type="button"

@@ -773,22 +773,30 @@ export default function SaladDetailPage() {
                 </button>
 
                 {/* Live Macro Nutrition Overlay */}
-                <div className="absolute bottom-4 left-4 right-4 bg-[#081F17]/85 backdrop-blur-md rounded-2xl p-3 sm:p-3.5 flex items-center justify-around text-white border border-white/15 shadow-xl">
-                  <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-amber-300">
-                    <Flame className="w-4 h-4 text-[#C89D4B]" />
-                    <span>{salad.calories}</span>
+                {(salad.calories || salad.protein || salad.nutrition?.fiber) && (
+                  <div className="absolute bottom-4 left-4 right-4 bg-[#081F17]/85 backdrop-blur-md rounded-2xl p-3 sm:p-3.5 flex items-center justify-around text-white border border-white/15 shadow-xl">
+                    {salad.calories ? (
+                      <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-amber-300">
+                        <Flame className="w-4 h-4 text-[#C89D4B]" />
+                        <span>{salad.calories}</span>
+                      </div>
+                    ) : null}
+                    {salad.calories && salad.protein ? <div className="h-4 w-px bg-white/20" /> : null}
+                    {salad.protein ? (
+                      <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-emerald-300">
+                        <Activity className="w-4 h-4" />
+                        <span>{salad.protein}</span>
+                      </div>
+                    ) : null}
+                    {(salad.calories || salad.protein) && salad.nutrition?.fiber ? <div className="h-4 w-px bg-white/20" /> : null}
+                    {salad.nutrition?.fiber ? (
+                      <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-cyan-200">
+                        <Leaf className="w-4 h-4" />
+                        <span>{salad.nutrition.fiber} Fiber</span>
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="h-4 w-px bg-white/20" />
-                  <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-emerald-300">
-                    <Activity className="w-4 h-4" />
-                    <span>{salad.protein}</span>
-                  </div>
-                  <div className="h-4 w-px bg-white/20" />
-                  <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-cyan-200">
-                    <Leaf className="w-4 h-4" />
-                    <span>{salad.nutrition?.fiber || '11g'} Fiber</span>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Freeze Dried Seal Callout */}
@@ -1248,7 +1256,7 @@ export default function SaladDetailPage() {
 
               <div className="flex justify-between items-end border-b-8 border-black py-1">
                 <span className="font-black text-2xl leading-none">Calories</span>
-                <span className="font-black text-3xl leading-none">{salad.calories.replace(/\D/g, '')}</span>
+                <span className="font-black text-3xl leading-none">{(salad.calories || '0').replace(/\D/g, '') || '0'}</span>
               </div>
 
               <div className="text-right text-[10px] font-bold border-b border-black py-1 uppercase">
@@ -1260,7 +1268,7 @@ export default function SaladDetailPage() {
                 <div className="border-b border-gray-200 py-1 flex justify-between">
                   <span><strong className="font-bold">Protein</strong> {salad.protein}</span>
                   <span className="font-bold">
-                    {Math.round(parseInt(salad.protein) * 2)}%
+                    {Math.round(parseInt(salad.protein || '0') * 2)}%
                   </span>
                 </div>
                 {hasNutrition && salad.nutrition ? (
