@@ -441,16 +441,16 @@ export default function AdminPage() {
         if (settingsData.heroStoryP4) setBannerStoryP4(settingsData.heroStoryP4);
 
         if (settingsData.heroImage) {
-          const img = settingsData.heroImage.includes('photo-1540420773420-3366772f4999')
-            ? '/images/salad_bowl_hero.jpg'
-            : settingsData.heroImage;
-          setBannerImage(img);
-          if (img.startsWith('data:')) {
-            setBannerImageSourceType('file');
-          } else {
-            setBannerImageSourceType('url');
+            const img = settingsData.heroImage.includes('photo-1540420773420-3366772f4999')
+              ? '/images/salad_bowl_hero.jpg'
+              : settingsData.heroImage;
+            setBannerImage(img);
+            if (img.startsWith('data:')) {
+              setBannerImageSourceType('file');
+            } else {
+              setBannerImageSourceType('url');
+            }
           }
-        }
 
           if (settingsData.heroPill1) setBannerPill1(settingsData.heroPill1);
           else if (settingsData.pill1Text) setBannerPill1(settingsData.pill1Text);
@@ -1259,8 +1259,8 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveTab('orders')}
               className={`pb-4 px-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'orders'
-                  ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
-                  : 'text-gray-500 hover:text-[#123B2B]'
+                ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
+                : 'text-gray-500 hover:text-[#123B2B]'
                 }`}
             >
               <PackageCheck className="w-4 h-4" />
@@ -1269,8 +1269,8 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveTab('salads')}
               className={`pb-4 px-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'salads'
-                  ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
-                  : 'text-gray-500 hover:text-[#123B2B]'
+                ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
+                : 'text-gray-500 hover:text-[#123B2B]'
                 }`}
             >
               <Utensils className="w-4 h-4" />
@@ -1279,8 +1279,8 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveTab('subscriptions')}
               className={`pb-4 px-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'subscriptions'
-                  ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
-                  : 'text-gray-500 hover:text-[#123B2B]'
+                ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
+                : 'text-gray-500 hover:text-[#123B2B]'
                 }`}
             >
               <Calendar className="w-4 h-4 text-emerald-600" />
@@ -1289,8 +1289,8 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveTab('slider')}
               className={`pb-4 px-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'slider'
-                  ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
-                  : 'text-gray-500 hover:text-[#123B2B]'
+                ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
+                : 'text-gray-500 hover:text-[#123B2B]'
                 }`}
             >
               <Sparkles className="w-4 h-4 text-[#56aa52]" />
@@ -1299,8 +1299,8 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveTab('timing')}
               className={`pb-4 px-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'timing'
-                  ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
-                  : 'text-gray-500 hover:text-[#123B2B]'
+                ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
+                : 'text-gray-500 hover:text-[#123B2B]'
                 }`}
             >
               <Clock className="w-4 h-4 text-emerald-600" />
@@ -1310,8 +1310,8 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveTab('banner')}
               className={`pb-4 px-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'banner'
-                  ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
-                  : 'text-gray-500 hover:text-[#123B2B]'
+                ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
+                : 'text-gray-500 hover:text-[#123B2B]'
                 }`}
             >
               <Settings className="w-4 h-4" />
@@ -1320,8 +1320,8 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveTab('categories')}
               className={`pb-4 px-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'categories'
-                  ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
-                  : 'text-gray-500 hover:text-[#123B2B]'
+                ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
+                : 'text-gray-500 hover:text-[#123B2B]'
                 }`}
             >
               <FolderTree className="w-4 h-4 text-emerald-600" />
@@ -1330,8 +1330,8 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveTab('siteTexts')}
               className={`pb-4 px-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'siteTexts'
-                  ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
-                  : 'text-gray-500 hover:text-[#123B2B]'
+                ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
+                : 'text-gray-500 hover:text-[#123B2B]'
                 }`}
             >
               <FileText className="w-4 h-4 text-emerald-600" />
@@ -1340,8 +1340,8 @@ export default function AdminPage() {
             <button
               onClick={() => setActiveTab('reviews')}
               className={`pb-4 px-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'reviews'
-                  ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
-                  : 'text-gray-500 hover:text-[#123B2B]'
+                ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
+                : 'text-gray-500 hover:text-[#123B2B]'
                 }`}
             >
               <Star className="w-4 h-4 text-[#fbce45] fill-[#fbce45]" />
@@ -1463,8 +1463,8 @@ export default function AdminPage() {
                       <button
                         onClick={() => setOrderViewLayout('table')}
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderViewLayout === 'table'
-                            ? 'bg-[#123B2B] text-white shadow-2xs'
-                            : 'text-gray-600 hover:text-greesal-dark'
+                          ? 'bg-[#123B2B] text-white shadow-2xs'
+                          : 'text-gray-600 hover:text-greesal-dark'
                           }`}
                         title="Compact Table View"
                       >
@@ -1474,8 +1474,8 @@ export default function AdminPage() {
                       <button
                         onClick={() => setOrderViewLayout('cards')}
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderViewLayout === 'cards'
-                            ? 'bg-[#123B2B] text-white shadow-2xs'
-                            : 'text-gray-600 hover:text-greesal-dark'
+                          ? 'bg-[#123B2B] text-white shadow-2xs'
+                          : 'text-gray-600 hover:text-greesal-dark'
                           }`}
                         title="Detailed Cards View"
                       >
@@ -1533,8 +1533,8 @@ export default function AdminPage() {
                             key={tab.key}
                             onClick={() => setOrderFilter(tab.key)}
                             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${isSelected
-                                ? 'bg-[#123B2B] text-white shadow-sm'
-                                : 'bg-[#FAF6F0] text-gray-600 border border-greesal-beige/80 hover:bg-gray-100'
+                              ? 'bg-[#123B2B] text-white shadow-sm'
+                              : 'bg-[#FAF6F0] text-gray-600 border border-greesal-beige/80 hover:bg-gray-100'
                               }`}
                           >
                             <span>{tab.label}</span>
@@ -1559,8 +1559,8 @@ export default function AdminPage() {
                         key={m.key}
                         onClick={() => setOrderAddressFilter(m.key as any)}
                         className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${orderAddressFilter === m.key
-                            ? 'bg-emerald-900 text-white shadow-2xs'
-                            : 'bg-[#FAF6F0] text-gray-600 border border-greesal-beige/80 hover:bg-gray-100'
+                          ? 'bg-emerald-900 text-white shadow-2xs'
+                          : 'bg-[#FAF6F0] text-gray-600 border border-greesal-beige/80 hover:bg-gray-100'
                           }`}
                       >
                         {m.label}
@@ -2318,10 +2318,10 @@ export default function AdminPage() {
                                         <div
                                           key={step.st}
                                           className={`py-1.5 px-2 rounded-xl text-center font-bold text-[10px] transition-all border ${isCurrent
-                                              ? 'bg-[#123B2B] text-white border-[#123B2B] shadow-2xs'
-                                              : isPassed
-                                                ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                                                : 'bg-white text-gray-400 border-gray-200'
+                                            ? 'bg-[#123B2B] text-white border-[#123B2B] shadow-2xs'
+                                            : isPassed
+                                              ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                              : 'bg-white text-gray-400 border-gray-200'
                                             }`}
                                         >
                                           <span className="truncate block">{step.label}</span>
@@ -2900,8 +2900,8 @@ export default function AdminPage() {
                                         <span
                                           key={iIdx}
                                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isOmitted
-                                              ? 'bg-red-50 border-2 border-red-300 text-red-600 line-through'
-                                              : 'bg-emerald-50/70 border border-emerald-200 text-emerald-950'
+                                            ? 'bg-red-50 border-2 border-red-300 text-red-600 line-through'
+                                            : 'bg-emerald-50/70 border border-emerald-200 text-emerald-950'
                                             }`}
                                         >
                                           {isOmitted ? (
@@ -3131,8 +3131,8 @@ export default function AdminPage() {
 
                   {/* 1. ONLINE STORE STATUS TOGGLE */}
                   <div className={`p-5 sm:p-6 rounded-3xl border transition-all text-left ${isOpen
-                      ? 'bg-emerald-50/60 border-emerald-200'
-                      : 'bg-red-50/60 border-red-200'
+                    ? 'bg-emerald-50/60 border-emerald-200'
+                    : 'bg-red-50/60 border-red-200'
                     }`}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="space-y-1">
@@ -3158,8 +3158,8 @@ export default function AdminPage() {
                         type="button"
                         onClick={() => setIsOpen(!isOpen)}
                         className={`px-5 py-3 rounded-2xl font-black text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer shadow-sm ${isOpen
-                            ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                            : 'bg-red-600 hover:bg-red-700 text-white'
+                          ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                          : 'bg-red-600 hover:bg-red-700 text-white'
                           }`}
                       >
                         {isOpen ? (
@@ -3334,8 +3334,8 @@ export default function AdminPage() {
                             type="button"
                             onClick={() => setNoticeType(th.id as any)}
                             className={`p-3 rounded-2xl text-left border-2 transition-all cursor-pointer ${noticeType === th.id
-                                ? 'border-[#123B2B] ring-2 ring-[#123B2B]/20 bg-white shadow-sm'
-                                : 'border-transparent bg-white/70 hover:bg-white'
+                              ? 'border-[#123B2B] ring-2 ring-[#123B2B]/20 bg-white shadow-sm'
+                              : 'border-transparent bg-white/70 hover:bg-white'
                               }`}
                           >
                             <p className="text-xs font-bold text-[#123B2B]">{th.label}</p>
@@ -3401,12 +3401,12 @@ export default function AdminPage() {
                         {/* Banner Mock */}
                         {showNotice && (
                           <div className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between shadow-xs ${noticeType === 'discount'
-                              ? 'bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 text-amber-50'
-                              : noticeType === 'alert'
-                                ? 'bg-gradient-to-r from-red-700 via-red-800 to-red-900 text-white'
-                                : noticeType === 'info'
-                                  ? 'bg-gradient-to-r from-sky-700 via-sky-800 to-sky-900 text-white'
-                                  : 'bg-gradient-to-r from-[#0C2A20] via-[#123B2B] to-[#1C533A] text-emerald-100'
+                            ? 'bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 text-amber-50'
+                            : noticeType === 'alert'
+                              ? 'bg-gradient-to-r from-red-700 via-red-800 to-red-900 text-white'
+                              : noticeType === 'info'
+                                ? 'bg-gradient-to-r from-sky-700 via-sky-800 to-sky-900 text-white'
+                                : 'bg-gradient-to-r from-[#0C2A20] via-[#123B2B] to-[#1C533A] text-emerald-100'
                             }`}>
                             <div className="flex items-center gap-2 truncate">
                               <span className="flex-shrink-0 text-xs">✨</span>
@@ -3426,8 +3426,8 @@ export default function AdminPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border ${isOpen
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                : 'bg-red-50 text-red-800 border-red-200'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : 'bg-red-50 text-red-800 border-red-200'
                               }`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
                               <span>{isOpen ? `${openingTime} – ${closingTime}` : 'Currently Closed'}</span>
@@ -3449,12 +3449,12 @@ export default function AdminPage() {
                         <div className="max-w-xs mx-auto bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs">
                           {showNotice && (
                             <div className={`px-2.5 py-1.5 text-[10px] font-bold flex items-center justify-between ${noticeType === 'discount'
-                                ? 'bg-amber-700 text-amber-50'
-                                : noticeType === 'alert'
-                                  ? 'bg-red-700 text-white'
-                                  : noticeType === 'info'
-                                    ? 'bg-sky-700 text-white'
-                                    : 'bg-[#123B2B] text-emerald-100'
+                              ? 'bg-amber-700 text-amber-50'
+                              : noticeType === 'alert'
+                                ? 'bg-red-700 text-white'
+                                : noticeType === 'info'
+                                  ? 'bg-sky-700 text-white'
+                                  : 'bg-[#123B2B] text-emerald-100'
                               }`}>
                               <span className="truncate">{notice}</span>
                               <span className="text-[9px] px-1.5 py-0.2 rounded bg-white/20 whitespace-nowrap ml-1">
@@ -3523,8 +3523,8 @@ export default function AdminPage() {
                         type="button"
                         onClick={() => setBannerPreviewDevice('desktop')}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${bannerPreviewDevice === 'desktop'
-                            ? 'bg-[#123B2B] text-white shadow-xs'
-                            : 'text-gray-600 hover:text-[#123B2B]'
+                          ? 'bg-[#123B2B] text-white shadow-xs'
+                          : 'text-gray-600 hover:text-[#123B2B]'
                           }`}
                         title="Preview in full desktop widescreen"
                       >
@@ -3535,8 +3535,8 @@ export default function AdminPage() {
                         type="button"
                         onClick={() => setBannerPreviewDevice('mobile')}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${bannerPreviewDevice === 'mobile'
-                            ? 'bg-[#123B2B] text-white shadow-xs'
-                            : 'text-gray-600 hover:text-[#123B2B]'
+                          ? 'bg-[#123B2B] text-white shadow-xs'
+                          : 'text-gray-600 hover:text-[#123B2B]'
                           }`}
                         title="Preview in customer smartphone view"
                       >
@@ -3621,8 +3621,8 @@ export default function AdminPage() {
                   <div className="bg-[#FAF6F0] p-4 sm:p-6 rounded-3xl border border-[#EBE2D3] flex justify-center overflow-hidden">
                     <div
                       className={`transition-all duration-300 ${bannerPreviewDevice === 'mobile'
-                          ? 'w-full max-w-[390px] bg-white rounded-[40px] border-8 border-gray-800 shadow-2xl p-4 overflow-hidden relative'
-                          : 'w-full bg-white rounded-3xl border border-gray-200 shadow-lg p-6 sm:p-8 relative overflow-hidden'
+                        ? 'w-full max-w-[390px] bg-white rounded-[40px] border-8 border-gray-800 shadow-2xl p-4 overflow-hidden relative'
+                        : 'w-full bg-white rounded-3xl border border-gray-200 shadow-lg p-6 sm:p-8 relative overflow-hidden'
                         }`}
                     >
                       {/* Top Leaf Border Bar Matching Logo Secondary Color */}
@@ -3657,8 +3657,8 @@ export default function AdminPage() {
                           <div className="relative w-full max-w-xs sm:max-w-sm">
                             <div className="relative rounded-3xl overflow-hidden shadow-xl border-4 border-white bg-gradient-to-b from-[#f2f8f5] to-[#e4f4ed] p-2 sm:p-3">
                               <img
-                                                                src={
-                                  bannerImage && !bannerImage.includes('photo-1540420773420-3366772f4999')
+                                  src = {
+                                    bannerImage && !bannerImage.includes('photo-1540420773420-3366772f4999')
                                     ? bannerImage
                                     : '/images/salad_bowl_hero.jpg'
                                 }
@@ -3837,8 +3837,8 @@ export default function AdminPage() {
                           type="button"
                           onClick={() => setBannerImageSourceType('file')}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${bannerImageSourceType === 'file'
-                              ? 'bg-[#123B2B] text-white shadow-2xs'
-                              : 'text-gray-500 hover:text-[#123B2B]'
+                            ? 'bg-[#123B2B] text-white shadow-2xs'
+                            : 'text-gray-500 hover:text-[#123B2B]'
                             }`}
                         >
                           <UploadCloud className="w-3.5 h-3.5" />
@@ -3848,8 +3848,8 @@ export default function AdminPage() {
                           type="button"
                           onClick={() => setBannerImageSourceType('url')}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${bannerImageSourceType === 'url'
-                              ? 'bg-[#123B2B] text-white shadow-2xs'
-                              : 'text-gray-500 hover:text-[#123B2B]'
+                            ? 'bg-[#123B2B] text-white shadow-2xs'
+                            : 'text-gray-500 hover:text-[#123B2B]'
                             }`}
                         >
                           <LinkIcon className="w-3.5 h-3.5" />
@@ -3890,8 +3890,8 @@ export default function AdminPage() {
                               setBannerImageSourceType('url');
                             }}
                             className={`p-2 rounded-2xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${bannerImage === preset.url
-                                ? 'bg-white border-[#20493c] ring-2 ring-[#20493c]/30 shadow-xs'
-                                : 'bg-white/80 hover:bg-white border-gray-200'
+                              ? 'bg-white border-[#20493c] ring-2 ring-[#20493c]/30 shadow-xs'
+                              : 'bg-white/80 hover:bg-white border-gray-200'
                               }`}
                           >
                             <img
@@ -4338,8 +4338,8 @@ export default function AdminPage() {
                   type="button"
                   onClick={() => setAdminSaladCategoryFilter('all')}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${adminSaladCategoryFilter === 'all'
-                      ? 'bg-[#123B2B] text-white border-[#123B2B] shadow-xs'
-                      : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                    ? 'bg-[#123B2B] text-white border-[#123B2B] shadow-xs'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
                     }`}
                 >
                   All Salads ({salads.length})
@@ -4356,8 +4356,8 @@ export default function AdminPage() {
                         type="button"
                         onClick={() => setAdminSaladCategoryFilter(cat.id)}
                         className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 whitespace-nowrap ${active
-                            ? 'bg-[#123B2B] text-white border-[#123B2B] shadow-xs'
-                            : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                          ? 'bg-[#123B2B] text-white border-[#123B2B] shadow-xs'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
                           }`}
                       >
                         <span>{cat.icon || '🥗'}</span>
@@ -4381,8 +4381,8 @@ export default function AdminPage() {
                     const catItem = categoriesState.find(
                       (c) =>
                         c.id !== 'all' &&
-                        (normalizeCategoryString(c.label) === normalizeCategoryString(salad.category || salad.tag) ||
-                         normalizeCategoryString(c.id) === normalizeCategoryString(salad.category || salad.tag))
+                      (normalizeCategoryString(c.label) === normalizeCategoryString(salad.category || salad.tag) ||
+                        normalizeCategoryString(c.id) === normalizeCategoryString(salad.category || salad.tag))
                     );
                     const displayCat = (!isGenericAllCategory(salad.category) && salad.category) || (!isGenericAllCategory(salad.tag) && salad.tag) || inferSaladCategory(salad);
 
@@ -4434,8 +4434,8 @@ export default function AdminPage() {
                                 <span
                                   key={p.grams}
                                   className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${p.isDefault
-                                      ? 'bg-[#123B2B] text-white border-[#123B2B]'
-                                      : 'bg-[#FAF6F0] text-[#123B2B] border-[#E8E1D5]'
+                                    ? 'bg-[#123B2B] text-white border-[#123B2B]'
+                                    : 'bg-[#FAF6F0] text-[#123B2B] border-[#E8E1D5]'
                                     }`}
                                 >
                                   <span>{p.grams}g:</span>
@@ -4475,17 +4475,17 @@ export default function AdminPage() {
                     <Utensils className="w-8 h-8 mb-2" />
                     <p className="text-sm font-semibold">No salad items found in database.</p>
                   </div>
-                ) : salads.filter((salad) => matchesSaladCategory(salad, adminSaladCategoryFilter, categoriesState)).length === 0 ? (
-                  <div className="h-40 flex flex-col items-center justify-center bg-white rounded-3xl border border-dashed border-gray-300 text-gray-400">
-                    <p className="text-sm font-semibold">No salads in this category.</p>
-                    <button
-                      type="button"
-                      onClick={() => setAdminSaladCategoryFilter('all')}
-                      className="mt-2 text-xs font-bold text-[#123B2B] hover:underline cursor-pointer"
-                    >
-                      View all salads ({salads.length})
-                    </button>
-                  </div>
+                ): salads.filter((salad) => matchesSaladCategory(salad, adminSaladCategoryFilter, categoriesState)).length === 0 ? (
+                <div className="h-40 flex flex-col items-center justify-center bg-white rounded-3xl border border-dashed border-gray-300 text-gray-400">
+                  <p className="text-sm font-semibold">No salads in this category.</p>
+                  <button
+                    type="button"
+                    onClick={() => setAdminSaladCategoryFilter('all')}
+                    className="mt-2 text-xs font-bold text-[#123B2B] hover:underline cursor-pointer"
+                  >
+                    View all salads ({salads.length})
+                  </button>
+                </div>
                 ) : null}
               </div>
             </div>
@@ -4544,8 +4544,8 @@ export default function AdminPage() {
                   type="button"
                   onClick={() => setFormTab('general')}
                   className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${formTab === 'general'
-                      ? 'bg-[#123B2B] text-white shadow-sm'
-                      : 'text-gray-600 hover:text-[#123B2B] hover:bg-white/60'
+                    ? 'bg-[#123B2B] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-[#123B2B] hover:bg-white/60'
                     }`}
                 >
                   <FileText className="w-3.5 h-3.5" />
@@ -4556,8 +4556,8 @@ export default function AdminPage() {
                   type="button"
                   onClick={() => setFormTab('portions')}
                   className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${formTab === 'portions'
-                      ? 'bg-[#123B2B] text-white shadow-sm'
-                      : 'text-gray-600 hover:text-[#123B2B] hover:bg-white/60'
+                    ? 'bg-[#123B2B] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-[#123B2B] hover:bg-white/60'
                     }`}
                 >
                   <DollarSign className="w-3.5 h-3.5 text-[#C89D4B]" />
@@ -4574,8 +4574,8 @@ export default function AdminPage() {
                   type="button"
                   onClick={() => setFormTab('ingredients')}
                   className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${formTab === 'ingredients'
-                      ? 'bg-[#123B2B] text-white shadow-sm'
-                      : 'text-gray-600 hover:text-[#123B2B] hover:bg-white/60'
+                    ? 'bg-[#123B2B] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-[#123B2B] hover:bg-white/60'
                     }`}
                 >
                   <Utensils className="w-3.5 h-3.5" />
@@ -4592,8 +4592,8 @@ export default function AdminPage() {
                   type="button"
                   onClick={() => setFormTab('benefits')}
                   className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${formTab === 'benefits'
-                      ? 'bg-[#123B2B] text-white shadow-sm'
-                      : 'text-gray-600 hover:text-[#123B2B] hover:bg-white/60'
+                    ? 'bg-[#123B2B] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-[#123B2B] hover:bg-white/60'
                     }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -4604,8 +4604,8 @@ export default function AdminPage() {
                   type="button"
                   onClick={() => setFormTab('nutrition')}
                   className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${formTab === 'nutrition'
-                      ? 'bg-[#123B2B] text-white shadow-sm'
-                      : 'text-gray-600 hover:text-[#123B2B] hover:bg-white/60'
+                    ? 'bg-[#123B2B] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-[#123B2B] hover:bg-white/60'
                     }`}
                 >
                   <Activity className="w-3.5 h-3.5" />
@@ -4616,8 +4616,8 @@ export default function AdminPage() {
                   type="button"
                   onClick={() => setFormTab('addons')}
                   className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${formTab === 'addons'
-                      ? 'bg-[#123B2B] text-white shadow-sm'
-                      : 'text-gray-600 hover:text-[#123B2B] hover:bg-white/60'
+                    ? 'bg-[#123B2B] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-[#123B2B] hover:bg-white/60'
                     }`}
                 >
                   <Leaf className="w-3.5 h-3.5 text-[#C89D4B]" />
@@ -4748,7 +4748,7 @@ export default function AdminPage() {
                           !categoriesState.some(
                             (c) =>
                               normalizeCategoryString(c.id) === normalizeCategoryString(currentSalad.category || currentSalad.tag) ||
-                              normalizeCategoryString(c.label) === normalizeCategoryString(currentSalad.category || currentSalad.tag)
+                            normalizeCategoryString(c.label) === normalizeCategoryString(currentSalad.category || currentSalad.tag)
                           ) && (
                             <option value={currentSalad.category || currentSalad.tag}>
                               🥗 {currentSalad.category || currentSalad.tag}
@@ -4768,8 +4768,8 @@ export default function AdminPage() {
                             type="button"
                             onClick={() => setImageSourceType('file')}
                             className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${imageSourceType === 'file'
-                                ? 'bg-[#123B2B] text-white shadow-xs'
-                                : 'text-gray-600 hover:text-[#123B2B]'
+                              ? 'bg-[#123B2B] text-white shadow-xs'
+                              : 'text-gray-600 hover:text-[#123B2B]'
                               }`}
                           >
                             <Upload className="w-3 h-3" />
@@ -4779,8 +4779,8 @@ export default function AdminPage() {
                             type="button"
                             onClick={() => setImageSourceType('url')}
                             className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${imageSourceType === 'url'
-                                ? 'bg-[#123B2B] text-white shadow-xs'
-                                : 'text-gray-600 hover:text-[#123B2B]'
+                              ? 'bg-[#123B2B] text-white shadow-xs'
+                              : 'text-gray-600 hover:text-[#123B2B]'
                               }`}
                           >
                             <LinkIcon className="w-3 h-3" />
@@ -5073,8 +5073,8 @@ export default function AdminPage() {
                             <div
                               key={portion.grams}
                               className={`flex items-center justify-between p-3 rounded-xl bg-white border transition-all ${portion.isDefault
-                                  ? 'border-[#123B2B] ring-1 ring-[#123B2B]/20 shadow-xs'
-                                  : 'border-[#E8E1D5] hover:border-[#123B2B]/40'
+                                ? 'border-[#123B2B] ring-1 ring-[#123B2B]/20 shadow-xs'
+                                : 'border-[#E8E1D5] hover:border-[#123B2B]/40'
                                 }`}
                             >
                               <div className="flex items-center gap-2.5">
@@ -5105,8 +5105,8 @@ export default function AdminPage() {
                                     }));
                                   }}
                                   className={`px-2 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-colors flex items-center gap-1 ${portion.isDefault
-                                      ? 'bg-[#123B2B] text-[#C89D4B]'
-                                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    ? 'bg-[#123B2B] text-[#C89D4B]'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                                   title={portion.isDefault ? 'Default portion' : 'Set as default'}
                                 >
