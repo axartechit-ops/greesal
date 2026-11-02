@@ -12,7 +12,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { GoogleMapPickerModal } from '@/components/GoogleMapPickerModal';
 import { getLiveDetailedLocation } from '@/lib/geolocation';
 import { sendOrderToWhatsApp } from '@/lib/whatsapp';
-import { DEFAULT_SALAD_ADDONS, getSaladByIdOrSlug, Salad, SaladAddOn, SaladPortion, getSaladPortions, getSaladIngredients, getSaladDressing, getSaladCrunch, slugify } from '@/lib/salads';
+import { DEFAULT_SALAD_ADDONS, getSaladByIdOrSlug, Salad, SaladAddOn, SaladPortion, getSaladPortions, getSaladIngredients, getSaladDressing, getSaladCrunch, slugify, isGenericAllCategory, inferSaladCategory } from '@/lib/salads';
 import {
   Sparkles,
   Leaf,
@@ -757,7 +757,7 @@ export default function SaladDetailPage() {
                 <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
                   <span className="bg-[#123B2B]/95 backdrop-blur-md text-white text-xs font-black px-3.5 py-1.5 rounded-full uppercase tracking-wider shadow-md border border-white/20 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-xs"></span>
-                    <span>{salad.tag || '100% Certified Organic'}</span>
+                    <span>{(!isGenericAllCategory(salad.category) && salad.category) || (!isGenericAllCategory(salad.tag) && salad.tag) || inferSaladCategory(salad)}</span>
                   </span>
                 </div>
 
@@ -1386,7 +1386,7 @@ export default function SaladDetailPage() {
                         />
                         <div className="absolute top-2.5 left-2.5">
                           <span className="bg-[#123B2B]/90 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                            {item.tag}
+                            {(!isGenericAllCategory(item.category) && item.category) || (!isGenericAllCategory(item.tag) && item.tag) || inferSaladCategory(item)}
                           </span>
                         </div>
                       </div>

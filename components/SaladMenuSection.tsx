@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Salad, slugify, SaladPortion, getSaladPortions, getSaladPriceForPortion } from '@/lib/salads';
+import { Salad, slugify, SaladPortion, getSaladPortions, getSaladPriceForPortion, matchesSaladCategory, inferSaladCategory, isGenericAllCategory } from '@/lib/salads';
 import { 
   Plus, 
   Minus, 
@@ -59,56 +59,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
   const displayCategories = categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
 
   const matchesCategoryForSalad = (salad: Salad, categoryId: string) => {
-    if (!categoryId || categoryId === 'all') return true;
-    const cat = displayCategories.find((c) => c.id === categoryId);
-    const catIdNorm = categoryId.toLowerCase().trim().replace(/[-_]/g, ' ');
-    const catLabelNorm = (cat?.label || '').toLowerCase().trim().replace(/[-_]/g, ' ');
-    const tagNorm = (salad.tag || '').toLowerCase().trim().replace(/[-_]/g, ' ');
-    const catPropNorm = (salad.category || '').toLowerCase().trim().replace(/[-_]/g, ' ');
-    const nameNorm = (salad.name || '').toLowerCase().trim();
-    const ingredientsNorm = (salad.ingredients || []).map((i) => (i || '').toLowerCase().trim());
-    const hasIng = (keyword: string) =>
-      ingredientsNorm.some((i) => i.includes(keyword.toLowerCase()));
-
-    // 1. Direct equality with category id or label
-    if (catPropNorm && (catPropNorm === catIdNorm || catPropNorm === catLabelNorm)) return true;
-    if (tagNorm && (tagNorm === catIdNorm || tagNorm === catLabelNorm)) return true;
-
-    // 2. Contains match between category id/label and salad category/tag/name
-    if (catPropNorm && (catPropNorm.includes(catIdNorm) || catIdNorm.includes(catPropNorm))) return true;
-    if (catPropNorm && catLabelNorm && (catPropNorm.includes(catLabelNorm) || catLabelNorm.includes(catPropNorm))) return true;
-    if (tagNorm && (tagNorm.includes(catIdNorm) || catIdNorm.includes(tagNorm))) return true;
-    if (tagNorm && catLabelNorm && (tagNorm.includes(catLabelNorm) || catLabelNorm.includes(tagNorm))) return true;
-    if (nameNorm && (nameNorm.includes(catIdNorm) || nameNorm.includes(catLabelNorm))) return true;
-
-    // 3. Fallback semantic heuristics
-    if (catIdNorm.includes('protein')) {
-      if (tagNorm.includes('protein') || catPropNorm.includes('protein') || nameNorm.includes('protein')) return true;
-      if (hasIng('protein') || hasIng('chickpea') || hasIng('sprout') || hasIng('peanut') || hasIng('paneer') || hasIng('beans') || hasIng('rajma')) return true;
-    }
-
-    if (catIdNorm.includes('veggie') || catIdNorm.includes('vegetable')) {
-      if (tagNorm.includes('veggie') || catPropNorm.includes('veggie') || tagNorm.includes('sprout') || tagNorm.includes('organic')) return true;
-      if (nameNorm.includes('veggie') || nameNorm.includes('sprout') || nameNorm.includes('mushroom') || nameNorm.includes('garden')) return true;
-      if (hasIng('mushroom') || hasIng('broccoli') || hasIng('sprout') || hasIng('cabbage') || hasIng('zucchini') || hasIng('carrot') || hasIng('capsicum') || hasIng('beetroot')) return true;
-    }
-
-    if (catIdNorm.includes('paneer') || catIdNorm.includes('cheese')) {
-      if (tagNorm.includes('paneer') || catPropNorm.includes('paneer') || nameNorm.includes('paneer')) return true;
-      if (hasIng('paneer') || hasIng('cheese')) return true;
-    }
-
-    if (catIdNorm.includes('rice') || catIdNorm.includes('bowl')) {
-      if (tagNorm.includes('rice') || catPropNorm.includes('rice') || nameNorm.includes('rice') || nameNorm.includes('burrito')) return true;
-      if (hasIng('rice') || hasIng('quinoa')) return true;
-    }
-
-    if (catIdNorm.includes('exotic')) {
-      if (tagNorm.includes('exotic') || catPropNorm.includes('exotic') || nameNorm.includes('exotic') || nameNorm.includes('mais') || tagNorm.includes('superfood')) return true;
-      if (hasIng('mais') || hasIng('avocado') || hasIng('guacamole') || hasIng('mushroom')) return true;
-    }
-
-    return false;
+    return matchesSaladCategory(salad, categoryId, displayCategories);
   };
 
   const filteredSalads = salads.filter((salad) => {
@@ -424,7 +375,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
                     {/* Top Badge: Tag / Category */}
                     <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-white/95 backdrop-blur-sm px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[11px] font-bold text-[#20493c] shadow-xs border border-[#6ac6ac]/30 flex items-center gap-0.5 sm:gap-1 max-w-[70%] sm:max-w-none truncate pointer-events-none">
                       <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#fbce45] flex-shrink-0" />
-                      <span className="truncate">{salad.category || salad.tag || 'Greesal Special'}</span>
+                      <span className="truncate">{(!isGenericAllCategory(salad.category) && salad.category) || (!isGenericAllCategory(salad.tag) && salad.tag) || inferSaladCategory(salad)}</span>
                     </div>
 
                     {/* Top Right: Calories */}

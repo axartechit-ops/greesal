@@ -138,6 +138,94 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+
+/**
+ * Normalizes any category string for uniform comparisons.
+ */
+export function normalizeCategoryString(str?: string | null): string {
+  if (!str) return '';
+  return String(str).toLowerCase().trim().replace(/[-_]/g, ' ').replace(/\s+/g, ' ');
+}
+
+/**
+ * Check if a category identifier or tag is a generic "All" category.
+ */
+export function isGenericAllCategory(str?: string | null): boolean {
+  const norm = normalizeCategoryString(str);
+  return !norm || norm === 'all' || norm === 'all salad' || norm === 'all salads' || norm === 'all bowls';
+}
+
+/**
+ * Infer the authentic Greesal category for a salad if it was saved with generic 'All Salad' or missing category.
+ */
+export function inferSaladCategory(salad: Partial<Salad>): string {
+  const normCat = normalizeCategoryString(salad.category);
+  const normTag = normalizeCategoryString(salad.tag);
+  const normName = normalizeCategoryString(salad.name);
+  const combined = (normCat + ' ' + normTag + ' ' + normName);
+
+  if (combined.includes('protein')) return 'Protein House';
+  if (combined.includes('burrito') || combined.includes('rice') || combined.includes('rajma')) return 'Rice Bowl';
+  if (combined.includes('paneer') || combined.includes('cheese')) return 'Paneer Salad';
+  if (combined.includes('avocado') || combined.includes('exotic') || combined.includes('mais') || combined.includes('bundle') || combined.includes('platter')) return 'Exotic Salad';
+  if (combined.includes('barley') || combined.includes('veggie') || combined.includes('vegetable') || combined.includes('sprout') || combined.includes('quinoa') || combined.includes('garden')) return 'Veggies Salad';
+  return 'Veggies Salad';
+}
+
+/**
+ * Universal category matching function used by customer menu, admin filtering, and tab counts.
+ */
+export function matchesSaladCategory(
+  salad: Salad,
+  targetCategoryId: string,
+  allCategories?: Array<{ id: string; label?: string }>
+): boolean {
+  if (!targetCategoryId) return true;
+  const targetNorm = normalizeCategoryString(targetCategoryId);
+  if (!targetNorm || targetNorm === 'all' || targetNorm === 'all salad' || targetNorm === 'all salads') {
+    return true;
+  }
+
+  const targetObj = allCategories?.find(
+    (c) => normalizeCategoryString(c.id) === targetNorm || normalizeCategoryString(c.label) === targetNorm
+  );
+  const targetLabelNorm = targetObj ? normalizeCategoryString(targetObj.label) : targetNorm;
+
+  let saladCat: string | undefined = salad.category;
+  let saladTag: string | undefined = salad.tag;
+
+  if (isGenericAllCategory(saladCat) && isGenericAllCategory(saladTag)) {
+    saladCat = inferSaladCategory(salad);
+    saladTag = saladCat;
+  } else if (isGenericAllCategory(saladCat)) {
+    saladCat = saladTag;
+  } else if (isGenericAllCategory(saladTag)) {
+    saladTag = saladCat;
+  }
+
+  const catNorm = normalizeCategoryString(saladCat);
+  const tagNorm = normalizeCategoryString(saladTag);
+
+  // 1. Direct match with target ID or Label
+  if (catNorm && (catNorm === targetNorm || catNorm === targetLabelNorm)) return true;
+  if (tagNorm && (tagNorm === targetNorm || tagNorm === targetLabelNorm)) return true;
+
+  // 2. Substring or keyword match
+  if (catNorm && (targetNorm.includes(catNorm) || catNorm.includes(targetNorm))) return true;
+  if (catNorm && targetLabelNorm && (targetLabelNorm.includes(catNorm) || catNorm.includes(targetLabelNorm))) return true;
+  if (tagNorm && (targetNorm.includes(tagNorm) || tagNorm.includes(targetNorm))) return true;
+  if (tagNorm && targetLabelNorm && (targetLabelNorm.includes(tagNorm) || tagNorm.includes(targetLabelNorm))) return true;
+
+  // 3. Category specific alias matching
+  if (targetNorm.includes('protein') && (catNorm.includes('protein') || tagNorm.includes('protein'))) return true;
+  if (targetNorm.includes('rice') && (catNorm.includes('rice') || tagNorm.includes('rice') || catNorm.includes('burrito') || tagNorm.includes('burrito'))) return true;
+  if (targetNorm.includes('paneer') && (catNorm.includes('paneer') || tagNorm.includes('paneer'))) return true;
+  if (targetNorm.includes('exotic') && (catNorm.includes('exotic') || tagNorm.includes('exotic') || catNorm.includes('mais') || tagNorm.includes('mais'))) return true;
+  if ((targetNorm.includes('veggie') || targetNorm.includes('vegetable')) && (catNorm.includes('veggie') || tagNorm.includes('veggie') || catNorm.includes('vegetable') || tagNorm.includes('vegetable'))) return true;
+
+  return false;
+}
+
 export const DEFAULT_SALAD_ADDONS: SaladAddOn[] = [
   { name: 'Extra Organic Paneer / Tofu', price: 40 },
   { name: 'Extra Cold-Blended Herb Dressing', price: 30 },
@@ -156,6 +244,7 @@ export const DEFAULT_SALADS: Salad[] = [
     protein: '18g Protein',
     price: '₹220',
     tag: 'Protein House',
+    category: 'Protein House',
     image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
     ingredients: [
       'Protein-packed Chickpeas',
@@ -184,6 +273,7 @@ export const DEFAULT_SALADS: Salad[] = [
     protein: '21g Protein',
     price: '₹240',
     tag: 'Protein House',
+    category: 'Protein House',
     image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
     ingredients: [
       'Fresh Organic Paneer Cubes',
@@ -211,6 +301,7 @@ export const DEFAULT_SALADS: Salad[] = [
     protein: '22g Protein',
     price: '₹250',
     tag: 'Paneer Salad',
+    category: 'Paneer Salad',
     image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
     ingredients: ["Fresh Creamy Organic Paneer (100g)", "Crunchy Steamed Broccoli", "Sweet Cherry Tomatoes", "Tricolor Bell Peppers", "Black Olives", "Crisp Garden Greens"],
     dressing: ["Greesal White Cheese Dip", "Herbed Olive Vinaigrette", "Cracked Pepper"],
@@ -232,6 +323,7 @@ export const DEFAULT_SALADS: Salad[] = [
     protein: '16g Protein',
     price: '₹220',
     tag: 'Veggies Salad',
+    category: 'Veggies Salad',
     image: 'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=800&q=80',
     ingredients: ["Exotic Veggies Fusion", "Fresh Paneer", "Broccoli Florets", "Cherry Tomatoes", "Boiled Chickpeas", "Fresh Sprouts", "Sweet American Corn", "Crisp Romaine Lettuce"],
     dressing: ["Homemade Greek Yogurt Dip", "Mint-Coriander Dressing", "Lemon Vinaigrette"],
@@ -253,6 +345,7 @@ export const DEFAULT_SALADS: Salad[] = [
     protein: '15g Protein',
     price: '₹200',
     tag: 'Veggies Salad',
+    category: 'Veggies Salad',
     image: 'https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?auto=format&fit=crop&w=800&q=80',
     ingredients: ["Multi-sprout Blend (Moong, Methi, Chana)", "Sweet Pomegranate Arils", "Crisp Organic Greens", "Cucumber and Diced Carrots"],
     dressing: ["Zesty Spicy Handmade Dipping Sauce", "Fresh Lime Wedge", "Rock Salt Blend"],
@@ -274,6 +367,7 @@ export const DEFAULT_SALADS: Salad[] = [
     protein: '28g Protein',
     price: '₹550',
     tag: 'Exotic Salad',
+    category: 'Exotic Salad',
     image: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=800&q=80',
     ingredients: ["Paneer & Vegetable Salad (150g)", "Sweet Corn Bowl (150g)", "Mexican Rice Bowl & Nachos (150g)", "Fresh Fruit Bowl (150g)", "Protein Pulse Salad (150g)"],
     dressing: ["Assorted Trio of Signature Dressings", "Greek Yogurt Dip", "Fresh Lime Salsa"],
@@ -294,6 +388,7 @@ export const DEFAULT_SALADS: Salad[] = [
     protein: '14g Protein',
     price: '₹260',
     tag: 'Rice Bowl',
+    category: 'Rice Bowl',
     image: 'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=800&q=80',
     ingredients: ["Steamed Brown Rice / Quinoa", "Spiced Rajma & Black Beans", "Golden Sweet Corn", "Fresh Roasted Tomato Salsa", "Fresh Avocado & Guacamole"],
     dressing: ["Homemade Zesty Lime Salsa", "Mild Jalapeño Herb Dressing", "Cold-Pressed Olive Dressing"],
@@ -314,6 +409,7 @@ export const DEFAULT_SALADS: Salad[] = [
     protein: '12g Protein',
     price: '₹230',
     tag: 'Exotic Salad',
+    category: 'Exotic Salad',
     image: 'https://images.unsplash.com/photo-1515543237350-b3eea1ec8082?auto=format&fit=crop&w=800&q=80',
     ingredients: ["Sweet Corn Mais", "Tricolor Bell Peppers", "Diced Zucchini", "Crisp Cucumber", "Coriander & Lime Herb Mix"],
     dressing: ["Tangy Mexican Dip", "Lemon Chili Glaze", "Cold-Pressed Olive Oil"],
@@ -332,7 +428,8 @@ export const DEFAULT_SALADS: Salad[] = [
     calories: '387 Kcal',
     protein: '19g Protein',
     price: '₹349',
-    tag: 'High Protein',
+    tag: 'Protein House',
+    category: 'Protein House',
     addOns: [
       { name: 'Extra Organic Paneer / Tofu', price: 40 },
       { name: 'Extra Cold-Blended Herb Dressing', price: 30 },

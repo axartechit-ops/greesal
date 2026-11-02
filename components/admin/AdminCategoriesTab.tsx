@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, RotateCcw, Save, Filter, Sparkles, Loader2, CheckCircle2 } from 'lucide-react';
 import { SiteCategory, DEFAULT_CATEGORIES } from '@/lib/siteSettings';
+import { matchesSaladCategory, isGenericAllCategory } from '@/lib/salads';
 
 interface AdminCategoriesTabProps {
   categories: SiteCategory[];

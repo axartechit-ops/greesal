@@ -12,7 +12,7 @@ import { AdminReviewsTab } from '@/components/admin/AdminReviewsTab';
 import { AdminSubscriptionsTab } from '@/components/admin/AdminSubscriptionsTab';
 import { AdminSliderTab } from '@/components/admin/AdminSliderTab';
 import { SiteCategory, SiteSettings, DEFAULT_CATEGORIES, DEFAULT_SITE_SETTINGS } from '@/lib/siteSettings';
-import { SaladPortion, getSaladPortions, getSaladPriceForPortion, DEFAULT_SALADS } from '@/lib/salads';
+import { SaladPortion, getSaladPortions, getSaladPriceForPortion, DEFAULT_SALADS, matchesSaladCategory, normalizeCategoryString, isGenericAllCategory, inferSaladCategory } from '@/lib/salads';
 import {
   Save,
   Plus,
@@ -231,7 +231,6 @@ export default function AdminPage() {
   const [bannerStoryHeading, setBannerStoryHeading] = useState('A short story about');
   const [bannerStoryBrand, setBannerStoryBrand] = useState('GREESAL');
   const [bannerBadge, setBannerBadge] = useState('');
-  const [bannerImage, setBannerImage] = useState('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1000&q=85');
   const [bannerImage, setBannerImage] = useState('/images/salad_bowl_hero.jpg');
   const [bannerPill1, setBannerPill1] = useState('100% Handmade Dressings');
   const [bannerPill2, setBannerPill2] = useState('No Onion • No Garlic');
@@ -442,18 +441,16 @@ export default function AdminPage() {
         if (settingsData.heroStoryP4) setBannerStoryP4(settingsData.heroStoryP4);
 
         if (settingsData.heroImage) {
-          setBannerImage(settingsData.heroImage);
-          if (settingsData.heroImage.startsWith('data:')) {
-            const img = settingsData.heroImage.includes('photo-1540420773420-3366772f4999')
-              ? '/images/salad_bowl_hero.jpg'
-              : settingsData.heroImage;
-            setBannerImage(img);
-            if (img.startsWith('data:')) {
-              setBannerImageSourceType('file');
-            } else {
-              setBannerImageSourceType('url');
-            }
+          const img = settingsData.heroImage.includes('photo-1540420773420-3366772f4999')
+            ? '/images/salad_bowl_hero.jpg'
+            : settingsData.heroImage;
+          setBannerImage(img);
+          if (img.startsWith('data:')) {
+            setBannerImageSourceType('file');
+          } else {
+            setBannerImageSourceType('url');
           }
+        }
 
           if (settingsData.heroPill1) setBannerPill1(settingsData.heroPill1);
           else if (settingsData.pill1Text) setBannerPill1(settingsData.pill1Text);
@@ -1060,7 +1057,8 @@ export default function AdminPage() {
       setIsQuickAddCatOpen(false);
       setQuickCatLabel('');
       setQuickCatIcon('🥗');
-      const saladCategory = salad.category || salad.tag || categoriesState.find(c => c.id !== 'all')?.label || 'Protein House';
+      const rawCat = (!isGenericAllCategory(salad.category) && salad.category) || (!isGenericAllCategory(salad.tag) && salad.tag) || inferSaladCategory(salad);
+      const saladCategory = categoriesState.find(c => c.id !== 'all' && (normalizeCategoryString(c.label) === normalizeCategoryString(rawCat) || normalizeCategoryString(c.id) === normalizeCategoryString(rawCat)))?.label || rawCat || 'Protein House';
       const saladPortions = Array.isArray(salad.portions) && salad.portions.length > 0
         ? salad.portions
         : getSaladPortions(salad);
@@ -3567,7 +3565,6 @@ export default function AdminPage() {
                         setBannerStoryP4(
                           'Our handcrafted salads are made using premium-quality ingredients, without onion and garlic, and paired with our signature homemade dressings. Whether you’re on a fitness journey, looking for a quick healthy meal, or simply love fresh greens, Greesal is your go-to destination for healthy eating.'
                         );
-                        setBannerImage('https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1000&q=85');
                         setBannerImage('/images/salad_bowl_hero.jpg');
                         setBannerPill1('100% Handmade Dressings');
                         setBannerPill2('No Onion • No Garlic');
@@ -3660,8 +3657,7 @@ export default function AdminPage() {
                           <div className="relative w-full max-w-xs sm:max-w-sm">
                             <div className="relative rounded-3xl overflow-hidden shadow-xl border-4 border-white bg-gradient-to-b from-[#f2f8f5] to-[#e4f4ed] p-2 sm:p-3">
                               <img
-                                src={bannerImage || '/images/salad_bowl_hero.jpg'}
-                                src={
+                                                                src={
                                   bannerImage && !bannerImage.includes('photo-1540420773420-3366772f4999')
                                     ? bannerImage
                                     : '/images/salad_bowl_hero.jpg'
@@ -3669,8 +3665,6 @@ export default function AdminPage() {
                                 alt="Hero Bowl"
                                 className="w-full h-48 sm:h-64 object-cover rounded-2xl"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src =
-                                    'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1000&q=85';
                                   (e.target as HTMLImageElement).src = '/images/salad_bowl_hero.jpg';
                                 }}
                               />
@@ -3874,10 +3868,6 @@ export default function AdminPage() {
                           {
                             name: 'Farm-Fresh Platter (Default)',
                             url: '/images/salad_bowl_hero.jpg',
-                          },
-                          {
-                            name: 'Signature Greek Salad',
-                            url: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1000&q=85',
                           },
                           {
                             name: 'Avocado Detox Harvest',
@@ -4357,20 +4347,7 @@ export default function AdminPage() {
                 {categoriesState
                   .filter((c) => c.id !== 'all')
                   .map((cat) => {
-                    const count = salads.filter((s) => {
-                      const tagLower = (s.tag || '').toLowerCase().trim();
-                      const catLower = (s.category || '').toLowerCase().trim();
-                      const catIdNorm = cat.id.toLowerCase().trim();
-                      const catLabelNorm = cat.label.toLowerCase().trim();
-                      return (
-                        tagLower === catIdNorm ||
-                        tagLower === catLabelNorm ||
-                        catLower === catIdNorm ||
-                        catLower === catLabelNorm ||
-                        tagLower.includes(catLabelNorm) ||
-                        catLower.includes(catLabelNorm)
-                      );
-                    }).length;
+                    const count = salads.filter((s) => matchesSaladCategory(s, cat.id, categoriesState)).length;
                     const active = adminSaladCategoryFilter === cat.id;
 
                     return (
@@ -4399,28 +4376,15 @@ export default function AdminPage() {
               {/* Salads list grid */}
               <div className="grid grid-cols-1 gap-4 text-left">
                 {salads
-                  .filter((salad) => {
-                    if (adminSaladCategoryFilter === 'all') return true;
-                    const cat = categoriesState.find((c) => c.id === adminSaladCategoryFilter);
-                    const tagLower = (salad.tag || '').toLowerCase().trim();
-                    const catLower = (salad.category || '').toLowerCase().trim();
-                    const catIdNorm = adminSaladCategoryFilter.toLowerCase().trim();
-                    const catLabelNorm = (cat?.label || '').toLowerCase().trim();
-                    return (
-                      tagLower === catIdNorm ||
-                      tagLower === catLabelNorm ||
-                      catLower === catIdNorm ||
-                      catLower === catLabelNorm ||
-                      tagLower.includes(catLabelNorm) ||
-                      catLower.includes(catLabelNorm)
-                    );
-                  })
+                  .filter((salad) => matchesSaladCategory(salad, adminSaladCategoryFilter, categoriesState))
                   .map((salad) => {
                     const catItem = categoriesState.find(
                       (c) =>
-                        c.label.toLowerCase() === (salad.category || salad.tag || '').toLowerCase() ||
-                        c.id.toLowerCase() === (salad.category || salad.tag || '').toLowerCase()
+                        c.id !== 'all' &&
+                        (normalizeCategoryString(c.label) === normalizeCategoryString(salad.category || salad.tag) ||
+                         normalizeCategoryString(c.id) === normalizeCategoryString(salad.category || salad.tag))
                     );
+                    const displayCat = (!isGenericAllCategory(salad.category) && salad.category) || (!isGenericAllCategory(salad.tag) && salad.tag) || inferSaladCategory(salad);
 
                     return (
                       <div
@@ -4511,22 +4475,7 @@ export default function AdminPage() {
                     <Utensils className="w-8 h-8 mb-2" />
                     <p className="text-sm font-semibold">No salad items found in database.</p>
                   </div>
-                ) : salads.filter((salad) => {
-                  if (adminSaladCategoryFilter === 'all') return true;
-                  const cat = categoriesState.find((c) => c.id === adminSaladCategoryFilter);
-                  const tagLower = (salad.tag || '').toLowerCase().trim();
-                  const catLower = (salad.category || '').toLowerCase().trim();
-                  const catIdNorm = adminSaladCategoryFilter.toLowerCase().trim();
-                  const catLabelNorm = (cat?.label || '').toLowerCase().trim();
-                  return (
-                    tagLower === catIdNorm ||
-                    tagLower === catLabelNorm ||
-                    catLower === catIdNorm ||
-                    catLower === catLabelNorm ||
-                    tagLower.includes(catLabelNorm) ||
-                    catLower.includes(catLabelNorm)
-                  );
-                }).length === 0 ? (
+                ) : salads.filter((salad) => matchesSaladCategory(salad, adminSaladCategoryFilter, categoriesState)).length === 0 ? (
                   <div className="h-40 flex flex-col items-center justify-center bg-white rounded-3xl border border-dashed border-gray-300 text-gray-400">
                     <p className="text-sm font-semibold">No salads in this category.</p>
                     <button
@@ -4787,17 +4736,19 @@ export default function AdminPage() {
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#123B2B]/40 focus:border-[#123B2B]"
                       >
                         {categoriesState
-                          .filter((c) => c.id !== 'all')
+                          .filter((c) => c.id !== 'all' && !isGenericAllCategory(c.id) && !isGenericAllCategory(c.label))
                           .map((c) => (
                             <option key={c.id} value={c.label}>
                               {c.icon || '🥗'} {c.label}
                             </option>
                           ))}
                         {(currentSalad.category || currentSalad.tag) &&
+                          !isGenericAllCategory(currentSalad.category) &&
+                          !isGenericAllCategory(currentSalad.tag) &&
                           !categoriesState.some(
                             (c) =>
-                              c.id.toLowerCase() === (currentSalad.category || currentSalad.tag).toLowerCase() ||
-                              c.label.toLowerCase() === (currentSalad.category || currentSalad.tag).toLowerCase()
+                              normalizeCategoryString(c.id) === normalizeCategoryString(currentSalad.category || currentSalad.tag) ||
+                              normalizeCategoryString(c.label) === normalizeCategoryString(currentSalad.category || currentSalad.tag)
                           ) && (
                             <option value={currentSalad.category || currentSalad.tag}>
                               🥗 {currentSalad.category || currentSalad.tag}

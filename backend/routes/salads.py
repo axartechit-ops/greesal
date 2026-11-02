@@ -344,6 +344,23 @@ def sync_local_store_from_mongodb():
     except Exception as e:
         logger.error(f"Failed to sync salads from MongoDB: {e}")
 
+def infer_salad_category(name: str = "", tag: str = "", category: str = "", ingredients: list = None) -> str:
+    combined = f"{category} {tag} {name}".lower()
+    if ingredients and isinstance(ingredients, list):
+        combined += " " + " ".join(str(i).lower() for i in ingredients)
+    
+    if "protein" in combined:
+        return "Protein House"
+    if "burrito" in combined or "rice" in combined or "rajma" in combined:
+        return "Rice Bowl"
+    if "paneer" in combined or "cheese" in combined:
+        return "Paneer Salad"
+    if "avocado" in combined or "exotic" in combined or "mais" in combined or "bundle" in combined or "platter" in combined:
+        return "Exotic Salad"
+    if "barley" in combined or "veggie" in combined or "vegetable" in combined or "sprout" in combined or "quinoa" in combined:
+        return "Veggies Salad"
+    return "Veggies Salad"
+
 def format_salad_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
     if not doc:
         return doc
@@ -353,11 +370,15 @@ def format_salad_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
     res["id"] = res.get("id") or str_id
     if not res.get("slug") and res.get("name"):
         res["slug"] = slugify(res["name"])
-    # Ensure category and tag are always synchronized
-    if not res.get("category") and res.get("tag"):
-        res["category"] = res.get("tag")
-    elif not res.get("tag") and res.get("category"):
-        res["tag"] = res.get("category")
+    # Ensure valid non-generic category & tag
+    cat = (res.get("category") or "").strip()
+    tag = (res.get("tag") or "").strip()
+    if not cat or cat.lower() in ["all", "all salad", "all salads", "all bowls"]:
+        cat = infer_salad_category(res.get("name", ""), tag, cat, res.get("ingredients", []))
+    if not tag or tag.lower() in ["all", "all salad", "all salads", "all bowls"]:
+        tag = cat
+    res["category"] = cat
+    res["tag"] = tag
 
     # 3-Part Ingredients Structure: ingredients, dressing, crunch
     if "ingredients" not in res or not isinstance(res.get("ingredients"), list):
@@ -457,10 +478,14 @@ async def create_salad(request: Request):
         new_salad["crunch"] = []
     if "slug" not in new_salad or not new_salad["slug"]:
         new_salad["slug"] = slugify(new_salad["name"])
-    if new_salad.get("category") and not new_salad.get("tag"):
-        new_salad["tag"] = new_salad["category"]
-    elif new_salad.get("tag") and not new_salad.get("category"):
-        new_salad["category"] = new_salad["tag"]
+    cat = (new_salad.get("category") or "").strip()
+    tag = (new_salad.get("tag") or "").strip()
+    if not cat or cat.lower() in ["all", "all salad", "all salads", "all bowls"]:
+        cat = infer_salad_category(new_salad.get("name", ""), tag, cat, new_salad.get("ingredients", []))
+    if not tag or tag.lower() in ["all", "all salad", "all salads", "all bowls"]:
+        tag = cat
+    new_salad["category"] = cat
+    new_salad["tag"] = tag
     new_salad["createdAt"] = datetime.now(timezone.utc).isoformat()
 
     db = get_db()
@@ -498,10 +523,14 @@ async def update_salad(salad_id: str, request: Request):
         update_data["dressing"] = []
     if "crunch" in update_data and not isinstance(update_data["crunch"], list):
         update_data["crunch"] = []
-    if update_data.get("category") and not update_data.get("tag"):
-        update_data["tag"] = update_data["category"]
-    elif update_data.get("tag") and not update_data.get("category"):
-        update_data["category"] = update_data["tag"]
+    cat = (update_data.get("category") or "").strip()
+    tag = (update_data.get("tag") or "").strip()
+    if not cat or cat.lower() in ["all", "all salad", "all salads", "all bowls"]:
+        cat = infer_salad_category(update_data.get("name", ""), tag, cat, update_data.get("ingredients", []))
+    if not tag or tag.lower() in ["all", "all salad", "all salads", "all bowls"]:
+        tag = cat
+    update_data["category"] = cat
+    update_data["tag"] = tag
     update_data["updatedAt"] = datetime.now(timezone.utc).isoformat()
 
     db = get_db()
