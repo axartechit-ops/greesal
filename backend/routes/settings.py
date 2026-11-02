@@ -35,7 +35,7 @@ DEFAULT_SITE_SETTINGS: Dict[str, Any] = {
     "heroStoryP2": "GREESAL — Slice of Green, where health meets Freshness & Deliciousness! One more thing comes to mind when we talk about healthy food is organic, natural, and fresh — and Greesal is committed to providing only fresh, healthy, and delicious salads with fresh and organic ingredients.",
     "heroStoryP3": "At GREESAL, we bring you 21 varieties of fresh, healthy, and delicious salads, carefully crafted to offer the perfect balance of taste and nutrition. Staying true to our tagline, “Farm-Fresh Organic Salad Bowls”, we deliver wholesome salads right to your doorstep, ensuring you enjoy a guilt-free, nutritious meal every day.",
     "heroStoryP4": "Our handcrafted salads are made using premium-quality ingredients, without onion and garlic, and paired with our signature homemade dressings. Whether you’re on a fitness journey, looking for a quick healthy meal, or simply love fresh greens, Greesal is your go-to destination for healthy eating.",
-    "heroImage": "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1000&q=85",
+    "heroImage": "/images/salad_bowl_hero.jpg",
     "heroPill1": "100% Handmade Dressings",
     "heroPill2": "No Onion • No Garlic",
     "heroStatBadge": "Health Lovers",
@@ -206,6 +206,8 @@ def sanitize_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(settings, dict):
         return settings
     res = dict(settings)
+    if not res.get("heroImage") or "photo-1540420773420-3366772f4999" in str(res.get("heroImage", "")):
+        res["heroImage"] = "/images/salad_bowl_hero.jpg"
     if not res.get("differenceImage1"):
         res["differenceImage1"] = "/images/premium_fresh_ingredients.png"
     phone = str(res.get("contactPhone", ""))

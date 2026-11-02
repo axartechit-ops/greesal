@@ -33,7 +33,7 @@ export const SaladHeroSection: React.FC<SaladHeroSectionProps> = ({
   storyP2 = 'GREESAL — Slice of Green, where health meets Freshness & Deliciousness! One more thing comes to mind when we talk about healthy food is organic, natural, and fresh — and Greesal is committed to providing only fresh, healthy, and delicious salads with fresh and organic ingredients.',
   storyP3 = 'At GREESAL, we bring you 21 varieties of fresh, healthy, and delicious salads, carefully crafted to offer the perfect balance of taste and nutrition. Staying true to our tagline, “Farm-Fresh Organic Salad Bowls”, we deliver wholesome salads right to your doorstep, ensuring you enjoy a guilt-free, nutritious meal every day.',
   storyP4 = 'Our handcrafted salads are made using premium-quality ingredients, without onion and garlic, and paired with our signature homemade dressings. Whether you’re on a fitness journey, looking for a quick healthy meal, or simply love fresh greens, Greesal is your go-to destination for healthy eating.',
-  heroImage = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1000&q=85',
+  heroImage = '/images/salad_bowl_hero.jpg',
   pill1 = '100% Handmade Dressings',
   pill2 = 'No Onion • No Garlic',
   statBadge = 'Health Lovers',
@@ -54,7 +54,7 @@ export const SaladHeroSection: React.FC<SaladHeroSectionProps> = ({
       <div className="absolute top-1/2 -right-32 w-96 h-96 bg-[#fbce45]/15 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        
+
         {/* Main Brand Catchphrase in Josefin Sans 700 */}
         <div className="text-center mb-8 sm:mb-12">
           <h1 className="font-josefin font-bold text-4xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight text-[#fbce45] drop-shadow-sm uppercase">
@@ -64,18 +64,18 @@ export const SaladHeroSection: React.FC<SaladHeroSectionProps> = ({
 
         {/* Hero Grid: Story & Visual */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          
+
           {/* Left Column: Visual graphic with badges */}
           <div className="lg:col-span-5 flex justify-center order-2 lg:order-1">
             <div className="relative w-full max-w-md sm:max-w-lg">
-              
+
               {/* Decorative circle glow */}
               <div className="absolute inset-0 bg-gradient-to-tr from-[#6ac6ac]/30 to-[#fbce45]/20 rounded-full blur-2xl transform scale-95" />
-              
+
               {/* Salad Bowl Main Image */}
               <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-gradient-to-b from-[#f2f8f5] to-[#e4f4ed] p-3 transition-transform duration-500 hover:scale-[1.02]">
                 <img
-                  src={heroImage}
+                  src={heroImage && !heroImage.includes('photo-1540420773420-3366772f4999') ? heroImage : '/images/salad_bowl_hero.jpg'}
                   alt={storyBrand}
                   className="w-full h-72 sm:h-96 object-cover rounded-2xl shadow-inner"
                   onError={(e) => {
@@ -114,7 +114,7 @@ export const SaladHeroSection: React.FC<SaladHeroSectionProps> = ({
 
           {/* Right Column: Story & Details */}
           <div className="lg:col-span-7 order-1 lg:order-2 flex flex-col justify-center text-center lg:text-left">
-            
+
             <div className="mb-4">
               <span className="font-montserrat font-bold text-lg sm:text-2xl text-[#6ac6ac] uppercase tracking-wide block">
                 {storyHeading}
