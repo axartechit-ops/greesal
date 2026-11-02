@@ -241,14 +241,14 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   differenceCards: [
     {
       id: 1,
-      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+      image: '/images/salad_bowl_hero.jpg',
       title: '100% In-House Handmade Dressings',
       desc: 'Crafted without chemical preservatives, artificial emulsifiers, or thickeners. Made fresh every morning with cold-pressed olive oil, Greek yogurt, raw seeds, and mountain herbs.',
       badge: 'Cold-Pressed & Clean',
     },
     {
       id: 2,
-      image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
+      image: '/images/salad_bowl_hero.jpg',
       title: 'Zero Compromise On Purity',
       desc: 'Zero Mayonnaise, Zero Fatty Palm Oils, Zero Preservatives, and Strictly No Onion & Garlic. 100% Satvik, pure, clean nutrition made for daily wellness.',
       badge: 'Satvik Goodness',
@@ -256,7 +256,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
 
     {
       id: 4,
-      image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+      image: '/images/salad_bowl_hero.jpg',
       title: '21+ Chef-Crafted Daily Varieties',
       desc: 'From 22g protein power bowls to keto avocado crunch, detox sprout bowls, and Mediterranean grains — enjoy a fresh, exciting menu that keeps your healthy lifestyle joyful.',
       badge: 'Nutritional Balance',
@@ -291,7 +291,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
 
     {
       id: 3,
-      image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
+      image: '/images/salad_bowl_hero.jpg',
       title: 'Salad - Subscriptions',
       desc: '21 Different Types of Salad with Free Delivery! (Weekly & Monthly Plans)',
       btnText: 'Book Now',

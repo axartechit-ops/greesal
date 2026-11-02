@@ -169,7 +169,7 @@ export default function AdminPage() {
   const [categoriesState, setCategoriesState] = useState<SiteCategory[]>(DEFAULT_CATEGORIES);
   const [fullSiteSettings, setFullSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -182,7 +182,7 @@ export default function AdminPage() {
   const [orderViewLayout, setOrderViewLayout] = useState<'cards' | 'table'>('table');
   const [orderAddressFilter, setOrderAddressFilter] = useState<'all' | 'google_map' | 'manual'>('all');
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
-  const [isOrdersLoading, setIsOrdersLoading] = useState<boolean>(false);
+  const [isOrdersLoading, setIsOrdersLoading] = useState<boolean>(true);
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<AdminOrder | null>(null);
   const [selectedProductDetails, setSelectedProductDetails] = useState<{
@@ -1733,7 +1733,7 @@ export default function AdminPage() {
                     return sName.includes(clean) || clean.includes(sName);
                   });
                   if (def?.image) return def.image;
-                  return originalImg || 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80';
+                  return originalImg || '/images/salad_bowl_hero.jpg';
                 };
 
                 return (
@@ -1842,7 +1842,7 @@ export default function AdminPage() {
                                                 src={actualImage}
                                                 alt={parsed.baseName}
                                                 className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-greesal-beige group-hover:scale-105 transition-transform"
-                                                onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80'; }}
+                                                onError={(e) => { (e.target as HTMLImageElement).src = '/images/salad_bowl_hero.jpg'; }}
                                               />
                                               <div className="min-w-0 flex-1 text-[11px]">
                                                 <div className="font-bold text-greesal-dark group-hover:text-emerald-900 truncate leading-tight flex items-center justify-between">
@@ -2217,7 +2217,7 @@ export default function AdminPage() {
                                             alt={parsed.baseName}
                                             className="w-13 h-13 object-cover rounded-xl border border-greesal-beige group-hover:scale-105 transition-transform flex-shrink-0"
                                             onError={(e) => {
-                                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80';
+                                              (e.target as HTMLImageElement).src = '/images/salad_bowl_hero.jpg';
                                             }}
                                           />
                                           <div className="min-w-0 flex-1">
@@ -2618,7 +2618,7 @@ export default function AdminPage() {
                                               alt={parsed.baseName}
                                               className="w-14 h-14 object-cover rounded-xl border border-greesal-beige flex-shrink-0 shadow-2xs"
                                               onError={(e) => {
-                                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80';
+                                                (e.target as HTMLImageElement).src = '/images/salad_bowl_hero.jpg';
                                               }}
                                             />
                                             <div className="min-w-0 flex-1">
@@ -2793,7 +2793,7 @@ export default function AdminPage() {
                                   alt={parsed.baseName}
                                   className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-2 border-white shadow-md flex-shrink-0"
                                   onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80';
+                                    (e.target as HTMLImageElement).src = '/images/salad_bowl_hero.jpg';
                                   }}
                                 />
                                 <div className="flex-1 w-full space-y-2 text-center sm:text-left">
@@ -4397,7 +4397,7 @@ export default function AdminPage() {
                             alt={salad.name}
                             className="w-16 h-16 rounded-xl object-cover border border-gray-100 flex-shrink-0"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=100&q=80';
+                              (e.target as HTMLImageElement).src = '/images/salad_bowl_hero.jpg';
                             }}
                           />
                           <div>
@@ -4470,7 +4470,12 @@ export default function AdminPage() {
                     );
                   })}
 
-                {salads.length === 0 ? (
+                {isLoading ? (
+                  <div className="h-48 flex flex-col items-center justify-center bg-white rounded-3xl border border-gray-100 text-[#123B2B] shadow-xs">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#123B2B] mb-2" />
+                    <p className="text-sm font-semibold text-[#123B2B]">Loading authentic salads...</p>
+                  </div>
+                ) : salads.length === 0 ? (
                   <div className="h-48 flex flex-col items-center justify-center bg-white rounded-3xl border border-dashed border-gray-300 text-gray-400">
                     <Utensils className="w-8 h-8 mb-2" />
                     <p className="text-sm font-semibold">No salad items found in database.</p>

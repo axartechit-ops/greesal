@@ -53,6 +53,21 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
   isLoading = false,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [isFiltering, setIsFiltering] = useState(false);
+
+  const handleSelectCategory = (catId: string) => {
+    if (catId === selectedCategory) return;
+    setIsFiltering(true);
+    setSelectedCategory(catId);
+    setTimeout(() => setIsFiltering(false), 160);
+  };
+
+  const handleResetFilters = () => {
+    setIsFiltering(true);
+    setSelectedCategory('all');
+    setSearchQuery('');
+    setTimeout(() => setIsFiltering(false), 160);
+  };
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedPortions, setSelectedPortions] = useState<Record<string, SaladPortion>>({});
 
@@ -185,7 +200,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
               return (
                 <button
                   key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
+                  onClick={() => handleSelectCategory(cat.id)}
                   className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl whitespace-nowrap text-xs sm:text-sm font-bold transition-all duration-150 flex items-center gap-2 border cursor-pointer active:scale-95 ${
                     active
                       ? 'bg-[#20493c] text-white border-[#20493c] shadow-sm'
@@ -200,7 +215,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
                         : 'bg-[#eef8f3] text-[#20493c]'
                     }`}
                   >
-                    {isLoading ? '...' : count}
+                    {isLoading || isFiltering ? <Loader2 className="w-3 h-3 animate-spin inline-block" /> : count}
                   </span>
                 </button>
               );
@@ -231,7 +246,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
         </div>
 
         {/* Active Filter & Result Summary */}
-        {(selectedCategory !== 'all' || searchQuery.trim() !== '') && (
+        {!isLoading && !isFiltering && (selectedCategory !== 'all' || searchQuery.trim() !== '') && (
           <div className="flex items-center justify-between text-xs text-gray-600 mb-6 px-1">
             <span>
               Showing <strong className="text-[#20493c]">{filteredSalads.length}</strong> {filteredSalads.length === 1 ? 'salad' : 'salads'}
@@ -243,10 +258,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
               )}
             </span>
             <button
-              onClick={() => {
-                setSelectedCategory('all');
-                setSearchQuery('');
-              }}
+              onClick={handleResetFilters}
               className="text-[#20493c] hover:underline font-bold text-xs cursor-pointer"
             >
               Reset Filters
@@ -255,7 +267,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
         )}
 
         {/* Loading State Spinner & Skeleton Cards */}
-        {isLoading ? (
+        {isLoading || isFiltering ? (
           <div className="space-y-6">
             {/* Branded Loader Banner */}
             <div className="flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-[#e8f7f2] border border-[#6ac6ac]/40 max-w-md mx-auto shadow-xs">
@@ -367,7 +379,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
-                            'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80';
+                            '/images/salad_bowl_hero.jpg';
                         }}
                       />
                     </Link>

@@ -283,7 +283,7 @@ export const AdminSliderTab: React.FC<AdminSliderTabProps> = ({
                 {/* Thumbnail */}
                 <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100 shrink-0">
                   <img
-                    src={salad.image || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=300&q=80'}
+                    src={salad.image || '/images/salad_bowl_hero.jpg'}
                     alt={salad.name}
                     className="w-full h-full object-cover"
                   />

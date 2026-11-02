@@ -68,7 +68,7 @@ export default function SaladDetailPage() {
   const [allSalads, setAllSalads] = useState<Salad[]>([]);
   const [isLoadingSalads, setIsLoadingSalads] = useState<boolean>(true);
   const [activeSalad, setActiveSalad] = useState<Salad | null>(null);
-  const salad: Salad | null = activeSalad || getSaladByIdOrSlug(rawId, allSalads) || (allSalads.length > 0 ? allSalads[0] : null);
+  const salad: Salad | null = activeSalad || getSaladByIdOrSlug(rawId, allSalads) || null;
   const portions = useMemo(() => getSaladPortions(salad), [salad]);
   const [selectedPortion, setSelectedPortion] = useState<SaladPortion>(() => {
     const list = getSaladPortions(salad);
@@ -656,7 +656,7 @@ export default function SaladDetailPage() {
             </Link>
 
             <Link
-              href="/#menu"
+              href="/salads"
               className="hidden md:inline-flex items-center gap-1 text-xs font-bold text-[#123B2B] hover:text-[#C89D4B] transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -749,7 +749,7 @@ export default function SaladDetailPage() {
                   alt={salad.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80';
+                    (e.target as HTMLImageElement).src = '/images/salad_bowl_hero.jpg';
                   }}
                 />
 
@@ -1363,7 +1363,7 @@ export default function SaladDetailPage() {
                 href="/#menu"
                 className="text-xs font-bold text-[#C89D4B] hover:underline flex items-center gap-1"
               >
-                <span>View All 7 Bowls</span>
+                <span>View All Bowls</span>
                 <span>&rarr;</span>
               </Link>
             </div>

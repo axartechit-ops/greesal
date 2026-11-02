@@ -106,7 +106,7 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
               className="w-full h-full object-cover"
               onError={(e) => {
                 (e.target as HTMLImageElement).src =
-                  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80';
+                  '/images/salad_bowl_hero.jpg';
               }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />

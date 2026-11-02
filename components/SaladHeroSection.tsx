@@ -75,7 +75,7 @@ export const SaladHeroSection: React.FC<SaladHeroSectionProps> = ({
               {/* Salad Bowl Main Image */}
               <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-gradient-to-b from-[#f2f8f5] to-[#e4f4ed] p-3 transition-transform duration-500 hover:scale-[1.02]">
                 <img
-                  src={heroImage && !heroImage.includes('photo-1540420773420-3366772f4999') ? heroImage : '/images/salad_bowl_hero.jpg'}
+                  src={heroImage && !heroImage.includes('unsplash.com') && !heroImage.includes('photo-') ? heroImage : '/images/salad_bowl_hero.jpg'}
                   alt={storyBrand}
                   className="w-full h-72 sm:h-96 object-cover rounded-2xl shadow-inner"
                   onError={(e) => {

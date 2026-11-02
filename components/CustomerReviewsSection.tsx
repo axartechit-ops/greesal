@@ -18,10 +18,10 @@ import {
 import { CustomerReview, DEFAULT_REVIEWS } from '@/lib/reviews';
 
 export const CustomerReviewsSection: React.FC = () => {
-  const [reviews, setReviews] = useState<CustomerReview[]>(DEFAULT_REVIEWS);
+  const [reviews, setReviews] = useState<CustomerReview[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -187,7 +187,7 @@ export const CustomerReviewsSection: React.FC = () => {
         </div>
 
         {/* Show More / Show Less Toggle Button */}
-        {reviews.length > 4 && (
+        {!isLoading && reviews.length > 4 && (
           <div className="mt-8 text-center">
             <button
               onClick={() => setShowAll(!showAll)}
