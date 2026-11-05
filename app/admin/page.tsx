@@ -4345,7 +4345,7 @@ export default function AdminPage() {
                   All Salads ({salads.length})
                 </button>
                 {categoriesState
-                  .filter((c) => c.id !== 'all')
+                  .filter((c) => c.id !== 'all' && (salads.filter((s) => matchesSaladCategory(s, c.id, categoriesState)).length > 0 || adminSaladCategoryFilter === c.id))
                   .map((cat) => {
                     const count = salads.filter((s) => matchesSaladCategory(s, cat.id, categoriesState)).length;
                     const active = adminSaladCategoryFilter === cat.id;

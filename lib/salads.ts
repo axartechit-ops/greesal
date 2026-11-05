@@ -221,7 +221,7 @@ export function matchesSaladCategory(
   // 3. Category specific alias matching
   if (targetNorm.includes('protein') && (catNorm.includes('protein') || tagNorm.includes('protein'))) return true;
   if (targetNorm.includes('rice') && (catNorm.includes('rice') || tagNorm.includes('rice') || catNorm.includes('burrito') || tagNorm.includes('burrito'))) return true;
-  if (targetNorm.includes('paneer') && (catNorm.includes('paneer') || tagNorm.includes('paneer') || salad.ingredients?.some(i => i.toLowerCase().includes('paneer')))) return true;
+  if (targetNorm.includes('paneer') && (catNorm.includes('paneer') || tagNorm.includes('paneer'))) return true;
   if (targetNorm.includes('exotic') && (catNorm.includes('exotic') || tagNorm.includes('exotic') || catNorm.includes('mais') || tagNorm.includes('mais'))) return true;
   if ((targetNorm.includes('veggie') || targetNorm.includes('vegetable')) && (catNorm.includes('veggie') || tagNorm.includes('veggie') || catNorm.includes('vegetable') || tagNorm.includes('vegetable'))) return true;
 

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { Salad, slugify, SaladPortion, getSaladPortions, getSaladPriceForPortion, matchesSaladCategory, inferSaladCategory, isGenericAllCategory } from '@/lib/salads';
+import { Salad, slugify, SaladPortion, getSaladPortions, getSaladPriceForPortion, matchesSaladCategory, inferSaladCategory, isGenericAllCategory, normalizeCategoryString } from '@/lib/salads';
 import { 
   Plus, 
   Minus, 
@@ -76,6 +76,60 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
   const matchesCategoryForSalad = (salad: Salad, categoryId: string) => {
     return matchesSaladCategory(salad, categoryId, displayCategories);
   };
+
+  // Only display categories added by admin that have salads, plus 'All Salads'
+  const visibleCategories = useMemo(() => {
+    const baseCats: SiteCategory[] = categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+
+    const allTab: SiteCategory = baseCats.find(c => c.id === 'all' || isGenericAllCategory(c.id)) || {
+      id: 'all',
+      label: 'All Salads',
+      count: `${salads.length} varieties`,
+      icon: '🥗',
+    };
+
+    const result: SiteCategory[] = [allTab];
+    const seenNorms = new Set<string>(['all', 'allsalads', 'allcategories']);
+
+    // 1. Include base categories from admin settings only if they have at least 1 salad added by admin
+    baseCats.forEach((cat) => {
+      if (isGenericAllCategory(cat.id)) return;
+      const count = salads.filter((s) => matchesCategoryForSalad(s, cat.id)).length;
+      if (count > 0) {
+        result.push(cat);
+        seenNorms.add(normalizeCategoryString(cat.id));
+        seenNorms.add(normalizeCategoryString(cat.label));
+      }
+    });
+
+    // 2. Automatically include any unique category assigned to salads added by admin
+    salads.forEach((s) => {
+      const raw = (!isGenericAllCategory(s.category) && s.category) || (!isGenericAllCategory(s.tag) && s.tag);
+      if (raw && !isGenericAllCategory(raw)) {
+        const norm = normalizeCategoryString(raw);
+        if (!seenNorms.has(norm)) {
+          const count = salads.filter((item) => matchesCategoryForSalad(item, raw)).length;
+          if (count > 0) {
+            result.push({
+              id: raw,
+              label: raw,
+              icon: '🥗',
+            });
+            seenNorms.add(norm);
+          }
+        }
+      }
+    });
+
+    return result;
+  }, [categories, salads, displayCategories]);
+
+  // Gracefully reset selectedCategory if the filtered category is no longer present
+  useEffect(() => {
+    if (selectedCategory !== 'all' && !visibleCategories.some((c) => c.id === selectedCategory)) {
+      setSelectedCategory('all');
+    }
+  }, [visibleCategories, selectedCategory]);
 
   const filteredSalads = salads.filter((salad) => {
     const matchesCategory = matchesCategoryForSalad(salad, selectedCategory);
@@ -191,7 +245,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
           
           {/* Category Tabs - Clean Wrap so NO option is cut off */}
           <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap pb-1 sm:pb-0 no-scrollbar">
-            {displayCategories.map((cat) => {
+            {visibleCategories.map((cat) => {
               const active = selectedCategory === cat.id;
               const count = cat.id === 'all'
                 ? salads.length
@@ -251,7 +305,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
             <span>
               Showing <strong className="text-[#20493c]">{filteredSalads.length}</strong> {filteredSalads.length === 1 ? 'salad' : 'salads'}
               {selectedCategory !== 'all' && (
-                <> in <span className="font-semibold text-[#20493c]">{displayCategories.find((c) => c.id === selectedCategory)?.label || selectedCategory}</span></>
+                <> in <span className="font-semibold text-[#20493c]">{visibleCategories.find((c) => c.id === selectedCategory)?.label || selectedCategory}</span></>
               )}
               {searchQuery.trim() && (
                 <> matching &ldquo;{searchQuery}&rdquo;</>
