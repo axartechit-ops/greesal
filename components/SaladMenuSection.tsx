@@ -441,7 +441,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
                     {/* Top Badge: Tag / Category */}
                     <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-white/95 backdrop-blur-sm px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[11px] font-bold text-[#20493c] shadow-xs border border-[#6ac6ac]/30 flex items-center gap-0.5 sm:gap-1 max-w-[70%] sm:max-w-none truncate pointer-events-none">
                       <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#fbce45] flex-shrink-0" />
-                      <span className="truncate">{(!isGenericAllCategory(salad.category) && salad.category) || (!isGenericAllCategory(salad.tag) && salad.tag) || inferSaladCategory(salad)}</span>
+                      <span className="truncate">{(!isGenericAllCategory(salad.category) && salad.category) || (!isGenericAllCategory(salad.tag) && salad.tag) || 'Fresh Salad'}</span>
                     </div>
 
                     {/* Top Right: Calories */}

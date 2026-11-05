@@ -159,9 +159,7 @@ export interface SubscriptionPlan {
 
 export const DEFAULT_CATEGORIES: SiteCategory[] = [
   { id: 'all', label: 'All Salads', count: 'Fresh daily', icon: '🥗' },
-  { id: 'Protein House', label: 'Protein House', count: 'High protein', icon: '⚡' },
-  { id: 'Paneer Salad', label: 'Paneer Salad', count: 'Satvik paneer', icon: '🧀' },
-  { id: 'Rice Bowl', label: 'Rice Bowl', count: 'Warm rice bowl', icon: '🍚' },
+  { id: 'rice bawol', label: 'rice bawol', count: 'Fresh bowl', icon: '🍲' },
 ];
 
 export const DEFAULT_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [

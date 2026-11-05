@@ -1006,7 +1006,7 @@ export default function AdminPage() {
       setIsQuickAddCatOpen(false);
       setQuickCatLabel('');
       setQuickCatIcon('🥗');
-      const defaultCat = categoriesState.find(c => c.id !== 'all')?.label || 'Protein House';
+      const defaultCat = categoriesState.find(c => c.id !== 'all')?.label || 'rice bawol';
       setCurrentSalad({
         name: '',
         calories: '',
@@ -1058,7 +1058,7 @@ export default function AdminPage() {
       setQuickCatLabel('');
       setQuickCatIcon('🥗');
       const rawCat = (!isGenericAllCategory(salad.category) && salad.category) || (!isGenericAllCategory(salad.tag) && salad.tag) || inferSaladCategory(salad);
-      const saladCategory = categoriesState.find(c => c.id !== 'all' && (normalizeCategoryString(c.label) === normalizeCategoryString(rawCat) || normalizeCategoryString(c.id) === normalizeCategoryString(rawCat)))?.label || rawCat || 'Protein House';
+      const saladCategory = categoriesState.find(c => c.id !== 'all' && (normalizeCategoryString(c.label) === normalizeCategoryString(rawCat) || normalizeCategoryString(c.id) === normalizeCategoryString(rawCat)))?.label || rawCat || 'rice bawol';
       const saladPortions = Array.isArray(salad.portions) && salad.portions.length > 0
         ? salad.portions
         : getSaladPortions(salad);
