@@ -35,6 +35,7 @@ export default function SaladIndiaHome() {
 
   // Site dynamic content settings & categories managed by admin
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
+  const [isLoadingSettings, setIsLoadingSettings] = useState<boolean>(true);
 
   // Salads list state - only admin uploaded salads
   const [salads, setSalads] = useState<Salad[]>([]);
@@ -106,6 +107,7 @@ export default function SaladIndiaHome() {
     // 1. Fetch dynamic site content settings & categories from admin settings API
     const fetchSettings = async () => {
       try {
+        setIsLoadingSettings(true);
         const res = await fetch('/api/admin/settings');
         if (res.ok) {
           const data = await res.json();
@@ -115,6 +117,8 @@ export default function SaladIndiaHome() {
         }
       } catch (e) {
         // Fallback to DEFAULT_SITE_SETTINGS
+      } finally {
+        setIsLoadingSettings(false);
       }
     };
     fetchSettings();
@@ -386,6 +390,7 @@ export default function SaladIndiaHome() {
           image2={siteSettings.differenceImage2}
           image3={siteSettings.differenceImage3}
           image4={siteSettings.differenceImage4}
+          isLoading={isLoadingSettings}
         />
 
         {/* 5. Stats Counter Bar */}

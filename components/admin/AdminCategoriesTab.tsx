@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, RotateCcw, Save, Filter, Sparkles, Loader2, CheckCircle2 } from 'lucide-react';
 import { SiteCategory, DEFAULT_CATEGORIES } from '@/lib/siteSettings';
-import { matchesSaladCategory, isGenericAllCategory } from '@/lib/salads';
+import { Salad, matchesSaladCategory } from '@/lib/salads';
 
 interface AdminCategoriesTabProps {
   categories: SiteCategory[];
   onSaveCategories: (updatedCategories: SiteCategory[]) => Promise<void>;
   isSaving: boolean;
-  salads: any[];
+  salads: Salad[];
 }
 
 export const AdminCategoriesTab: React.FC<AdminCategoriesTabProps> = ({
@@ -43,21 +43,7 @@ export const AdminCategoriesTab: React.FC<AdminCategoriesTabProps> = ({
 
   const getSaladCount = (catId: string) => {
     if (catId === 'all') return salads.length;
-    const cat = localCategories.find(c => c.id === catId);
-    const catIdNorm = catId.toLowerCase().trim();
-    const catLabelNorm = (cat?.label || '').toLowerCase().trim();
-    return salads.filter((s) => {
-      const tagLower = (s.tag || '').toLowerCase().trim();
-      const catLower = (s.category || '').toLowerCase().trim();
-      const nameLower = (s.name || '').toLowerCase().trim();
-      return (
-        tagLower === catIdNorm || tagLower === catLabelNorm ||
-        catLower === catIdNorm || catLower === catLabelNorm ||
-        (catLabelNorm && tagLower.includes(catLabelNorm)) ||
-        (catLabelNorm && catLower.includes(catLabelNorm)) ||
-        (catIdNorm && nameLower.includes(catIdNorm))
-      );
-    }).length;
+    return salads.filter((salad) => matchesSaladCategory(salad, catId, localCategories)).length;
   };
 
   const handleAddCategory = async (e: React.FormEvent) => {

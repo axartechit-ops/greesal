@@ -19,8 +19,7 @@ RETRY_DELAY_SECONDS = 2
 
 def connect_to_mongo():
     """Connect to MongoDB with PyMongo, with retry logic for Atlas reliability."""
-    masked_url = MONGODB_URL[:30] + "..." if len(MONGODB_URL) > 30 else MONGODB_URL
-    logger.info(f"Connecting to MongoDB at {masked_url}...")
+    logger.info("Connecting to MongoDB...")
     start_time = time.time()
 
     for attempt in range(1, MAX_RETRIES + 1):

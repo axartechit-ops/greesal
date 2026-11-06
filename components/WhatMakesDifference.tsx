@@ -1,5 +1,5 @@
-import React from 'react';
-import { Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, Loader2 } from 'lucide-react';
 
 interface WhatMakesDifferenceProps {
   badge?: string;
@@ -9,22 +9,65 @@ interface WhatMakesDifferenceProps {
   image2?: string;
   image3?: string;
   image4?: string;
+  isLoading?: boolean;
 }
 
 export const WhatMakesDifference: React.FC<WhatMakesDifferenceProps> = ({
   badge = 'THE GREESAL PROMISE',
   title = 'what makes the difference?',
   subtitle = 'Every bowl is handcrafted from farm-to-table with zero shortcuts, zero chemicals, and uncompromised love.',
-  image1 = '/images/premium_fresh_ingredients.png',
-  image2,
-  image3,
-  image4,
+  image1 = '',
+  image2 = '',
+  image3 = '',
+  image4 = '',
+  isLoading = false,
 }) => {
+  const [loadedImages, setLoadedImages] = useState<Record<number, boolean>>({});
+  const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
+
+  // Filter out any empty strings or old demo image paths
   const validImages = [image1, image2, image3, image4].filter(
-    (img): img is string => typeof img === 'string' && img.trim() !== ''
+    (img): img is string =>
+      typeof img === 'string' &&
+      img.trim() !== '' &&
+      img !== '/images/premium_fresh_ingredients.png'
   );
 
-  // If no images exist, do not render image container
+  // 1. During initial settings loading, show a fast, elegant loader (NO DEMO IMAGE)
+  if (isLoading) {
+    return (
+      <section id="difference" className="py-12 sm:py-16 bg-gradient-to-b from-[#f7fbf9] via-white to-[#f7fbf9] relative overflow-hidden border-b border-gray-100 font-dmsans">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+          <div className="max-w-3xl mx-auto mb-8 sm:mb-10">
+            {badge && (
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#e8f7f2] border border-[#6ac6ac]/30 text-xs font-bold uppercase tracking-wider text-[#20493c] mb-3 shadow-2xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#fbce45]" />
+                {badge}
+              </div>
+            )}
+            <h2 className="font-montserrat font-extrabold text-3xl sm:text-5xl text-[#20493c] tracking-tight capitalize">
+              {title}
+            </h2>
+            {subtitle && (
+              <p className="mt-3 text-sm sm:text-base text-[#20493c]/80 font-dmsans max-w-2xl mx-auto leading-relaxed">
+                {subtitle}
+              </p>
+            )}
+            <div className="w-16 h-1.5 bg-[#fbce45] mx-auto mt-4 rounded-full" />
+          </div>
+
+          {/* Loader Card */}
+          <div className="max-w-3xl mx-auto p-12 sm:p-16 rounded-3xl bg-white border border-emerald-100 shadow-lg flex flex-col items-center justify-center min-h-[260px] animate-pulse">
+            <Loader2 className="w-10 h-10 text-[#20493c] animate-spin mb-3" />
+            <p className="text-sm font-extrabold text-[#20493c]">Loading Fresh Ingredients Showcase...</p>
+            <p className="text-xs text-gray-400 mt-1">Greesal clean farm-to-table promise</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // 2. If not loading and admin has not added any images, hide the section entirely (NO DEMO IMAGE)
   if (validImages.length === 0) {
     return null;
   }
@@ -61,23 +104,40 @@ export const WhatMakesDifference: React.FC<WhatMakesDifferenceProps> = ({
           <div className="w-16 h-1.5 bg-[#fbce45] mx-auto mt-4 rounded-full" />
         </div>
 
-        {/* 4 Images Graphic Showcase - 2x2 Grid */}
+        {/* Dynamic Graphic Showcase (1-4 Images) */}
         <div className="w-full">
           <div className={`grid ${getGridColsClass(validImages.length)} gap-6 lg:gap-8 items-stretch justify-center`}>
-            {validImages.map((imgSrc, idx) => (
-              <div
-                key={idx}
-                className="relative bg-white rounded-3xl p-3 sm:p-5 shadow-xl border border-emerald-100/80 overflow-hidden group transition-all duration-500 hover:shadow-2xl flex flex-col justify-center"
-              >
-                <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 to-amber-500/5 rounded-3xl pointer-events-none" />
-                <img
-                  src={imgSrc}
-                  alt={`What Makes The Difference - Graphic ${idx + 1}`}
-                  className="w-full h-auto max-h-[500px] object-contain rounded-2xl transition-transform duration-500 group-hover:scale-[1.01]"
-                  loading="lazy"
-                />
-              </div>
-            ))}
+            {validImages.map((imgSrc, idx) => {
+              if (failedImages[idx]) return null;
+              const isLoaded = loadedImages[idx];
+
+              return (
+                <div
+                  key={idx}
+                  className="relative bg-white rounded-3xl p-3 sm:p-5 shadow-xl border border-emerald-100/80 overflow-hidden group transition-all duration-500 hover:shadow-2xl flex flex-col justify-center min-h-[220px]"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 to-amber-500/5 rounded-3xl pointer-events-none" />
+
+                  {/* Individual Image Loading Placeholder */}
+                  {!isLoaded && (
+                    <div className="w-full h-64 sm:h-80 rounded-2xl bg-emerald-50/50 flex flex-col items-center justify-center animate-pulse">
+                      <Loader2 className="w-7 h-7 text-[#20493c] animate-spin mb-2" />
+                      <span className="text-xs font-bold text-[#20493c]/70">Loading image...</span>
+                    </div>
+                  )}
+
+                  <img
+                    src={imgSrc}
+                    alt={`What Makes The Difference - Graphic ${idx + 1}`}
+                    className={`w-full h-auto max-h-[500px] object-contain rounded-2xl transition-all duration-500 group-hover:scale-[1.01] ${isLoaded ? 'opacity-100 block' : 'opacity-0 absolute'
+                      }`}
+                    onLoad={() => setLoadedImages((prev) => ({ ...prev, [idx]: true }))}
+                    onError={() => setFailedImages((prev) => ({ ...prev, [idx]: true }))}
+                    loading="eager"
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
 

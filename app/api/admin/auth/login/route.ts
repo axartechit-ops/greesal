@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
-import { proxyToFastAPI } from '@/lib/fastapi';
+import { POST as adminAuthPost } from '../route';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-  return proxyToFastAPI(req, '/api/admin/auth/login');
+  return adminAuthPost(req);
 }

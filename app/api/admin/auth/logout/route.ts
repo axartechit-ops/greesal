@@ -1,12 +1,11 @@
-import { NextRequest } from 'next/server';
-import { proxyToFastAPI } from '@/lib/fastapi';
+import { DELETE as adminAuthDelete } from '../route';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: NextRequest) {
-  return proxyToFastAPI(req, '/api/admin/auth/logout');
+export async function POST() {
+  return adminAuthDelete();
 }
 
-export async function DELETE(req: NextRequest) {
-  return proxyToFastAPI(req, '/api/admin/auth/logout');
+export async function DELETE() {
+  return adminAuthDelete();
 }

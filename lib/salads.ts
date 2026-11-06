@@ -178,7 +178,13 @@ export function normalizeCategoryString(str?: string | null): string {
  */
 export function isGenericAllCategory(str?: string | null): boolean {
   const norm = normalizeCategoryString(str);
-  return !norm || norm === 'all' || norm === 'all salad' || norm === 'all salads' || norm === 'all bowls';
+  return !norm ||
+    norm === 'all' ||
+    norm === 'all item' ||
+    norm === 'all items' ||
+    norm === 'all salad' ||
+    norm === 'all salads' ||
+    norm === 'all bowls';
 }
 
 /**
@@ -191,7 +197,7 @@ export function inferSaladCategory(salad: Partial<Salad>): string {
 }
 
 /**
- * Universal category matching function used by customer menu, admin filtering, and tab counts.
+ * Category matching shared by the customer menu, admin filters, and tab counts.
  */
 export function matchesSaladCategory(
   salad: Salad,
@@ -209,28 +215,12 @@ export function matchesSaladCategory(
   );
   const targetLabelNorm = targetObj ? normalizeCategoryString(targetObj.label) : targetNorm;
 
-  const saladCat = salad.category;
-  const saladTag = salad.tag;
+  const assignedCategory = !isGenericAllCategory(salad.category)
+    ? salad.category
+    : salad.tag;
+  const assignedNorm = normalizeCategoryString(assignedCategory);
 
-  // If salad category is generic 'All Salad' or empty, it only belongs to 'All Salads' tab
-  if (isGenericAllCategory(saladCat) && isGenericAllCategory(saladTag)) {
-    return false;
-  }
-
-  const catNorm = normalizeCategoryString(saladCat);
-  const tagNorm = normalizeCategoryString(saladTag);
-
-  // Direct match with target ID or Label
-  if (catNorm && (catNorm === targetNorm || catNorm === targetLabelNorm)) return true;
-  if (tagNorm && (tagNorm === targetNorm || tagNorm === targetLabelNorm)) return true;
-
-  // Substring or keyword match
-  if (catNorm && (targetNorm.includes(catNorm) || catNorm.includes(targetNorm))) return true;
-  if (catNorm && targetLabelNorm && (targetLabelNorm.includes(catNorm) || catNorm.includes(targetLabelNorm))) return true;
-  if (tagNorm && (targetNorm.includes(tagNorm) || tagNorm.includes(targetNorm))) return true;
-  if (tagNorm && targetLabelNorm && (targetLabelNorm.includes(tagNorm) || tagNorm.includes(targetLabelNorm))) return true;
-
-  return false;
+  return assignedNorm === targetNorm || assignedNorm === targetLabelNorm;
 }
 
 export const DEFAULT_SALAD_ADDONS: SaladAddOn[] = [

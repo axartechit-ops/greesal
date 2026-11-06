@@ -57,19 +57,19 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedPortions, setSelectedPortions] = useState<Record<string, SaladPortion>>({});
 
-  // Display only categories explicitly added by admin (siteSettings.categories), plus 'All Salads'
+  // Display only categories explicitly added by admin (siteSettings.categories), plus 'All Items'
   const visibleCategories = useMemo(() => {
     const baseCats: SiteCategory[] = categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
 
-    const allTab: SiteCategory = baseCats.find(c => c.id === 'all' || isGenericAllCategory(c.id)) || {
+    const allTab: SiteCategory = {
       id: 'all',
-      label: 'All Salads',
+      label: 'All Items',
       count: `${salads.length} varieties`,
       icon: '🥗',
     };
 
     const result: SiteCategory[] = [allTab];
-    const seenNorms = new Set<string>(['all', 'allsalads', 'allcategories']);
+    const seenNorms = new Set<string>(['all', 'all items', 'all salads', 'all categories']);
 
     // Include ONLY categories explicitly configured/added by admin
     baseCats.forEach((cat) => {

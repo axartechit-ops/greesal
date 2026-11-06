@@ -2,7 +2,10 @@ import crypto from 'crypto';
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-const ADMIN_SECRET = process.env.NEXTAUTH_SECRET || 'greesal_admin_auth_secret_key_2026';
+const ADMIN_SECRET =
+  process.env.ADMIN_SECRET ||
+  process.env.NEXTAUTH_SECRET ||
+  'greesal_admin_auth_secret_key_2026';
 export const ADMIN_COOKIE_NAME = 'greesal_admin_session';
 
 export interface AdminSessionData {

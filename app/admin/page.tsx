@@ -4814,13 +4814,25 @@ export default function AdminPage() {
                       )}
 
                       <select
-                        value={currentSalad.category || currentSalad.tag}
+                        value={
+                          categoriesState.find(
+                            (category) =>
+                              category.id !== 'all' &&
+                              !isGenericAllCategory(category.id) &&
+                              !isGenericAllCategory(category.label) &&
+                              (normalizeCategoryString(category.id) === normalizeCategoryString(currentSalad.category || currentSalad.tag) ||
+                                normalizeCategoryString(category.label) === normalizeCategoryString(currentSalad.category || currentSalad.tag))
+                          )?.label || ''
+                        }
                         onChange={(e) => {
                           const val = e.target.value;
                           setCurrentSalad({ ...currentSalad, tag: val, category: val });
                         }}
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#123B2B]/40 focus:border-[#123B2B]"
                       >
+                        <option value="" disabled>
+                          Select a category from Categories
+                        </option>
                         {categoriesState
                           .filter((c) => c.id !== 'all' && !isGenericAllCategory(c.id) && !isGenericAllCategory(c.label))
                           .map((c) => (
@@ -4828,18 +4840,6 @@ export default function AdminPage() {
                               {c.icon || '🥗'} {c.label}
                             </option>
                           ))}
-                        {(currentSalad.category || currentSalad.tag) &&
-                          !isGenericAllCategory(currentSalad.category) &&
-                          !isGenericAllCategory(currentSalad.tag) &&
-                          !categoriesState.some(
-                            (c) =>
-                              normalizeCategoryString(c.id) === normalizeCategoryString(currentSalad.category || currentSalad.tag) ||
-                            normalizeCategoryString(c.label) === normalizeCategoryString(currentSalad.category || currentSalad.tag)
-                          ) && (
-                            <option value={currentSalad.category || currentSalad.tag}>
-                              🥗 {currentSalad.category || currentSalad.tag}
-                            </option>
-                          )}
                       </select>
                     </div>
 

@@ -240,10 +240,6 @@ export const SaladIndiaFooter: React.FC<SaladIndiaFooterProps> = ({
           </p>
 
           <div className="flex items-center gap-3 flex-wrap justify-center text-[11px]">
-            <Link href="/admin" className="hover:text-black font-semibold transition-colors">
-              Admin Portal
-            </Link>
-            <span className="text-[#0c2a20]/40">•</span>
             <button type="button" onClick={onOpenTerms} className="hover:text-black font-semibold transition-colors cursor-pointer">
               Terms &amp; Standards
             </button>

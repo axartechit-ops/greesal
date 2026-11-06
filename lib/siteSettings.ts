@@ -230,7 +230,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   differenceBadge: 'THE GREESAL PROMISE',
   differenceTitle: 'what makes the difference?',
   differenceSubtitle: 'Every bowl is handcrafted from farm-to-table with zero shortcuts, zero chemicals, and uncompromised love.',
-  differenceImage1: '/images/premium_fresh_ingredients.png',
+  differenceImage1: '',
   differenceImage2: '',
   differenceImage3: '',
   differenceImage4: '',
