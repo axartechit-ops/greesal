@@ -92,24 +92,8 @@ interface Salad {
   perfectFor?: string[];
   addOns?: Array<{ name: string; price: number }>;
   portions?: SaladPortion[];
-  nutrition?: {
-    carbs?: string;
-    fiber?: string;
-    sugarTotal?: string;
-    sugarAdded?: string;
-    totalFat?: string;
-    saturatedFat?: string;
-    transFat?: string;
-    cholesterol?: string;
-    vitaminA?: string;
-    vitaminC?: string;
-    vitaminD?: string;
-    vitaminE?: string;
-    sodium?: string;
-    calcium?: string;
-    iron?: string;
-    potassium?: string;
-  };
+  nutritionItems?: Array<{ name: string; value: string }>;
+  nutrition?: any;
 }
 
 interface OrderItem {
@@ -303,12 +287,24 @@ export default function AdminPage() {
     additionalBenefits: [],
     perfectFor: ['Diet', 'Fitness', 'Healthy'],
     addOns: [],
-    nutrition: {
-      carbs: '', fiber: '', sugarTotal: '', sugarAdded: '',
-      totalFat: '', saturatedFat: '', transFat: '', cholesterol: '',
-      vitaminA: '', vitaminC: '', vitaminD: '', vitaminE: '',
-      sodium: '', calcium: '', iron: '', potassium: ''
-    }
+    nutritionItems: [
+      { name: 'Carbs', value: '' },
+      { name: 'Fiber', value: '' },
+      { name: 'Total Sugar', value: '' },
+      { name: 'Added Sugar', value: '' },
+      { name: 'Total Fat', value: '' },
+      { name: 'Saturated Fat', value: '' },
+      { name: 'Trans Fat', value: '' },
+      { name: 'Cholesterol', value: '' },
+      { name: 'Sodium', value: '' },
+      { name: 'Calcium', value: '' },
+      { name: 'Iron', value: '' },
+      { name: 'Potassium', value: '' },
+      { name: 'Vitamin A', value: '' },
+      { name: 'Vitamin C', value: '' },
+      { name: 'Vitamin D', value: '' },
+      { name: 'Vitamin E', value: '' },
+    ]
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -575,6 +571,7 @@ export default function AdminPage() {
           healthBenefits: (Array.isArray(foundInDb.healthBenefits) && foundInDb.healthBenefits.length > 0) ? foundInDb.healthBenefits : foundInDefault.healthBenefits,
           additionalBenefits: (Array.isArray(foundInDb.additionalBenefits) && foundInDb.additionalBenefits.length > 0) ? foundInDb.additionalBenefits : foundInDefault.additionalBenefits,
           perfectFor: (Array.isArray(foundInDb.perfectFor) && foundInDb.perfectFor.length > 0) ? foundInDb.perfectFor : foundInDefault.perfectFor,
+          nutritionItems: Array.isArray(foundInDb.nutritionItems) ? foundInDb.nutritionItems : (foundInDefault as any)?.nutritionItems,
           nutrition: {
             ...Object.fromEntries(Object.entries(foundInDb.nutrition || {}).filter(([_, v]) => v && String(v).trim().length > 0))
           }
@@ -1033,12 +1030,24 @@ export default function AdminPage() {
           { name: 'Fresh Hass Avocado Slices', price: 50 },
           { name: 'Organic Boiled Chickpeas & Sprout Beans', price: 25 },
         ],
-        nutrition: {
-          carbs: '', fiber: '', sugarTotal: '', sugarAdded: '',
-          totalFat: '', saturatedFat: '', transFat: '', cholesterol: '',
-          vitaminA: '', vitaminC: '', vitaminD: '', vitaminE: '',
-          sodium: '', calcium: '', iron: '', potassium: ''
-        }
+        nutritionItems: [
+      { name: 'Carbs', value: '' },
+      { name: 'Fiber', value: '' },
+      { name: 'Total Sugar', value: '' },
+      { name: 'Added Sugar', value: '' },
+      { name: 'Total Fat', value: '' },
+      { name: 'Saturated Fat', value: '' },
+      { name: 'Trans Fat', value: '' },
+      { name: 'Cholesterol', value: '' },
+      { name: 'Sodium', value: '' },
+      { name: 'Calcium', value: '' },
+      { name: 'Iron', value: '' },
+      { name: 'Potassium', value: '' },
+      { name: 'Vitamin A', value: '' },
+      { name: 'Vitamin C', value: '' },
+      { name: 'Vitamin D', value: '' },
+      { name: 'Vitamin E', value: '' },
+    ]
       });
       setIsModalOpen(true);
     };
@@ -1080,13 +1089,31 @@ export default function AdminPage() {
           { name: 'Roasted Almonds, Walnuts & Seeds Mix', price: 35 },
           { name: 'Fresh Hass Avocado Slices', price: 50 },
         ],
-        nutrition: {
-          carbs: '', fiber: '', sugarTotal: '', sugarAdded: '',
-          totalFat: '', saturatedFat: '', transFat: '', cholesterol: '',
-          vitaminA: '', vitaminC: '', vitaminD: '', vitaminE: '',
-          sodium: '', calcium: '', iron: '', potassium: '',
-          ...(salad.nutrition || {})
-        }
+        nutritionItems: (() => {
+          if (Array.isArray((salad as any).nutritionItems) && (salad as any).nutritionItems.length > 0) {
+            return (salad as any).nutritionItems;
+          }
+          const oldN = (salad as any).nutrition || {};
+          const defs = [
+            { name: 'Carbs', key: 'carbs' },
+            { name: 'Fiber', key: 'fiber' },
+            { name: 'Total Sugar', key: 'sugarTotal' },
+            { name: 'Added Sugar', key: 'sugarAdded' },
+            { name: 'Total Fat', key: 'totalFat' },
+            { name: 'Saturated Fat', key: 'saturatedFat' },
+            { name: 'Trans Fat', key: 'transFat' },
+            { name: 'Cholesterol', key: 'cholesterol' },
+            { name: 'Sodium', key: 'sodium' },
+            { name: 'Calcium', key: 'calcium' },
+            { name: 'Iron', key: 'iron' },
+            { name: 'Potassium', key: 'potassium' },
+            { name: 'Vitamin A', key: 'vitaminA' },
+            { name: 'Vitamin C', key: 'vitaminC' },
+            { name: 'Vitamin D', key: 'vitaminD' },
+            { name: 'Vitamin E', key: 'vitaminE' },
+          ];
+          return defs.map(d => ({ name: d.name, value: oldN[d.key] || '' }));
+        })()
       });
       setIsModalOpen(true);
     };
@@ -2737,7 +2764,7 @@ export default function AdminPage() {
                       const dressing = saladData?.dressing || [];
                       const crunch = saladData?.crunch || [];
                       const healthBenefits = saladData?.healthBenefits || [];
-                      const nutrition = saladData?.nutrition || {};
+                      const nutrition = (saladData as any)?.nutrition || {};
                       const calories = saladData?.calories || '387 Kcal';
                       const protein = saladData?.protein || '19g Protein';
 
@@ -2972,25 +2999,13 @@ export default function AdminPage() {
 
                               {/* 4. COMPLETE NUTRITION FACTS (A to Z) — admin-entered only */}
                               {(() => {
-                                const nutEntries: Array<{ label: string; value: string; className?: string }> = [
+                                const nitems = Array.isArray(saladData?.nutritionItems)
+                                  ? saladData.nutritionItems.filter((n) => n.name && n.value && String(n.value).trim())
+                                  : [];
+                                const allEntries = [
                                   { label: 'Calories', value: calories, className: 'font-black text-[#123B2B]' },
                                   { label: 'Protein', value: protein, className: 'font-black text-emerald-800' },
-                                  ...(nutrition.carbs ? [{ label: 'Carbs', value: nutrition.carbs, className: 'font-black text-greesal-dark' }] : []),
-                                  ...(nutrition.fiber ? [{ label: 'Dietary Fiber', value: nutrition.fiber, className: 'font-black text-emerald-800' }] : []),
-                                  ...(nutrition.totalFat ? [{ label: 'Total Fat', value: nutrition.totalFat }] : []),
-                                  ...(nutrition.saturatedFat ? [{ label: 'Saturated Fat', value: nutrition.saturatedFat }] : []),
-                                  ...(nutrition.transFat ? [{ label: 'Trans Fat', value: nutrition.transFat }] : []),
-                                  ...(nutrition.cholesterol ? [{ label: 'Cholesterol', value: nutrition.cholesterol }] : []),
-                                  ...(nutrition.sugarTotal ? [{ label: 'Total Sugar', value: nutrition.sugarTotal }] : []),
-                                  ...(nutrition.sugarAdded ? [{ label: 'Added Sugar', value: nutrition.sugarAdded }] : []),
-                                  ...(nutrition.sodium ? [{ label: 'Sodium', value: nutrition.sodium }] : []),
-                                  ...(nutrition.calcium ? [{ label: 'Calcium', value: nutrition.calcium }] : []),
-                                  ...(nutrition.iron ? [{ label: 'Iron', value: nutrition.iron }] : []),
-                                  ...(nutrition.potassium ? [{ label: 'Potassium', value: nutrition.potassium }] : []),
-                                  ...(nutrition.vitaminA ? [{ label: 'Vitamin A', value: nutrition.vitaminA }] : []),
-                                  ...(nutrition.vitaminC ? [{ label: 'Vitamin C', value: nutrition.vitaminC }] : []),
-                                  ...(nutrition.vitaminD ? [{ label: 'Vitamin D', value: nutrition.vitaminD }] : []),
-                                  ...(nutrition.vitaminE ? [{ label: 'Vitamin E', value: nutrition.vitaminE }] : []),
+                                  ...nitems.map(n => ({ label: n.name, value: n.value, className: 'font-bold text-gray-800' })),
                                 ];
                                 return (
                                   <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-greesal-beige space-y-3">
@@ -3001,17 +3016,16 @@ export default function AdminPage() {
                                       </h4>
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                                      {nutEntries.map((entry, idx) => (
-                                        <div key={idx} className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
+                                      {allEntries.map((entry, eidx) => (
+                                        <div key={eidx} className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
                                           <div className="text-gray-500 font-medium text-[10px]">{entry.label}</div>
-                                          <div className={`text-xs ${entry.className || 'font-bold text-gray-800'}`}>{entry.value || '—'}</div>
+                                          <div className={'text-xs ' + (entry.className || 'font-bold text-gray-800')}>{entry.value || '—'}</div>
                                         </div>
                                       ))}
                                     </div>
                                   </div>
                                 );
                               })()}
-
                               {/* 5. HEALTH BENEFITS & TARGET LIFESTYLE */}
                               {healthBenefits.length > 0 && (
                                 <div className="p-4 rounded-2xl bg-white border border-greesal-beige/90 space-y-2.5 shadow-2xs">
@@ -5526,272 +5540,83 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* Tab 4: Nutritional Facts */}
+                {/* Tab 4: Nutritional Facts — fully dynamic, admin editable */}
                 {formTab === 'nutrition' && (
-                  <div className="space-y-4 animate-in fade-in duration-150 max-h-[50vh] overflow-y-auto pr-1">
-                    <p className="text-xs text-greesal-muted">Enter nutritional facts as they will appear on the customer food label (e.g. 72g, 11g, 0mg, 685mg).</p>
+                  <div className="space-y-4 animate-in fade-in duration-150 max-h-[55vh] overflow-y-auto pr-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs text-greesal-muted leading-relaxed">
+                        Edit nutrient names &amp; values freely. Add new nutrients or delete any row. Only filled rows appear to customers.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentSalad(prev => ({
+                          ...prev,
+                          nutritionItems: [...(prev.nutritionItems || []), { name: '', value: '' }]
+                        }))}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#123B2B] text-white text-xs font-bold hover:bg-[#0e2e21] transition-all cursor-pointer flex-shrink-0 whitespace-nowrap shadow-sm"
+                      >
+                        + Add Nutrient
+                      </button>
+                    </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
-                      {/* Carbs */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Carbs (e.g. 72g)</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.carbs || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), carbs: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
+                    <div className="space-y-2">
+                      {/* Column headers */}
+                      <div className="grid grid-cols-[1fr_1fr_32px] gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">
+                        <span>Nutrient Name (editable)</span>
+                        <span>Value (editable)</span>
+                        <span />
                       </div>
 
-                      {/* Fiber */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Fiber (e.g. 11g)</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.fiber || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), fiber: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
+                      {/* Dynamic rows */}
+                      {(currentSalad.nutritionItems || []).map((item, idx) => (
+                        <div key={idx} className="grid grid-cols-[1fr_1fr_32px] gap-2 items-center">
+                          <input
+                            type="text"
+                            placeholder="e.g. Carbs"
+                            value={item.name}
+                            onChange={(e) => {
+                              const updated = [...(currentSalad.nutritionItems || [])];
+                              updated[idx] = { ...updated[idx], name: e.target.value };
+                              setCurrentSalad(prev => ({ ...prev, nutritionItems: updated }));
+                            }}
+                            className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B] bg-white font-medium text-gray-700"
+                          />
+                          <input
+                            type="text"
+                            placeholder="e.g. 72g"
+                            value={item.value}
+                            onChange={(e) => {
+                              const updated = [...(currentSalad.nutritionItems || [])];
+                              updated[idx] = { ...updated[idx], value: e.target.value };
+                              setCurrentSalad(prev => ({ ...prev, nutritionItems: updated }));
+                            }}
+                            className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B] bg-white font-semibold text-[#123B2B]"
+                          />
+                          <button
+                            type="button"
+                            title="Remove this nutrient"
+                            onClick={() => {
+                              const updated = (currentSalad.nutritionItems || []).filter((_, i) => i !== idx);
+                              setCurrentSalad(prev => ({ ...prev, nutritionItems: updated }));
+                            }}
+                            className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 flex items-center justify-center font-black text-base transition-all cursor-pointer border border-red-100 hover:border-red-300"
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      ))}
 
-                      {/* Total Sugar */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Total Sugar (e.g. 6g)</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.sugarTotal || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), sugarTotal: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
-
-                      {/* Added Sugar */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Added Sugar (e.g. 4g)</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.sugarAdded || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), sugarAdded: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
-
-                      {/* Total Fat */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Total Fat (e.g. 3g)</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.totalFat || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), totalFat: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
-
-                      {/* Saturated Fat */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Saturated Fat</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.saturatedFat || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), saturatedFat: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
-
-                      {/* Trans Fat */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Trans Fat</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.transFat || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), transFat: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
-
-                      {/* Cholesterol */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Cholesterol (e.g. 0mg)</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.cholesterol || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), cholesterol: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
-
-                      {/* Vitamin A */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Vitamin A (e.g. 185µg)</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.vitaminA || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), vitaminA: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
-
-                      {/* Vitamin C */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Vitamin C (e.g. 24.8mg)</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.vitaminC || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), vitaminC: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
-
-                      {/* Vitamin D */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Vitamin D</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.vitaminD || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), vitaminD: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
-
-                      {/* Vitamin E */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Vitamin E</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.vitaminE || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), vitaminE: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
-
-                      {/* Sodium */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Sodium (e.g. 52mg)</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.sodium || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), sodium: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
-
-                      {/* Calcium */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Calcium (e.g. 64mg)</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.calcium || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), calcium: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
-
-                      {/* Iron */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Iron (e.g. 6mg)</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.iron || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), iron: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
-
-                      {/* Potassium */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-500 block">Potassium (e.g. 785mg)</label>
-                        <input
-                          type="text"
-                          value={currentSalad.nutrition?.potassium || ''}
-                          onChange={(e) => {
-                            setCurrentSalad(prev => ({
-                              ...prev,
-                              nutrition: { ...(prev.nutrition || {}), potassium: e.target.value }
-                            }));
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
-                        />
-                      </div>
+                      {/* Empty state */}
+                      {(!currentSalad.nutritionItems || currentSalad.nutritionItems.length === 0) && (
+                        <div className="text-center text-xs text-gray-400 py-6 border-2 border-dashed border-gray-200 rounded-xl">
+                          No nutrition fields yet. Click &ldquo;+ Add Nutrient&rdquo; to begin.
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
-                {/* Tab 5: Extra Add-ons */}
+                                {/* Tab 5: Extra Add-ons */}
                 {formTab === 'addons' && (
                   <div className="space-y-5 animate-in fade-in duration-150 max-h-[50vh] overflow-y-auto pr-1">
                     <div className="bg-[#E8F3EE] p-3.5 rounded-2xl border border-[#237357]/20 flex flex-col sm:flex-row items-start justify-between gap-3">

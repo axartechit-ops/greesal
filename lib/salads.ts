@@ -1,3 +1,8 @@
+export interface NutritionItem {
+  name: string;
+  value: string;
+}
+
 export interface NutritionInfo {
   carbs?: string;
   fiber?: string;
@@ -67,6 +72,7 @@ export interface Salad {
   additionalBenefits?: string[];
   perfectFor?: string[];
   nutrition?: NutritionInfo;
+  nutritionItems?: NutritionItem[];
   createdAt?: string;
   updatedAt?: string;
   addOns?: SaladAddOn[];

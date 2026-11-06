@@ -605,7 +605,8 @@ export default function SaladDetailPage() {
   const rawPrice = parseInt(salad.price.replace(/[^\d]/g, '')) || 299;
   const originalPrice = Math.round(rawPrice * 1.15);
   const discountAmount = originalPrice - rawPrice;
-  const hasNutrition = !!salad.nutrition && Object.keys(salad.nutrition).length > 0;
+  const hasNutrition = (Array.isArray(salad.nutritionItems) && salad.nutritionItems.some(n => n.name && n.value && String(n.value).trim().length > 0)) ||
+    (!!salad.nutrition && Object.values(salad.nutrition).some(v => v && String(v).trim().length > 0));
 
   // Other related salads to explore
   const otherSalads = allSalads.filter((s) => (s.slug || slugify(s.name)) !== (salad.slug || slugify(salad.name))).slice(0, 3);
@@ -773,30 +774,35 @@ export default function SaladDetailPage() {
                 </button>
 
                 {/* Live Macro Nutrition Overlay */}
-                {(salad.calories || salad.protein || salad.nutrition?.fiber) && (
-                  <div className="absolute bottom-4 left-4 right-4 bg-[#081F17]/85 backdrop-blur-md rounded-2xl p-3 sm:p-3.5 flex items-center justify-around text-white border border-white/15 shadow-xl">
-                    {salad.calories ? (
-                      <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-amber-300">
-                        <Flame className="w-4 h-4 text-[#C89D4B]" />
-                        <span>{salad.calories}</span>
-                      </div>
-                    ) : null}
-                    {salad.calories && salad.protein ? <div className="h-4 w-px bg-white/20" /> : null}
-                    {salad.protein ? (
-                      <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-emerald-300">
-                        <Activity className="w-4 h-4" />
-                        <span>{salad.protein}</span>
-                      </div>
-                    ) : null}
-                    {(salad.calories || salad.protein) && salad.nutrition?.fiber ? <div className="h-4 w-px bg-white/20" /> : null}
-                    {salad.nutrition?.fiber ? (
-                      <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-cyan-200">
-                        <Leaf className="w-4 h-4" />
-                        <span>{salad.nutrition.fiber} Fiber</span>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
+                {(() => {
+                  const fiberVal = Array.isArray(salad.nutritionItems)
+                    ? salad.nutritionItems.find(n => /fiber/i.test(n.name))?.value
+                    : salad.nutrition?.fiber;
+                  return (salad.calories || salad.protein || fiberVal) ? (
+                    <div className="absolute bottom-4 left-4 right-4 bg-[#081F17]/85 backdrop-blur-md rounded-2xl p-3 sm:p-3.5 flex items-center justify-around text-white border border-white/15 shadow-xl">
+                      {salad.calories ? (
+                        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-amber-300">
+                          <Flame className="w-4 h-4 text-[#C89D4B]" />
+                          <span>{salad.calories}</span>
+                        </div>
+                      ) : null}
+                      {salad.calories && salad.protein ? <div className="h-4 w-px bg-white/20" /> : null}
+                      {salad.protein ? (
+                        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-emerald-300">
+                          <Activity className="w-4 h-4" />
+                          <span>{salad.protein}</span>
+                        </div>
+                      ) : null}
+                      {(salad.calories || salad.protein) && fiberVal ? <div className="h-4 w-px bg-white/20" /> : null}
+                      {fiberVal ? (
+                        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-cyan-200">
+                          <Leaf className="w-4 h-4" />
+                          <span>{fiberVal} Fiber</span>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null;
+                })()}
               </div>
 
               {/* Freeze Dried Seal Callout */}
@@ -1241,108 +1247,61 @@ export default function SaladDetailPage() {
             )}
 
             {/* Official Nutrition Facts Panel */}
-            <div className="border-[3px] border-black rounded-2xl p-5 bg-white font-sans text-black leading-tight select-none shadow-sm">
-              <h3 className="font-black text-2xl tracking-tighter border-b-8 border-black pb-1 uppercase text-center">
-                Nutrition Facts
-              </h3>
-              <div className="text-xs py-1.5 border-b-4 border-black font-semibold flex justify-between">
-                <span>Serving Size</span>
-                <span>1 Salad Bowl ({salad.name})</span>
-              </div>
-
-              <div className="font-extrabold text-sm py-1 border-b-2 border-black flex justify-between uppercase">
-                <span>Amount Per Serving</span>
-              </div>
-
-              <div className="flex justify-between items-end border-b-8 border-black py-1">
-                <span className="font-black text-2xl leading-none">Calories</span>
-                <span className="font-black text-3xl leading-none">{(salad.calories || '0').replace(/\D/g, '') || '0'}</span>
-              </div>
-
-              <div className="text-right text-[10px] font-bold border-b border-black py-1 uppercase">
-                % Daily Value*
-              </div>
-
-              {/* Nutrition Parameter Rows */}
-              <div className="space-y-1 text-xs border-b-8 border-black pb-1">
-                <div className="border-b border-gray-200 py-1 flex justify-between">
-                  <span><strong className="font-bold">Protein</strong> {salad.protein}</span>
-                  <span className="font-bold">
-                    {Math.round(parseInt(salad.protein || '0') * 2)}%
-                  </span>
+            {hasNutrition && (
+              <div className="border-[3px] border-black rounded-2xl p-5 bg-white font-sans text-black leading-tight select-none shadow-sm">
+                <h3 className="font-black text-2xl tracking-tighter border-b-8 border-black pb-1 uppercase text-center">
+                  Nutrition Facts
+                </h3>
+                <div className="text-xs py-1.5 border-b-4 border-black font-semibold flex justify-between">
+                  <span>Serving Size</span>
+                  <span>1 Salad Bowl ({salad.name})</span>
                 </div>
-                {hasNutrition && salad.nutrition ? (
-                  <>
-                    <div className="border-b border-gray-200 py-1 flex justify-between">
-                      <span><strong className="font-bold">Total Carbohydrate</strong> {salad.nutrition.carbs || '0g'}</span>
-                      <span className="font-bold">
-                        {Math.round(parseInt(salad.nutrition.carbs || '0') * 0.3)}%
-                      </span>
-                    </div>
-                    <div className="border-b border-gray-200 py-0.5 pl-3 flex justify-between text-gray-700">
-                      <span>Dietary Fiber {salad.nutrition.fiber || '0g'}</span>
-                      <span className="font-bold">
-                        {Math.round(parseInt(salad.nutrition.fiber || '0') * 4.0)}%
-                      </span>
-                    </div>
-                    <div className="border-b border-gray-200 py-0.5 pl-3 flex justify-between text-gray-700">
-                      <span>Total Sugars {salad.nutrition.sugarTotal || '0g'}</span>
-                      <span></span>
-                    </div>
-                    <div className="border-b border-gray-200 py-1 flex justify-between">
-                      <span><strong className="font-bold">Total Fat</strong> {salad.nutrition.totalFat || '0g'}</span>
-                      <span className="font-bold">
-                        {Math.round(parseInt(salad.nutrition.totalFat || '0') * 1.5)}%
-                      </span>
-                    </div>
-                    <div className="border-b border-gray-200 py-0.5 pl-3 flex justify-between text-gray-700">
-                      <span>Saturated Fat {salad.nutrition.saturatedFat || '0g'}</span>
-                      <span className="font-bold">
-                        {Math.round(parseFloat(salad.nutrition.saturatedFat || '0') * 5.0)}%
-                      </span>
-                    </div>
-                    <div className="border-b border-gray-200 py-1 flex justify-between">
-                      <span><strong className="font-bold">Sodium</strong> {salad.nutrition.sodium || '0mg'}</span>
-                      <span className="font-bold">
-                        {Math.round(parseInt(salad.nutrition.sodium || '0') * 0.04)}%
-                      </span>
-                    </div>
-                    <div className="border-b border-gray-200 py-1 flex justify-between">
-                      <span><strong className="font-bold">Potassium</strong> {salad.nutrition.potassium || '0mg'}</span>
-                      <span className="font-bold">
-                        {Math.round(parseInt(salad.nutrition.potassium || '0') * 0.02)}%
-                      </span>
-                    </div>
-                  </>
-                ) : null}
-              </div>
 
-              {/* Vitamins & Minerals Grid */}
-              {hasNutrition && salad.nutrition && (
-                <div className="grid grid-cols-2 gap-x-4 pt-1.5 text-[10px] font-semibold text-gray-800">
-                  <div className="border-b border-gray-200 py-0.5 flex justify-between">
-                    <span>Vitamin A</span>
-                    <span>{salad.nutrition.vitaminA || '0µg'}</span>
-                  </div>
-                  <div className="border-b border-gray-200 py-0.5 flex justify-between">
-                    <span>Vitamin C</span>
-                    <span>{salad.nutrition.vitaminC || '0mg'}</span>
-                  </div>
-                  <div className="border-b border-gray-200 py-0.5 flex justify-between">
-                    <span>Calcium</span>
-                    <span>{salad.nutrition.calcium || '0mg'}</span>
-                  </div>
-                  <div className="border-b border-gray-200 py-0.5 flex justify-between">
-                    <span>Iron</span>
-                    <span>{salad.nutrition.iron || '0mg'}</span>
-                  </div>
+                <div className="font-extrabold text-sm py-1 border-b-2 border-black flex justify-between uppercase">
+                  <span>Amount Per Serving</span>
                 </div>
-              )}
 
-              <div className="text-[9px] text-gray-500 mt-2 text-left leading-normal">
-                * The % Daily Value (DV) tells you how much a nutrient in a serving of food contributes to a daily diet. 2,000 calories a day is used for general nutrition advice.
+                <div className="flex justify-between items-end border-b-8 border-black py-1">
+                  <span className="font-black text-2xl leading-none">Calories</span>
+                  <span className="font-black text-3xl leading-none">{(salad.calories || '0').replace(/\D/g, '') || '0'}</span>
+                </div>
+
+                {/* Nutrition Parameter Rows — completely admin controlled */}
+                <div className="space-y-1 text-xs border-b-8 border-black pb-1 pt-1">
+                  {salad.protein ? (
+                    <div className="border-b border-gray-200 py-1 flex justify-between">
+                      <span><strong className="font-bold">Protein</strong></span>
+                      <span className="font-bold">{salad.protein}</span>
+                    </div>
+                  ) : null}
+                  {Array.isArray(salad.nutritionItems) && salad.nutritionItems.length > 0 ? (
+                    salad.nutritionItems
+                      .filter(item => item.name && item.value && String(item.value).trim())
+                      .map((item, nIdx) => (
+                        <div key={nIdx} className="border-b border-gray-200 py-1 flex justify-between">
+                          <span><strong className="font-bold">{item.name}</strong></span>
+                          <span className="font-bold text-[#123B2B]">{item.value}</span>
+                        </div>
+                      ))
+                  ) : (
+                    salad.nutrition ? (
+                      Object.entries(salad.nutrition)
+                        .filter(([_, v]) => v && String(v).trim())
+                        .map(([k, v], nIdx) => (
+                          <div key={nIdx} className="border-b border-gray-200 py-1 flex justify-between capitalize">
+                            <span><strong className="font-bold">{k.replace(/([A-Z])/g, ' $1')}</strong></span>
+                            <span className="font-bold text-[#123B2B]">{String(v)}</span>
+                          </div>
+                        ))
+                    ) : null
+                  )}
+                </div>
+
+                <div className="text-[9px] text-gray-500 mt-2 text-left leading-normal">
+                  * All nutritional values are handcrafted and verified per serving bowl.
+                </div>
               </div>
-            </div>
+            )}
 
           </div>
 
