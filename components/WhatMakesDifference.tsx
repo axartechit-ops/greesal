@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, Loader2 } from 'lucide-react';
+import { DifferenceCard } from '@/lib/siteSettings';
 
 interface WhatMakesDifferenceProps {
   badge?: string;
@@ -9,6 +10,7 @@ interface WhatMakesDifferenceProps {
   image2?: string;
   image3?: string;
   image4?: string;
+  cards?: DifferenceCard[];
   isLoading?: boolean;
 }
 
@@ -20,17 +22,17 @@ export const WhatMakesDifference: React.FC<WhatMakesDifferenceProps> = ({
   image2 = '',
   image3 = '',
   image4 = '',
+  cards = [],
   isLoading = false,
 }) => {
-  const [loadedImages, setLoadedImages] = useState<Record<number, boolean>>({});
-  const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
+  const [loadedImages, setLoadedImages] = useState<Record<string, boolean>>({});
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
-  // Filter out any empty strings or old demo image paths
+  // Keep uploaded images, including the premium ingredients showcase.
   const validImages = [image1, image2, image3, image4].filter(
     (img): img is string =>
       typeof img === 'string' &&
-      img.trim() !== '' &&
-      img !== '/images/premium_fresh_ingredients.png'
+      img.trim() !== ''
   );
 
   // 1. During initial settings loading, show a fast, elegant loader (NO DEMO IMAGE)
@@ -67,16 +69,14 @@ export const WhatMakesDifference: React.FC<WhatMakesDifferenceProps> = ({
     );
   }
 
-  // 2. If not loading and admin has not added any images, hide the section entirely (NO DEMO IMAGE)
-  if (validImages.length === 0) {
-    return null;
-  }
-
   // Dynamic grid layout class: max 2 per row (2x2 grid layout)
   const getGridColsClass = (count: number) => {
     if (count === 1) return 'grid-cols-1 max-w-4xl mx-auto';
-    return 'grid-cols-1 sm:grid-cols-2 max-w-6xl mx-auto';
+    return 'grid-cols-2 max-w-6xl mx-auto';
   };
+  const visibleImages = validImages
+    .map((src, idx) => ({ src, idx }))
+    .filter(({ src }) => !failedImages[src]);
 
   return (
     <section id="difference" className="py-12 sm:py-16 bg-gradient-to-b from-[#f7fbf9] via-white to-[#f7fbf9] relative overflow-hidden border-b border-gray-100 font-dmsans">
@@ -105,41 +105,70 @@ export const WhatMakesDifference: React.FC<WhatMakesDifferenceProps> = ({
         </div>
 
         {/* Dynamic Graphic Showcase (1-4 Images) */}
-        <div className="w-full">
-          <div className={`grid ${getGridColsClass(validImages.length)} gap-6 lg:gap-8 items-stretch justify-center`}>
-            {validImages.map((imgSrc, idx) => {
-              if (failedImages[idx]) return null;
-              const isLoaded = loadedImages[idx];
+        {visibleImages.length > 0 ? (
+          <div className="w-full">
+            <div className={`grid ${getGridColsClass(visibleImages.length)} gap-6 lg:gap-8 items-stretch justify-center`}>
+              {visibleImages.map(({ src: imgSrc, idx }) => {
+              const isLoaded = loadedImages[imgSrc];
 
               return (
                 <div
-                  key={idx}
-                  className="relative bg-white rounded-3xl p-3 sm:p-5 shadow-xl border border-emerald-100/80 overflow-hidden group transition-all duration-500 hover:shadow-2xl flex flex-col justify-center min-h-[220px]"
+                  key={imgSrc}
+                  className="relative aspect-video bg-white rounded-3xl p-3 sm:p-5 shadow-xl border border-emerald-100/80 overflow-hidden group transition-all duration-500 hover:shadow-2xl"
                 >
                   <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 to-amber-500/5 rounded-3xl pointer-events-none" />
 
                   {/* Individual Image Loading Placeholder */}
                   {!isLoaded && (
-                    <div className="w-full h-64 sm:h-80 rounded-2xl bg-emerald-50/50 flex flex-col items-center justify-center animate-pulse">
+                    <div className="absolute inset-3 sm:inset-5 rounded-2xl bg-emerald-50/50 flex flex-col items-center justify-center animate-pulse">
                       <Loader2 className="w-7 h-7 text-[#20493c] animate-spin mb-2" />
                       <span className="text-xs font-bold text-[#20493c]/70">Loading image...</span>
                     </div>
                   )}
 
-                  <img
-                    src={imgSrc}
-                    alt={`What Makes The Difference - Graphic ${idx + 1}`}
-                    className={`w-full h-auto max-h-[500px] object-contain rounded-2xl transition-all duration-500 group-hover:scale-[1.01] ${isLoaded ? 'opacity-100 block' : 'opacity-0 absolute'
-                      }`}
-                    onLoad={() => setLoadedImages((prev) => ({ ...prev, [idx]: true }))}
-                    onError={() => setFailedImages((prev) => ({ ...prev, [idx]: true }))}
-                    loading="eager"
-                  />
+                  <div className="absolute inset-3 sm:inset-5">
+                    <img
+                      src={imgSrc}
+                      alt={`What Makes The Difference - Graphic ${idx + 1}`}
+                      className={`h-full w-full object-contain rounded-2xl transition-all duration-500 group-hover:scale-[1.01] ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+                      onLoad={() => setLoadedImages((prev) => ({ ...prev, [imgSrc]: true }))}
+                      onError={() => setFailedImages((prev) => ({ ...prev, [imgSrc]: true }))}
+                      loading="eager"
+                    />
+                  </div>
                 </div>
               );
-            })}
+              })}
+            </div>
           </div>
-        </div>
+        ) : cards.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 lg:gap-7 text-left">
+            {cards.map((card) => (
+              <article
+                key={card.id}
+                className="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-lg transition-shadow hover:shadow-xl"
+              >
+                {card.image && (
+                  <img
+                    src={card.image}
+                    alt={card.title}
+                    className="h-48 w-full object-cover"
+                    loading="lazy"
+                  />
+                )}
+                <div className="p-5">
+                  {card.badge && (
+                    <span className="inline-flex rounded-full bg-[#e8f7f2] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#20493c]">
+                      {card.badge}
+                    </span>
+                  )}
+                  <h3 className="mt-3 text-lg font-extrabold text-[#20493c]">{card.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[#20493c]/75">{card.desc}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
 
       </div>
     </section>

@@ -132,6 +132,10 @@ interface AdminOrder {
   };
   notes?: string;
   orderType?: string;
+  subscriptionId?: string;
+  subscriptionPlan?: string;
+  subscriptionDate?: string;
+  subscriptionSalad?: string;
   dietPreference?: string;
   paymentMethod: string;
 }
@@ -2568,7 +2572,7 @@ export default function AdminPage() {
                                   <div>
                                     <div className="flex items-center gap-2">
                                       <h3 className="font-montserrat font-extrabold text-base sm:text-lg text-[#123B2B]">
-                                        Order #{selOrderId}
+                                        {sel.orderType === 'subscription' ? 'Subscription' : 'Order'} #{sel.subscriptionId || selOrderId}
                                       </h3>
                                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
                                         {sel.status}
@@ -2625,6 +2629,47 @@ export default function AdminPage() {
                                     </div>
                                   </div>
                                 </div>
+
+                                {sel.orderType === 'subscription' && (
+                                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-3">
+                                    <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider block">
+                                      Subscription Details
+                                    </span>
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <div>
+                                        <span className="block text-[10px] font-bold text-emerald-700">Subscription ID</span>
+                                        <span className="font-mono font-black text-[#123B2B]">{sel.subscriptionId || selOrderId}</span>
+                                      </div>
+                                      <div>
+                                        <span className="block text-[10px] font-bold text-emerald-700">Plan</span>
+                                        <span className="font-bold text-[#123B2B]">{sel.subscriptionPlan || 'Subscription plan'}</span>
+                                      </div>
+                                      <div>
+                                        <span className="block text-[10px] font-bold text-emerald-700">Selected salad</span>
+                                        <span className="font-bold text-[#123B2B]">{sel.subscriptionSalad || sel.items?.[0]?.name || 'Not specified'}</span>
+                                      </div>
+                                      <div>
+                                        <span className="block text-[10px] font-bold text-emerald-700">First delivery date</span>
+                                        <span className="font-bold text-[#123B2B]">
+                                          {sel.subscriptionDate
+                                            ? new Date(`${sel.subscriptionDate}T00:00:00`).toLocaleDateString('en-IN', {
+                                                weekday: 'short',
+                                                day: 'numeric',
+                                                month: 'short',
+                                                year: 'numeric',
+                                              })
+                                            : 'To be confirmed'}
+                                        </span>
+                                      </div>
+                                      {sel.dietPreference && (
+                                        <div className="col-span-2">
+                                          <span className="block text-[10px] font-bold text-emerald-700">Diet preference</span>
+                                          <span className="font-bold text-[#123B2B]">{sel.dietPreference}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
 
                                 {/* Delivery Destination & Google Maps Dossier */}
                                 <div className="p-4 rounded-2xl bg-white border border-gray-200 space-y-3">
@@ -4592,6 +4637,7 @@ export default function AdminPage() {
           ) : activeTab === 'subscriptions' ? (
             <AdminSubscriptionsTab
               settings={fullSiteSettings}
+              salads={salads}
               onSaveSettings={handleSaveSiteTexts}
               isSaving={isActionLoading}
             />

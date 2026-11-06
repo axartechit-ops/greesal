@@ -54,6 +54,11 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  orderType?: string;
+  subscriptionId?: string;
+  subscriptionPlan?: string;
+  subscriptionDate?: string;
+  subscriptionSalad?: string;
   date: string;
   timestamp: number;
   status: 'Delivered' | 'On the Way' | 'Preparing' | 'Placed';
@@ -463,8 +468,12 @@ export function ProfileModal({
                   {/* Summary Card */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-greesal-cream p-4 rounded-xl border border-greesal-beige/80">
                     <div>
-                      <p className="text-gray-500 font-semibold">Order ID</p>
-                      <p className="font-extrabold text-greesal-dark text-sm mt-0.5">{selectedOrder.id}</p>
+                      <p className="text-gray-500 font-semibold">
+                        {selectedOrder.orderType === 'subscription' ? 'Subscription ID' : 'Order ID'}
+                      </p>
+                      <p className="font-extrabold text-greesal-dark text-sm mt-0.5">
+                        {selectedOrder.subscriptionId || selectedOrder.id}
+                      </p>
                     </div>
                     <div>
                       <p className="text-gray-500 font-semibold">Order Date</p>
@@ -479,6 +488,37 @@ export function ProfileModal({
                       <p className="font-bold text-emerald-600 mt-0.5">FREE (₹0)</p>
                     </div>
                   </div>
+
+                  {selectedOrder.orderType === 'subscription' && (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-emerald-900">Subscription Details</h4>
+                      <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <span className="block text-[10px] font-bold text-emerald-700">Plan</span>
+                          <span className="font-bold text-[#123B2B]">{selectedOrder.subscriptionPlan || 'Subscription plan'}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold text-emerald-700">Salad</span>
+                          <span className="font-bold text-[#123B2B]">
+                            {selectedOrder.subscriptionSalad || selectedOrder.items[0]?.name || 'Not specified'}
+                          </span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="block text-[10px] font-bold text-emerald-700">First delivery date</span>
+                          <span className="font-bold text-[#123B2B]">
+                            {selectedOrder.subscriptionDate
+                              ? new Date(`${selectedOrder.subscriptionDate}T00:00:00`).toLocaleDateString('en-IN', {
+                                  weekday: 'long',
+                                  day: 'numeric',
+                                  month: 'long',
+                                  year: 'numeric',
+                                })
+                              : 'To be confirmed'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Visual Tracker */}
                   <div className="bg-emerald-50/70 p-5 rounded-2xl border border-emerald-200/70">
@@ -673,10 +713,20 @@ export function ProfileModal({
                               <div>
                                 <h4 className="font-bold text-sm text-greesal-dark flex items-center gap-2">
                                   {order.id}
+                                  {order.orderType === 'subscription' && (
+                                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-emerald-800">
+                                      Subscription
+                                    </span>
+                                  )}
                                 </h4>
                                 <p className="text-[11px] text-gray-400 font-medium flex items-center gap-1 mt-0.5">
                                   <Clock className="w-3 h-3" /> {order.date}
                                 </p>
+                                {order.orderType === 'subscription' && (
+                                  <p className="mt-1 text-[10px] font-semibold text-emerald-800">
+                                    {order.subscriptionPlan} · {order.subscriptionSalad}
+                                  </p>
+                                )}
                               </div>
                             </div>
 

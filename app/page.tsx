@@ -390,6 +390,7 @@ export default function SaladIndiaHome() {
           image2={siteSettings.differenceImage2}
           image3={siteSettings.differenceImage3}
           image4={siteSettings.differenceImage4}
+          cards={siteSettings.differenceCards}
           isLoading={isLoadingSettings}
         />
 
@@ -462,6 +463,9 @@ export default function SaladIndiaHome() {
         modalBadge={siteSettings.subscriptionModalBadge}
         modalTitle={siteSettings.subscriptionModalTitle}
         modalSubtitle={siteSettings.subscriptionModalSubtitle}
+        dailyMenus={siteSettings.subscriptionDailyMenus}
+        salads={salads}
+        isLoadingSalads={isLoadingSalads}
       />
 
       <EventCateringModal

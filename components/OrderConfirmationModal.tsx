@@ -17,6 +17,11 @@ import { InvoiceModal, InvoiceOrder } from './InvoiceModal';
 
 export interface ConfirmedOrderData {
   orderNumber: string;
+  orderType?: string;
+  subscriptionId?: string;
+  subscriptionPlan?: string;
+  subscriptionDate?: string;
+  subscriptionSalad?: string;
   customerName: string;
   customerMobile: string;
   items: Array<{
@@ -70,8 +75,8 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
       .map((it, idx) => `${idx + 1}. *${it.name}* x ${it.quantity} = ₹${(parseInt(it.price.replace(/[^\d]/g, ''), 10) || 0) * it.quantity}`)
       .join('\n');
 
-    const message = `🥗 *ORDER CONFIRMED - GREESAL* 🥗\n\n` +
-      `🆔 *Order ID:* ${order.orderNumber}\n` +
+    const message = `🥗 *${order.orderType === 'subscription' ? 'SUBSCRIPTION' : 'ORDER'} CONFIRMED - GREESAL* 🥗\n\n` +
+      `🆔 *${order.orderType === 'subscription' ? 'Subscription ID' : 'Order ID'}:* ${order.subscriptionId || order.orderNumber}\n` +
       `👤 *Customer Name:* ${order.customerName}\n` +
       `📞 *Mobile:* ${order.customerMobile}\n` +
       `⏰ *Delivery Slot:* ${slotText}\n` +
@@ -132,7 +137,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
               </div>
 
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-[#fbce45] text-xs font-black uppercase tracking-wider mb-2">
-                <Sparkles className="w-3.5 h-3.5" /> Order Placed Successfully
+                <Sparkles className="w-3.5 h-3.5" /> {order.orderType === 'subscription' ? 'Subscription Placed Successfully' : 'Order Placed Successfully'}
               </span>
 
               <h3 className="font-montserrat font-extrabold text-2xl text-white">
@@ -144,8 +149,8 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
 
               {/* Order ID Tag */}
               <div className="mt-4 inline-flex items-center gap-2 bg-black/25 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-xs font-bold">
-                <span className="text-gray-300">Order ID:</span>
-                <span className="font-mono text-[#fbce45] font-black">{order.orderNumber}</span>
+                <span className="text-gray-300">{order.orderType === 'subscription' ? 'Subscription ID:' : 'Order ID:'}</span>
+                <span className="font-mono text-[#fbce45] font-black">{order.subscriptionId || order.orderNumber}</span>
                 <button
                   onClick={handleCopyOrderId}
                   className="p-1 rounded-full hover:bg-white/20 text-gray-200 transition-colors cursor-pointer"
@@ -158,6 +163,35 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
 
             {/* Scrollable Order Details */}
             <div className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+              {order.orderType === 'subscription' && (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3.5">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-emerald-900">Subscription Details</h4>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="block text-[10px] font-bold text-emerald-700">Plan</span>
+                      <span className="font-bold text-[#123B2B]">{order.subscriptionPlan}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-bold text-emerald-700">Salad</span>
+                      <span className="font-bold text-[#123B2B]">{order.subscriptionSalad}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="block text-[10px] font-bold text-emerald-700">First delivery date</span>
+                      <span className="font-bold text-[#123B2B]">
+                        {order.subscriptionDate
+                          ? new Date(`${order.subscriptionDate}T00:00:00`).toLocaleDateString('en-IN', {
+                              weekday: 'long',
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                            })
+                          : 'To be confirmed'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               
               {/* Delivery Meta Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-[#fbfdfb] p-3.5 rounded-2xl border border-gray-200">

@@ -23,6 +23,11 @@ export interface ServiceCard {
   fallbackImage?: string;
 }
 
+export interface SubscriptionDailyMenu {
+  date: string;
+  saladIds: string[];
+}
+
 export interface SiteSettings {
   // Top Featured Slider (placed between Navbar and Hero Section)
   showTopSlider?: boolean;
@@ -141,6 +146,7 @@ export interface SiteSettings {
   subscriptionModalTitle?: string;
   subscriptionModalSubtitle?: string;
   subscriptionPlans?: SubscriptionPlan[];
+  subscriptionDailyMenus?: SubscriptionDailyMenu[];
 }
 
 export interface SubscriptionPlan {
@@ -340,4 +346,5 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   subscriptionModalTitle: 'Greesal Subscriptions',
   subscriptionModalSubtitle: 'Daily rotation of 21+ varieties • 100% handmade dressings • Free delivery in Surat',
   subscriptionPlans: DEFAULT_SUBSCRIPTION_PLANS,
+  subscriptionDailyMenus: [],
 };

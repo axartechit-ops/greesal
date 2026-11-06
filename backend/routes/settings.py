@@ -172,6 +172,7 @@ DEFAULT_SITE_SETTINGS: Dict[str, Any] = {
     "subscriptionModalBadge": "Farm-Fresh Organic Salad Bowls",
     "subscriptionModalTitle": "Greesal Subscriptions",
     "subscriptionModalSubtitle": "Daily rotation of 21+ varieties • 100% handmade dressings • Free delivery in Surat",
+    "subscriptionDailyMenus": [],
     "subscriptionPlans": [
         {
             "id": "weekly",
@@ -338,6 +339,10 @@ async def update_settings(request: Request):
         updated_data["servicesCards"] = existing_settings.get("servicesCards", DEFAULT_SITE_SETTINGS["servicesCards"])
     if "subscriptionPlans" not in body or not isinstance(body["subscriptionPlans"], list):
         updated_data["subscriptionPlans"] = existing_settings.get("subscriptionPlans", DEFAULT_SITE_SETTINGS.get("subscriptionPlans", []))
+    if "subscriptionDailyMenus" not in body or not isinstance(body["subscriptionDailyMenus"], list):
+        updated_data["subscriptionDailyMenus"] = existing_settings.get(
+            "subscriptionDailyMenus", DEFAULT_SITE_SETTINGS.get("subscriptionDailyMenus", [])
+        )
 
     if "_id" in updated_data:
         del updated_data["_id"]

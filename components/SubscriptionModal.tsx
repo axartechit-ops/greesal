@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Check, Sparkles, Phone, MapPin, Navigation, Loader2, CheckCircle2 } from 'lucide-react';
 import { GoogleMapPickerModal } from './GoogleMapPickerModal';
 import { OrderConfirmationModal, ConfirmedOrderData } from './OrderConfirmationModal';
-import { SubscriptionPlan, DEFAULT_SUBSCRIPTION_PLANS } from '@/lib/siteSettings';
+import { SubscriptionDailyMenu, SubscriptionPlan, DEFAULT_SUBSCRIPTION_PLANS } from '@/lib/siteSettings';
+import { getSaladImages, Salad } from '@/lib/salads';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -12,7 +13,13 @@ interface SubscriptionModalProps {
   modalBadge?: string;
   modalTitle?: string;
   modalSubtitle?: string;
+  dailyMenus?: SubscriptionDailyMenu[];
+  salads?: Salad[];
+  isLoadingSalads?: boolean;
 }
+
+const getSaladId = (salad: Salad) => salad.id || salad._id || salad.slug || salad.name;
+const EMPTY_SUBSCRIPTION_DAILY_MENUS: SubscriptionDailyMenu[] = [];
 
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   isOpen,
@@ -22,8 +29,12 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   modalBadge,
   modalTitle,
   modalSubtitle,
+  dailyMenus = EMPTY_SUBSCRIPTION_DAILY_MENUS,
+  salads = [],
+  isLoadingSalads = false,
 }) => {
   const [loadedPlans, setLoadedPlans] = useState<SubscriptionPlan[]>(plans || DEFAULT_SUBSCRIPTION_PLANS);
+  const [loadedDailyMenus, setLoadedDailyMenus] = useState<SubscriptionDailyMenu[]>(dailyMenus);
   const [badgeText, setBadgeText] = useState(modalBadge || 'Farm-Fresh Organic Salad Bowls');
   const [titleText, setTitleText] = useState(modalTitle || 'Greesal Subscriptions');
   const [subtitleText, setSubtitleText] = useState(
@@ -35,6 +46,10 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       setLoadedPlans(plans);
     }
   }, [plans]);
+
+  useEffect(() => {
+    setLoadedDailyMenus(dailyMenus);
+  }, [dailyMenus]);
 
   useEffect(() => {
     if (modalBadge) setBadgeText(modalBadge);
@@ -49,6 +64,9 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
         .then((data) => {
           if (Array.isArray(data.subscriptionPlans) && data.subscriptionPlans.length > 0) {
             setLoadedPlans(data.subscriptionPlans);
+          }
+          if (Array.isArray(data.subscriptionDailyMenus)) {
+            setLoadedDailyMenus(data.subscriptionDailyMenus);
           }
           if (data.subscriptionModalBadge) setBadgeText(data.subscriptionModalBadge);
           if (data.subscriptionModalTitle) setTitleText(data.subscriptionModalTitle);
@@ -73,11 +91,53 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
   const activePlan = plansList.find((p) => p.id === selectedPlanId) || plansList[0];
 
+  const availableDailyMenus = useMemo(() => {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    const scheduledMenus = loadedDailyMenus
+      .filter((menu) => menu.date >= today && Array.isArray(menu.saladIds))
+      .map((menu) => ({
+        date: menu.date,
+        options: menu.saladIds
+          .map((saladId) => salads.find((salad) => getSaladId(salad) === saladId))
+          .filter((salad): salad is Salad => Boolean(salad)),
+      }))
+      .filter((menu) => menu.options.length === 2 && getSaladId(menu.options[0]) !== getSaladId(menu.options[1]))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    if (scheduledMenus.length > 0 || salads.length === 0) return scheduledMenus;
+
+    return [{ date: today, options: salads }];
+  }, [loadedDailyMenus, salads]);
+
+  const [selectedSubscriptionDate, setSelectedSubscriptionDate] = useState('');
+  const [selectedSubscriptionSaladId, setSelectedSubscriptionSaladId] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!availableDailyMenus.some((menu) => menu.date === selectedSubscriptionDate)) {
+      setSelectedSubscriptionDate(availableDailyMenus[0]?.date || '');
+      setSelectedSubscriptionSaladId('');
+    }
+  }, [availableDailyMenus, isOpen, selectedSubscriptionDate]);
+
+  const selectedDailyMenu = availableDailyMenus.find((menu) => menu.date === selectedSubscriptionDate);
+  const selectedSubscriptionSalad = selectedDailyMenu?.options.find(
+    (salad) => getSaladId(salad) === selectedSubscriptionSaladId
+  );
+  const isUsingUnscheduledSalad = Boolean(selectedDailyMenu && selectedSubscriptionSalad && !loadedDailyMenus.some(
+    (menu) => menu.date === selectedDailyMenu.date &&
+      Array.isArray(menu.saladIds) &&
+      menu.saladIds.includes(getSaladId(selectedSubscriptionSalad))
+  ));
+
   const [deliverySlot, setDeliverySlot] = useState<'lunch' | 'evening' | 'pickup'>('lunch');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [dietPreference, setDietPreference] = useState('Standard (High Protein & Veggies)');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // GPS & Map Modal States
   const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
@@ -178,8 +238,13 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
   const handleBookOnWhatsApp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim() || !phone.trim()) {
-      alert('Please enter your Name and Mobile Number');
+    setSubmitError(null);
+    if (!fullName.trim() || phone.replace(/\D/g, '').length < 10 || !deliveryAddress.trim()) {
+      setSubmitError('Enter your name, a valid 10-digit mobile number, and delivery address to continue.');
+      return;
+    }
+    if (!selectedDailyMenu || !selectedSubscriptionSalad) {
+      setSubmitError('Select a salad before placing your subscription.');
       return;
     }
 
@@ -201,25 +266,39 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       pickup: 'Self PickUp (10:00 AM - 6:30 PM)',
     };
 
-    const orderNumber = `SUB-${Math.floor(10000 + Math.random() * 90000)}`;
+    const orderNumber = `SUB-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    const formattedSubscriptionDate = new Date(`${selectedSubscriptionDate}T00:00:00`).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+    const subscriptionId = orderNumber;
+    const subscriptionNotes =
+      `Plan: ${activePlan.name}; Salad for ${formattedSubscriptionDate}: ${selectedSubscriptionSalad.name}; ` +
+      `Preference: ${dietPreference}`;
 
     const mapsLink = locationCoords
       ? `https://maps.google.com/?q=${locationCoords.lat},${locationCoords.lng}`
-      : '';
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(deliveryAddress.trim())}`;
 
     const orderPayload: ConfirmedOrderData = {
       orderNumber,
+      orderType: 'subscription',
+      subscriptionId,
+      subscriptionPlan: activePlan.name,
+      subscriptionDate: selectedSubscriptionDate,
+      subscriptionSalad: selectedSubscriptionSalad.name,
       customerName: fullName.trim(),
       customerMobile: phone.trim(),
-      deliveryAddress: deliveryAddress.trim() || 'Surat Doorstep',
+      deliveryAddress: deliveryAddress.trim(),
       deliverySlot: slotNames[deliverySlot],
       mapsUrl: mapsLink,
-      notes: `Preference: ${dietPreference}`,
+      notes: subscriptionNotes,
       items: [
         {
-          name: `${activePlan.name} (${activePlan.duration})`,
+          name: `${selectedSubscriptionSalad.name} (${activePlan.name})`,
           price: `₹${activePlan.totalPrice}`,
-          image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
+          image: getSaladImages(selectedSubscriptionSalad)[0],
           quantity: 1,
         },
       ],
@@ -227,20 +306,24 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       paymentMethod: 'Pre-Booking / Cash or UPI',
     };
 
-    // Save Subscription Order in Database
+    setIsSubmitting(true);
     try {
-      await fetch('/api/orders', {
+      const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderNumber,
+          subscriptionId,
+          subscriptionPlan: activePlan.name,
+          subscriptionDate: selectedSubscriptionDate,
+          subscriptionSalad: selectedSubscriptionSalad.name,
           customerName: fullName.trim(),
           customerMobile: phone.trim(),
-          deliveryAddress: deliveryAddress.trim() || 'Surat Doorstep',
+          deliveryAddress: deliveryAddress.trim(),
           deliverySlot: slotNames[deliverySlot],
           mapsUrl: mapsLink,
           locationCoords,
-          notes: `Preference: ${dietPreference}`,
+          notes: subscriptionNotes,
           items: orderPayload.items,
           subtotal: activePlan.totalPrice,
           deliveryFee: 0,
@@ -251,8 +334,46 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
           status: 'Placed',
         }),
       });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.detail || data?.error || 'Could not save your subscription. Please try again.');
+      }
     } catch (err) {
-      console.warn('Failed to save subscription order:', err);
+      setSubmitError(err instanceof Error ? err.message : 'Could not save your subscription. Please try again.');
+      return;
+    } finally {
+      setIsSubmitting(false);
+    }
+
+    try {
+      localStorage.setItem('greesal_custom_name', fullName.trim());
+      localStorage.setItem('greesal_custom_mobile', phone.trim());
+      localStorage.setItem('greesal_user_address', deliveryAddress.trim());
+      const orderHistory = JSON.parse(localStorage.getItem('greesal_orders_history') || '[]');
+      const historyRecord = {
+        id: subscriptionId,
+        orderNumber: subscriptionId,
+        subscriptionId,
+        orderType: 'subscription',
+        subscriptionPlan: activePlan.name,
+        subscriptionDate: selectedSubscriptionDate,
+        subscriptionSalad: selectedSubscriptionSalad.name,
+        date: `Today, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        timestamp: Date.now(),
+        status: 'Placed',
+        items: orderPayload.items,
+        subtotal: activePlan.totalPrice,
+        deliveryFee: 0,
+        total: activePlan.totalPrice,
+        deliveryAddress: deliveryAddress.trim(),
+        paymentMethod: 'Subscription / Post Delivery',
+      };
+      localStorage.setItem(
+        'greesal_orders_history',
+        JSON.stringify([historyRecord, ...(Array.isArray(orderHistory) ? orderHistory : [])])
+      );
+    } catch (err) {
+      console.warn('Subscription was saved, but local order history could not be updated:', err);
     }
 
     // Open WhatsApp Message
@@ -261,9 +382,10 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       `👤 *Customer Name:* ${fullName.trim()}\n` +
       `📞 *WhatsApp Mobile:* ${phone.trim()}\n` +
       `📋 *Plan Selected:* ${activePlan.name} (₹${activePlan.pricePerSalad}/salad - Total: ₹${activePlan.totalPrice})\n` +
+      `🥗 *Salad for ${formattedSubscriptionDate}:* ${selectedSubscriptionSalad.name}\n` +
       `⏰ *Delivery Slot:* ${slotNames[deliverySlot]}\n` +
       `🥗 *Diet Preference:* ${dietPreference}\n` +
-      `📍 *Delivery Address:* ${deliveryAddress.trim() || 'Surat Doorstep'}\n` +
+      `📍 *Delivery Address:* ${deliveryAddress.trim()}\n` +
       (mapsLink ? `🗺️ *Live GPS Location Pin:* ${mapsLink}\n\n` : '\n') +
       `✨ *Farm-Fresh Organic Salad Bowls! Please confirm my subscription details.*`;
 
@@ -349,6 +471,79 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 );
               })}
             </div>
+
+            <section className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+              <div className="mb-3">
+                <h4 className="text-sm font-extrabold text-[#20493c]">Choose your subscription salad</h4>
+                <p className="text-xs text-[#20493c]/75 mt-1">
+                  Select a salad scheduled by Greesal. If no daily choices are published, choose from the current menu.
+                </p>
+              </div>
+              {availableDailyMenus.length > 0 ? (
+                <>
+                  {availableDailyMenus.length > 1 && (
+                    <label className="block text-xs font-bold text-[#20493c] mb-3">
+                      Delivery date
+                      <select
+                        value={selectedSubscriptionDate}
+                        onChange={(event) => {
+                          setSelectedSubscriptionDate(event.target.value);
+                          setSelectedSubscriptionSaladId('');
+                        }}
+                        className="mt-1 w-full rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm"
+                      >
+                        {availableDailyMenus.map((menu) => (
+                          <option key={menu.date} value={menu.date}>
+                            {new Date(`${menu.date}T00:00:00`).toLocaleDateString('en-IN', {
+                              weekday: 'long',
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {selectedDailyMenu?.options.map((salad) => {
+                      const saladId = getSaladId(salad);
+                      const isSelected = selectedSubscriptionSaladId === saladId;
+                      return (
+                        <button
+                          key={saladId}
+                          type="button"
+                          onClick={() => setSelectedSubscriptionSaladId(saladId)}
+                          aria-pressed={isSelected}
+                          className={`flex items-center justify-between gap-3 rounded-xl border-2 px-3 py-3 text-left transition-colors ${
+                            isSelected
+                              ? 'border-[#20493c] bg-white shadow-sm'
+                              : 'border-transparent bg-white/70 hover:border-emerald-200'
+                          }`}
+                        >
+                          <span className="min-w-0">
+                            <span className="block text-sm font-bold text-[#20493c]">{salad.name}</span>
+                            <span className="block text-[11px] text-gray-500 mt-0.5">{salad.tag}</span>
+                          </span>
+                          {isSelected && <Check className="h-4 w-4 shrink-0 text-[#20493c]" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-semibold text-amber-800">
+                  {isLoadingSalads
+                    ? 'Loading the daily salad choices...'
+                    : 'No salads are available right now. Please try again later.'}
+                </p>
+              )}
+              {isUsingUnscheduledSalad && selectedDailyMenu && (
+                <p className="mt-2 text-[11px] font-medium text-amber-800">
+                  No daily menu is scheduled yet. You can still subscribe with a salad from the current menu.
+                </p>
+              )}
+            </section>
 
             {/* Form */}
             <form onSubmit={handleBookOnWhatsApp} className="space-y-4 font-dmsans text-left">
@@ -483,6 +678,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
                 <textarea
                   rows={2}
+                  required
                   placeholder="Flat / House No., Society / Building, Area, Surat (or tap Use Current Location / Quick Area below)"
                   value={deliveryAddress}
                   onChange={(e) => setDeliveryAddress(e.target.value)}
@@ -513,13 +709,20 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 </div>
               </div>
 
+              {submitError && (
+                <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
+                  {submitError}
+                </p>
+              )}
+
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full py-3.5 px-6 rounded-2xl bg-[#20493c] hover:bg-[#15342a] active:scale-95 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg transition-all"
+                  disabled={!selectedSubscriptionSalad || isSubmitting}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-[#20493c] hover:bg-[#15342a] active:scale-95 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg transition-all disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Phone className="w-4 h-4 text-[#fbce45]" />
-                  <span>Confirm Subscription via WhatsApp</span>
+                  <span>{isSubmitting ? 'Saving Subscription...' : 'Buy Subscription via WhatsApp'}</span>
                 </button>
                 <p className="text-[11px] text-center text-gray-500 mt-2">
                   🔒 No upfront card needed • Free sample day booking on request

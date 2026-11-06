@@ -25,6 +25,7 @@ interface CartMap {
 export default function SaladsPage() {
   const { data: session, status } = useSession();
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
+  const [isLoadingSettings, setIsLoadingSettings] = useState<boolean>(true);
 
   const [salads, setSalads] = useState<Salad[]>([]);
   const [isLoadingSalads, setIsLoadingSalads] = useState<boolean>(true);
@@ -103,7 +104,11 @@ export default function SaladsPage() {
             setSiteSettings((prev) => ({ ...prev, ...data }));
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('Failed to load menu settings:', e);
+      } finally {
+        setIsLoadingSettings(false);
+      }
     };
     fetchSettings();
 
@@ -310,6 +315,7 @@ export default function SaladsPage() {
         <SaladMenuSection
           salads={salads}
           isLoading={isLoadingSalads}
+          isLoadingFilters={isLoadingSalads || isLoadingSettings}
           categories={siteSettings.categories}
           cartItems={cartAggregatedQuantities}
           onAddToCart={handleAddToCart}

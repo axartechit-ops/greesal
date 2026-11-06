@@ -21,15 +21,20 @@ import {
   X
 } from 'lucide-react';
 import { SubscriptionPlan, DEFAULT_SUBSCRIPTION_PLANS, SiteSettings } from '@/lib/siteSettings';
+import { Salad } from '@/lib/salads';
 
 interface AdminSubscriptionsTabProps {
   settings: SiteSettings;
+  salads: Salad[];
   onSaveSettings: (updated: Partial<SiteSettings>) => Promise<void>;
   isSaving?: boolean;
 }
 
+const getSaladId = (salad: Salad) => salad.id || salad._id || salad.slug || salad.name;
+
 export const AdminSubscriptionsTab: React.FC<AdminSubscriptionsTabProps> = ({
   settings,
+  salads,
   onSaveSettings,
   isSaving = false,
 }) => {
@@ -50,8 +55,25 @@ export const AdminSubscriptionsTab: React.FC<AdminSubscriptionsTabProps> = ({
     settings.subscriptionModalSubtitle ||
       'Daily rotation of 21+ varieties • 100% handmade dressings • Free delivery in Surat'
   );
+  const [dailyMenus, setDailyMenus] = useState(settings.subscriptionDailyMenus || []);
+  const [dailyMenuDate, setDailyMenuDate] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  });
+  const [firstDailySaladId, setFirstDailySaladId] = useState('');
+  const [secondDailySaladId, setSecondDailySaladId] = useState('');
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setDailyMenus(settings.subscriptionDailyMenus || []);
+  }, [settings.subscriptionDailyMenus]);
+
+  React.useEffect(() => {
+    const currentMenu = dailyMenus.find((menu) => menu.date === dailyMenuDate);
+    setFirstDailySaladId(currentMenu?.saladIds[0] || '');
+    setSecondDailySaladId(currentMenu?.saladIds[1] || '');
+  }, [dailyMenuDate, dailyMenus]);
 
   // Edit / Create Plan Modal State
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
@@ -185,6 +207,7 @@ export const AdminSubscriptionsTab: React.FC<AdminSubscriptionsTabProps> = ({
     try {
       await onSaveSettings({
         subscriptionPlans: plans,
+        subscriptionDailyMenus: dailyMenus,
         subscriptionModalBadge: modalBadge.trim(),
         subscriptionModalTitle: modalTitle.trim(),
         subscriptionModalSubtitle: modalSubtitle.trim(),
@@ -193,6 +216,30 @@ export const AdminSubscriptionsTab: React.FC<AdminSubscriptionsTabProps> = ({
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       alert('Failed to save subscription settings. Please try again.');
+    }
+  };
+
+  const handleSaveDailyMenu = () => {
+    if (!firstDailySaladId || !secondDailySaladId) {
+      alert('Select two salads for this date.');
+      return;
+    }
+    if (firstDailySaladId === secondDailySaladId) {
+      alert('Choose two different salads.');
+      return;
+    }
+
+    setDailyMenus((current) => [
+      ...current.filter((menu) => menu.date !== dailyMenuDate),
+      { date: dailyMenuDate, saladIds: [firstDailySaladId, secondDailySaladId] },
+    ].sort((a, b) => a.date.localeCompare(b.date)));
+  };
+
+  const handleDeleteDailyMenu = (date: string) => {
+    setDailyMenus((current) => current.filter((menu) => menu.date !== date));
+    if (date === dailyMenuDate) {
+      setFirstDailySaladId('');
+      setSecondDailySaladId('');
     }
   };
 
@@ -298,6 +345,111 @@ export const AdminSubscriptionsTab: React.FC<AdminSubscriptionsTabProps> = ({
             </div>
           </div>
         </div>
+
+        <section className="p-5 rounded-2xl bg-white border border-greesal-beige/80 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+            <div>
+              <h3 className="text-sm font-black text-[#123B2B] flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-emerald-600" />
+                Daily Subscription Salad Choices
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">
+                Set two different salads for each date. Customers choose one when placing a subscription request.
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Add dates here, then click “Save All Changes” above to publish the schedule.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-emerald-800 bg-emerald-50 rounded-full px-3 py-1">
+              {dailyMenus.length} scheduled date{dailyMenus.length === 1 ? '' : 's'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
+            <label className="space-y-1 text-xs font-bold text-gray-700">
+              <span>Delivery date</span>
+              <input
+                type="date"
+                value={dailyMenuDate}
+                onChange={(event) => setDailyMenuDate(event.target.value)}
+                className="w-full rounded-xl border border-gray-300 px-3 py-2.5 font-medium"
+              />
+            </label>
+            {[firstDailySaladId, secondDailySaladId].map((selectedId, index) => (
+              <label key={index} className="space-y-1 text-xs font-bold text-gray-700">
+                <span>Salad option {index + 1}</span>
+                <select
+                  value={selectedId}
+                  onChange={(event) => {
+                    if (index === 0) setFirstDailySaladId(event.target.value);
+                    else setSecondDailySaladId(event.target.value);
+                  }}
+                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 font-medium"
+                >
+                  <option value="">Select a salad</option>
+                  {salads.map((salad) => {
+                    const id = getSaladId(salad);
+                    return (
+                      <option
+                        key={id}
+                        value={id}
+                        disabled={id === (index === 0 ? secondDailySaladId : firstDailySaladId)}
+                      >
+                        {salad.name}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+            ))}
+            <button
+              type="button"
+              onClick={handleSaveDailyMenu}
+              disabled={!dailyMenuDate || salads.length < 2}
+              className="px-4 py-2.5 rounded-xl bg-[#123B2B] text-white text-xs font-bold disabled:opacity-50"
+            >
+              Add / Update Date
+            </button>
+          </div>
+
+          {salads.length < 2 && (
+            <p className="text-xs text-amber-700 font-semibold">
+              Add at least two salads to the menu before scheduling daily choices.
+            </p>
+          )}
+
+          {dailyMenus.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {dailyMenus.map((menu) => (
+                <div key={menu.date} className="flex items-start justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-[#123B2B]">
+                      {new Date(`${menu.date}T00:00:00`).toLocaleDateString('en-IN', {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {menu.saladIds.map((id) => salads.find((salad) => getSaladId(salad) === id)?.name || 'Unavailable salad').join(' · ')}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteDailyMenu(menu.date)}
+                    aria-label={`Remove menu for ${menu.date}`}
+                    className="text-red-600 hover:bg-red-50 rounded-lg p-1.5"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500">No daily salad choices scheduled yet.</p>
+          )}
+        </section>
 
         {/* 3. SUBSCRIPTION PLANS LIST & MANAGEMENT */}
         <div className="space-y-4">
@@ -671,4 +823,3 @@ export const AdminSubscriptionsTab: React.FC<AdminSubscriptionsTabProps> = ({
     </div>
   );
 };
-

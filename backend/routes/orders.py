@@ -225,6 +225,10 @@ async def create_order(request: Request):
         "locationCoords": location_coords,
         "notes": str(data.get("notes", "")).strip(),
         "orderType": data.get("orderType", "salad_order"),
+        "subscriptionId": str(data.get("subscriptionId") or "").strip(),
+        "subscriptionPlan": str(data.get("subscriptionPlan") or "").strip(),
+        "subscriptionDate": str(data.get("subscriptionDate") or "").strip(),
+        "subscriptionSalad": str(data.get("subscriptionSalad") or "").strip(),
         "dietPreference": data.get("dietPreference", ""),
         "paymentMethod": data.get("paymentMethod", "Cash on Delivery / UPI on Delivery"),
         "createdAt": now

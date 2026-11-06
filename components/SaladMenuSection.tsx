@@ -35,6 +35,7 @@ interface SaladMenuSectionProps {
   closingTime?: string;
   closedMessage?: string;
   isLoading?: boolean;
+  isLoadingFilters?: boolean;
 }
 
 export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
@@ -51,6 +52,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
   closingTime = '10:30 PM',
   closedMessage = 'Our kitchen is currently closed. Opening again at 08:00 AM. Pre-orders are welcome!',
   isLoading = false,
+  isLoadingFilters = isLoading,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isFiltering, setIsFiltering] = useState(false);
@@ -226,60 +228,73 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
         {/* Category Pills & Search Filter Bar - Admin Configured Categories */}
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5 mb-6 bg-[#fafcfb] p-3 sm:p-3.5 rounded-2xl border border-[#e4eae7]">
           
-          {/* Category Tabs - Only Admin Added Categories */}
-          <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap pb-1 sm:pb-0 no-scrollbar">
-            {visibleCategories.map((cat) => {
-              const active = selectedCategory === cat.id;
-              const count = cat.id === 'all'
-                ? salads.length
-                : salads.filter((s) => matchesCategoryForSalad(s, cat.id)).length;
+          {isLoadingFilters ? (
+            <div
+              className="flex w-full items-center justify-center gap-2 py-2 text-sm font-semibold text-[#20493c]"
+              role="status"
+              aria-live="polite"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading menu filters...</span>
+            </div>
+          ) : (
+            <>
+              {/* Category Tabs - Only Admin Added Categories */}
+              <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap pb-1 sm:pb-0 no-scrollbar">
+                {visibleCategories.map((cat) => {
+                  const active = selectedCategory === cat.id;
+                  const count = cat.id === 'all'
+                    ? salads.length
+                    : salads.filter((s) => matchesCategoryForSalad(s, cat.id)).length;
 
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => handleSelectCategory(cat.id)}
-                  className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl whitespace-nowrap text-xs sm:text-sm font-bold transition-all duration-150 flex items-center gap-2 border cursor-pointer active:scale-95 ${
-                    active
-                      ? 'bg-[#20493c] text-white border-[#20493c] shadow-sm'
-                      : 'bg-white hover:bg-[#eef8f3] text-[#1a1a1a] hover:text-[#20493c] border-gray-200/90 hover:border-[#20493c]/30 shadow-2xs'
-                  }`}
-                >
-                  {cat.icon && <span className="text-sm">{cat.icon}</span>}
-                  <span>{cat.label}</span>
-                  <span
-                    className={`text-[11px] px-2 py-0.5 rounded-full font-bold transition-colors ${
-                      active
-                        ? 'bg-white/20 text-[#fbce45]'
-                        : 'bg-[#eef8f3] text-[#20493c]'
-                    }`}
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => handleSelectCategory(cat.id)}
+                      className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl whitespace-nowrap text-xs sm:text-sm font-bold transition-all duration-150 flex items-center gap-2 border cursor-pointer active:scale-95 ${
+                        active
+                          ? 'bg-[#20493c] text-white border-[#20493c] shadow-sm'
+                          : 'bg-white hover:bg-[#eef8f3] text-[#1a1a1a] hover:text-[#20493c] border-gray-200/90 hover:border-[#20493c]/30 shadow-2xs'
+                      }`}
+                    >
+                      {cat.icon && <span className="text-sm">{cat.icon}</span>}
+                      <span>{cat.label}</span>
+                      <span
+                        className={`text-[11px] px-2 py-0.5 rounded-full font-bold transition-colors ${
+                          active
+                            ? 'bg-white/20 text-[#fbce45]'
+                            : 'bg-[#eef8f3] text-[#20493c]'
+                        }`}
+                      >
+                        {isFiltering ? <Loader2 className="w-3 h-3 animate-spin inline-block" /> : count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Search Box with Clear Button */}
+              <div className="relative w-full lg:w-72 flex-shrink-0">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search paneer, sprouts, corn..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 sm:py-2.5 rounded-xl border border-gray-200/90 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#20493c] focus:border-transparent bg-white text-[#1a1a1a] placeholder:text-gray-400 shadow-2xs transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+                    aria-label="Clear search"
                   >
-                    {isLoading || isFiltering ? <Loader2 className="w-3 h-3 animate-spin inline-block" /> : count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Search Box with Clear Button */}
-          <div className="relative w-full lg:w-72 flex-shrink-0">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search paneer, sprouts, corn..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 sm:py-2.5 rounded-xl border border-gray-200/90 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#20493c] focus:border-transparent bg-white text-[#1a1a1a] placeholder:text-gray-400 shadow-2xs transition-all"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
-                aria-label="Clear search"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </>
+          )}
 
         </div>
 
@@ -305,7 +320,7 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
         )}
 
         {/* Loading State Spinner & Skeleton Cards */}
-        {isLoading ? (
+        {isLoading || isFiltering ? (
           <div className="space-y-6">
             {/* Branded Loader Banner */}
             <div className="flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-[#e8f7f2] border border-[#6ac6ac]/40 max-w-md mx-auto shadow-xs">
