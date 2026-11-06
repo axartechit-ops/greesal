@@ -52,18 +52,78 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
   closedMessage = 'Our kitchen is currently closed. Opening again at 08:00 AM. Pre-orders are welcome!',
   isLoading = false,
 }) => {
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [isFiltering, setIsFiltering] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedPortions, setSelectedPortions] = useState<Record<string, SaladPortion>>({});
 
-  const filteredSalads = salads.filter((salad) => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return true;
-    return (
-      salad.name.toLowerCase().includes(query) ||
-      (salad.ingredients && salad.ingredients.some((ing) => ing.toLowerCase().includes(query))) ||
-      (salad.dressing && salad.dressing.some((d) => d.toLowerCase().includes(query)))
-    );
-  });
+  // Display only categories explicitly added by admin (siteSettings.categories), plus 'All Salads'
+  const visibleCategories = useMemo(() => {
+    const baseCats: SiteCategory[] = categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+
+    const allTab: SiteCategory = baseCats.find(c => c.id === 'all' || isGenericAllCategory(c.id)) || {
+      id: 'all',
+      label: 'All Salads',
+      count: `${salads.length} varieties`,
+      icon: '🥗',
+    };
+
+    const result: SiteCategory[] = [allTab];
+    const seenNorms = new Set<string>(['all', 'allsalads', 'allcategories']);
+
+    // Include ONLY categories explicitly configured/added by admin
+    baseCats.forEach((cat) => {
+      if (isGenericAllCategory(cat.id) || isGenericAllCategory(cat.label)) return;
+      const norm = normalizeCategoryString(cat.label || cat.id);
+      if (!seenNorms.has(norm)) {
+        result.push(cat);
+        seenNorms.add(norm);
+        seenNorms.add(normalizeCategoryString(cat.id));
+      }
+    });
+
+    return result;
+  }, [categories, salads]);
+
+  // Gracefully reset selectedCategory if the filtered category is no longer present
+  useEffect(() => {
+    if (selectedCategory !== 'all' && !visibleCategories.some((c) => c.id === selectedCategory)) {
+      setSelectedCategory('all');
+    }
+  }, [visibleCategories, selectedCategory]);
+
+  const matchesCategoryForSalad = (salad: Salad, categoryId: string) => {
+    return matchesSaladCategory(salad, categoryId, visibleCategories);
+  };
+
+  const handleSelectCategory = (catId: string) => {
+    if (catId === selectedCategory) return;
+    setIsFiltering(true);
+    setSelectedCategory(catId);
+    setTimeout(() => setIsFiltering(false), 160);
+  };
+
+  const handleResetFilters = () => {
+    setIsFiltering(true);
+    setSelectedCategory('all');
+    setSearchQuery('');
+    setTimeout(() => setIsFiltering(false), 160);
+  };
+
+  const filteredSalads = useMemo(() => {
+    return salads.filter((salad) => {
+      const matchesCategory = matchesCategoryForSalad(salad, selectedCategory);
+
+      const query = searchQuery.trim().toLowerCase();
+      const matchesSearch =
+        !query ||
+        salad.name.toLowerCase().includes(query) ||
+        (salad.ingredients && salad.ingredients.some((ing) => ing.toLowerCase().includes(query))) ||
+        (salad.dressing && salad.dressing.some((d) => d.toLowerCase().includes(query)));
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [salads, selectedCategory, searchQuery, visibleCategories]);
 
   const handleQuickWhatsAppOrder = (salad: Salad, portion?: SaladPortion) => {
     const gramText = portion ? ` (${portion.grams}g)` : '';
@@ -110,8 +170,12 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
         {/* Quick action buttons matching Salad India Block zlRpM1 */}
         <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mb-8">
           <button
-            type="button"
-            className="px-5 py-2.5 rounded-full font-bold text-xs sm:text-sm transition-all shadow-md bg-[#20493c] text-white cursor-default"
+            onClick={() => handleSelectCategory('all')}
+            className={`px-5 py-2.5 rounded-full font-bold text-xs sm:text-sm transition-all shadow-sm cursor-pointer ${
+              selectedCategory === 'all'
+                ? 'bg-[#20493c] text-white shadow-md'
+                : 'bg-gray-100 hover:bg-gray-200 text-[#20493c]'
+            }`}
           >
             Salad Menu
           </button>
@@ -159,40 +223,83 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
           </div>
         )}
 
-        {/* Search Bar (Clean & Focused) */}
-        <div className="mb-8 max-w-xl mx-auto">
-          <div className="relative w-full">
-            <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+        {/* Category Pills & Search Filter Bar - Admin Configured Categories */}
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5 mb-6 bg-[#fafcfb] p-3 sm:p-3.5 rounded-2xl border border-[#e4eae7]">
+          
+          {/* Category Tabs - Only Admin Added Categories */}
+          <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap pb-1 sm:pb-0 no-scrollbar">
+            {visibleCategories.map((cat) => {
+              const active = selectedCategory === cat.id;
+              const count = cat.id === 'all'
+                ? salads.length
+                : salads.filter((s) => matchesCategoryForSalad(s, cat.id)).length;
+
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => handleSelectCategory(cat.id)}
+                  className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl whitespace-nowrap text-xs sm:text-sm font-bold transition-all duration-150 flex items-center gap-2 border cursor-pointer active:scale-95 ${
+                    active
+                      ? 'bg-[#20493c] text-white border-[#20493c] shadow-sm'
+                      : 'bg-white hover:bg-[#eef8f3] text-[#1a1a1a] hover:text-[#20493c] border-gray-200/90 hover:border-[#20493c]/30 shadow-2xs'
+                  }`}
+                >
+                  {cat.icon && <span className="text-sm">{cat.icon}</span>}
+                  <span>{cat.label}</span>
+                  <span
+                    className={`text-[11px] px-2 py-0.5 rounded-full font-bold transition-colors ${
+                      active
+                        ? 'bg-white/20 text-[#fbce45]'
+                        : 'bg-[#eef8f3] text-[#20493c]'
+                    }`}
+                  >
+                    {isLoading || isFiltering ? <Loader2 className="w-3 h-3 animate-spin inline-block" /> : count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search Box with Clear Button */}
+          <div className="relative w-full lg:w-72 flex-shrink-0">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search salads by name or ingredients (e.g. paneer, quinoa, sprouts)..."
+              placeholder="Search paneer, sprouts, corn..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-10 py-3 rounded-2xl border border-gray-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#20493c] focus:border-transparent bg-white text-[#1a1a1a] placeholder:text-gray-400 shadow-xs transition-all"
+              className="w-full pl-9 pr-8 py-2 sm:py-2.5 rounded-xl border border-gray-200/90 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#20493c] focus:border-transparent bg-white text-[#1a1a1a] placeholder:text-gray-400 shadow-2xs transition-all"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
                 aria-label="Clear search"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
+
         </div>
 
-        {/* Search Result Summary */}
-        {!isLoading && searchQuery.trim() !== '' && (
-          <div className="flex items-center justify-between text-xs text-gray-600 mb-6 px-1 max-w-xl mx-auto">
+        {/* Active Filter & Result Summary */}
+        {!isLoading && !isFiltering && (selectedCategory !== 'all' || searchQuery.trim() !== '') && (
+          <div className="flex items-center justify-between text-xs text-gray-600 mb-6 px-1">
             <span>
-              Showing <strong className="text-[#20493c]">{filteredSalads.length}</strong> {filteredSalads.length === 1 ? 'salad' : 'salads'} matching &ldquo;{searchQuery}&rdquo;
+              Showing <strong className="text-[#20493c]">{filteredSalads.length}</strong> {filteredSalads.length === 1 ? 'salad' : 'salads'}
+              {selectedCategory !== 'all' && (
+                <> in <span className="font-semibold text-[#20493c]">{visibleCategories.find((c) => c.id === selectedCategory)?.label || selectedCategory}</span></>
+              )}
+              {searchQuery.trim() && (
+                <> matching &ldquo;{searchQuery}&rdquo;</>
+              )}
             </span>
             <button
-              onClick={() => setSearchQuery('')}
+              onClick={handleResetFilters}
               className="text-[#20493c] hover:underline font-bold text-xs cursor-pointer"
             >
-              Clear Search
+              Reset Filters
             </button>
           </div>
         )}
@@ -255,12 +362,14 @@ export const SaladMenuSection: React.FC<SaladMenuSectionProps> = ({
             <p className="text-xs sm:text-sm text-gray-500 mt-1">
               {searchQuery
                 ? `No salads match "${searchQuery}". Try a different keyword or category.`
+                : selectedCategory !== 'all'
+                ? `No salads found in category "${visibleCategories.find(c => c.id === selectedCategory)?.label || selectedCategory}".`
                 : 'No salads found in menu right now.'}
             </p>
-            {searchQuery && (
+            {(searchQuery || selectedCategory !== 'all') && (
               <div className="flex justify-center mt-4">
                 <button
-                  onClick={() => setSearchQuery('')}
+                  onClick={handleResetFilters}
                   className="px-4 py-2 rounded-xl bg-[#20493c] text-white text-xs font-bold hover:bg-[#15342a] transition-all cursor-pointer shadow-xs"
                 >
                   View All Salads

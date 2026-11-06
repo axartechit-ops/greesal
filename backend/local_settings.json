@@ -94,6 +94,12 @@
       "label": "All Salads",
       "count": "Fresh daily",
       "icon": "🥗"
+    },
+    {
+      "id": "rice bawol",
+      "label": "rice bawol",
+      "count": "Fresh bowl",
+      "icon": "🍲"
     }
   ],
   "contactPhone": "+91 99258 36117",
