@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Salad, slugify, SaladPortion, getSaladPortions, getSaladPriceForPortion, getSaladIngredients, getSaladDressing, getSaladCrunch } from '@/lib/salads';
 import { 
@@ -412,6 +412,46 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
               </div>
             )}
 
+
+            {/* Nutrition Facts — only shown when admin has entered at least one field */}
+            {(() => {
+              const n = salad.nutrition || {};
+              const nutRows: Array<{ label: string; value: string; color?: string }> = [
+                ...(n.carbs ? [{ label: 'Carbs', value: n.carbs, color: 'text-[#20493c] font-black' }] : []),
+                ...(n.fiber ? [{ label: 'Fiber', value: n.fiber, color: 'text-emerald-800 font-black' }] : []),
+                ...(n.sugarTotal ? [{ label: 'Total Sugar', value: n.sugarTotal }] : []),
+                ...(n.sugarAdded ? [{ label: 'Added Sugar', value: n.sugarAdded }] : []),
+                ...(n.totalFat ? [{ label: 'Total Fat', value: n.totalFat }] : []),
+                ...(n.saturatedFat ? [{ label: 'Sat. Fat', value: n.saturatedFat }] : []),
+                ...(n.transFat ? [{ label: 'Trans Fat', value: n.transFat }] : []),
+                ...(n.cholesterol ? [{ label: 'Cholesterol', value: n.cholesterol }] : []),
+                ...(n.sodium ? [{ label: 'Sodium', value: n.sodium }] : []),
+                ...(n.calcium ? [{ label: 'Calcium', value: n.calcium }] : []),
+                ...(n.iron ? [{ label: 'Iron', value: n.iron }] : []),
+                ...(n.potassium ? [{ label: 'Potassium', value: n.potassium }] : []),
+                ...(n.vitaminA ? [{ label: 'Vitamin A', value: n.vitaminA }] : []),
+                ...(n.vitaminC ? [{ label: 'Vitamin C', value: n.vitaminC }] : []),
+                ...(n.vitaminD ? [{ label: 'Vitamin D', value: n.vitaminD }] : []),
+                ...(n.vitaminE ? [{ label: 'Vitamin E', value: n.vitaminE }] : []),
+              ];
+              if (nutRows.length === 0) return null;
+              return (
+                <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-[#E8E1D5] space-y-2.5">
+                  <h4 className="font-montserrat font-bold text-xs uppercase tracking-wider text-[#20493c] flex items-center gap-1.5">
+                    <Flame className="w-3.5 h-3.5 text-orange-500" />
+                    Nutrition Facts (Per Serving)
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {nutRows.map((row, idx) => (
+                      <div key={idx} className="p-2 rounded-xl bg-white border border-[#E8E1D5] text-center">
+                        <div className="text-[10px] font-medium text-gray-500">{row.label}</div>
+                        <div className={`text-xs font-bold text-gray-800 ${row.color || ''}`}>{row.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             {/* Purity Assurance */}
             <div className="p-4 rounded-2xl bg-[#fbce45]/15 border border-[#fbce45]/40 flex items-center gap-3">
               <ShieldCheck className="w-6 h-6 text-[#20493c] flex-shrink-0" />

@@ -576,7 +576,6 @@ export default function AdminPage() {
           additionalBenefits: (Array.isArray(foundInDb.additionalBenefits) && foundInDb.additionalBenefits.length > 0) ? foundInDb.additionalBenefits : foundInDefault.additionalBenefits,
           perfectFor: (Array.isArray(foundInDb.perfectFor) && foundInDb.perfectFor.length > 0) ? foundInDb.perfectFor : foundInDefault.perfectFor,
           nutrition: {
-            ...foundInDefault.nutrition,
             ...Object.fromEntries(Object.entries(foundInDb.nutrition || {}).filter(([_, v]) => v && String(v).trim().length > 0))
           }
         };
@@ -2971,50 +2970,47 @@ export default function AdminPage() {
                                 )}
                               </div>
 
-                              {/* 4. COMPLETE NUTRITION FACTS (A to Z) */}
-                              <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-greesal-beige space-y-3">
-                                <div className="flex items-center justify-between border-b border-greesal-beige/80 pb-2">
-                                  <h4 className="font-black text-xs text-[#123B2B] flex items-center gap-2">
-                                    <Activity className="w-3.5 h-3.5 text-emerald-700" />
-                                    <span>Complete Nutritional Profile (Per Serving)</span>
-                                  </h4>
-                                  <span className="text-[10px] font-bold text-gray-500">Certified Lab Verified</span>
-                                </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                                  <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
-                                    <div className="text-gray-500 font-medium text-[10px]">Calories</div>
-                                    <div className="font-black text-[#123B2B] text-xs">{calories}</div>
+                              {/* 4. COMPLETE NUTRITION FACTS (A to Z) — admin-entered only */}
+                              {(() => {
+                                const nutEntries: Array<{ label: string; value: string; className?: string }> = [
+                                  { label: 'Calories', value: calories, className: 'font-black text-[#123B2B]' },
+                                  { label: 'Protein', value: protein, className: 'font-black text-emerald-800' },
+                                  ...(nutrition.carbs ? [{ label: 'Carbs', value: nutrition.carbs, className: 'font-black text-greesal-dark' }] : []),
+                                  ...(nutrition.fiber ? [{ label: 'Dietary Fiber', value: nutrition.fiber, className: 'font-black text-emerald-800' }] : []),
+                                  ...(nutrition.totalFat ? [{ label: 'Total Fat', value: nutrition.totalFat }] : []),
+                                  ...(nutrition.saturatedFat ? [{ label: 'Saturated Fat', value: nutrition.saturatedFat }] : []),
+                                  ...(nutrition.transFat ? [{ label: 'Trans Fat', value: nutrition.transFat }] : []),
+                                  ...(nutrition.cholesterol ? [{ label: 'Cholesterol', value: nutrition.cholesterol }] : []),
+                                  ...(nutrition.sugarTotal ? [{ label: 'Total Sugar', value: nutrition.sugarTotal }] : []),
+                                  ...(nutrition.sugarAdded ? [{ label: 'Added Sugar', value: nutrition.sugarAdded }] : []),
+                                  ...(nutrition.sodium ? [{ label: 'Sodium', value: nutrition.sodium }] : []),
+                                  ...(nutrition.calcium ? [{ label: 'Calcium', value: nutrition.calcium }] : []),
+                                  ...(nutrition.iron ? [{ label: 'Iron', value: nutrition.iron }] : []),
+                                  ...(nutrition.potassium ? [{ label: 'Potassium', value: nutrition.potassium }] : []),
+                                  ...(nutrition.vitaminA ? [{ label: 'Vitamin A', value: nutrition.vitaminA }] : []),
+                                  ...(nutrition.vitaminC ? [{ label: 'Vitamin C', value: nutrition.vitaminC }] : []),
+                                  ...(nutrition.vitaminD ? [{ label: 'Vitamin D', value: nutrition.vitaminD }] : []),
+                                  ...(nutrition.vitaminE ? [{ label: 'Vitamin E', value: nutrition.vitaminE }] : []),
+                                ];
+                                return (
+                                  <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-greesal-beige space-y-3">
+                                    <div className="flex items-center justify-between border-b border-greesal-beige/80 pb-2">
+                                      <h4 className="font-black text-xs text-[#123B2B] flex items-center gap-2">
+                                        <Activity className="w-3.5 h-3.5 text-emerald-700" />
+                                        <span>Complete Nutritional Profile (Per Serving)</span>
+                                      </h4>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                                      {nutEntries.map((entry, idx) => (
+                                        <div key={idx} className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
+                                          <div className="text-gray-500 font-medium text-[10px]">{entry.label}</div>
+                                          <div className={`text-xs ${entry.className || 'font-bold text-gray-800'}`}>{entry.value || '—'}</div>
+                                        </div>
+                                      ))}
+                                    </div>
                                   </div>
-                                  <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
-                                    <div className="text-gray-500 font-medium text-[10px]">Protein</div>
-                                    <div className="font-black text-emerald-800 text-xs">{protein}</div>
-                                  </div>
-                                  <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
-                                    <div className="text-gray-500 font-medium text-[10px]">Carbs</div>
-                                    <div className="font-black text-greesal-dark text-xs">{nutrition.carbs || '67g'}</div>
-                                  </div>
-                                  <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
-                                    <div className="text-gray-500 font-medium text-[10px]">Dietary Fiber</div>
-                                    <div className="font-black text-emerald-800 text-xs">{nutrition.fiber || '13g'}</div>
-                                  </div>
-                                  <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
-                                    <div className="text-gray-500 font-medium text-[10px]">Total Fat</div>
-                                    <div className="font-bold text-gray-800 text-xs">{nutrition.totalFat || '5g'}</div>
-                                  </div>
-                                  <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
-                                    <div className="text-gray-500 font-medium text-[10px]">Sodium</div>
-                                    <div className="font-bold text-gray-800 text-xs">{nutrition.sodium || '42 mg'}</div>
-                                  </div>
-                                  <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
-                                    <div className="text-gray-500 font-medium text-[10px]">Calcium</div>
-                                    <div className="font-bold text-gray-800 text-xs">{nutrition.calcium || '124 mg'}</div>
-                                  </div>
-                                  <div className="p-2.5 rounded-xl bg-white border border-greesal-beige/80">
-                                    <div className="text-gray-500 font-medium text-[10px]">Iron</div>
-                                    <div className="font-bold text-gray-800 text-xs">{nutrition.iron || '6 mg'}</div>
-                                  </div>
-                                </div>
-                              </div>
+                                );
+                              })()}
 
                               {/* 5. HEALTH BENEFITS & TARGET LIFESTYLE */}
                               {healthBenefits.length > 0 && (
