@@ -83,6 +83,7 @@ interface Salad {
   tag: string;
   category?: string;
   image: string;
+  images?: string[];
   ingredients?: string[];
   dressing?: string[];
   crunch?: string[];
@@ -279,6 +280,7 @@ export default function AdminPage() {
     price: '',
     tag: 'Chef Choice',
     image: '',
+    images: [],
     ingredients: [],
     dressing: [],
     crunch: [],
@@ -310,6 +312,66 @@ export default function AdminPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSaladId, setEditingSaladId] = useState<string | null>(null);
   const [imageSourceType, setImageSourceType] = useState<'file' | 'url'>('file');
+  const [newSaladImageUrl, setNewSaladImageUrl] = useState('');
+
+  const processMultipleImageFiles = (files: FileList | File[]) => {
+    const fileList = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (fileList.length === 0) {
+      setErrorMessage('Please select valid image files (PNG, JPG, WEBP, etc.)');
+      return;
+    }
+    setErrorMessage(null);
+    let processedCount = 0;
+    const newImages: string[] = [];
+
+    fileList.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const maxDim = 800;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          let dataUrl = event.target?.result as string;
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          }
+          newImages.push(dataUrl);
+          processedCount++;
+          if (processedCount === fileList.length) {
+            setCurrentSalad(prev => {
+              const currentList = Array.isArray(prev.images) && prev.images.length > 0
+                ? prev.images
+                : (prev.image ? [prev.image] : []);
+              const merged = [...currentList, ...newImages];
+              return {
+                ...prev,
+                images: merged,
+                image: merged[0] || prev.image || '',
+              };
+            });
+          }
+        };
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
 
   // Category management & quick-add state
   const [adminSaladCategoryFilter, setAdminSaladCategoryFilter] = useState<string>('all');
@@ -1011,6 +1073,7 @@ export default function AdminPage() {
         tag: defaultCat,
         category: defaultCat,
         image: '',
+        images: [],
         ingredients: [],
         dressing: [],
         crunch: [],
@@ -1057,6 +1120,7 @@ export default function AdminPage() {
       setFormTab('general');
       setEditingSaladId(salad._id || salad.id || null);
       setImageSourceType(salad.image && !salad.image.startsWith('data:') ? 'url' : 'file');
+      setNewSaladImageUrl('');
       setNewAddOnName('');
       setNewAddOnPrice('');
       setNewPortionGrams('');
@@ -1131,8 +1195,15 @@ export default function AdminPage() {
           : '/api/admin/salads';
         const defaultPortion = (currentSalad.portions || []).find(p => p.isDefault) || (currentSalad.portions || [])[0];
         const autoPrice = defaultPortion ? `₹${defaultPortion.price}` : (currentSalad.price || '₹240');
+        const saladImages = Array.isArray(currentSalad.images) && currentSalad.images.length > 0
+          ? currentSalad.images
+          : (currentSalad.image ? [currentSalad.image] : []);
+        const primaryImage = saladImages[0] || currentSalad.image || '';
+
         const payload = {
           ...currentSalad,
+          image: primaryImage,
+          images: saladImages,
           price: autoPrice,
           dressing: currentSalad.dressing || [],
           crunch: currentSalad.crunch || []
@@ -4772,12 +4843,17 @@ export default function AdminPage() {
                       </select>
                     </div>
 
-                    {/* Salad Image Selection & Upload */}
-                    <div className="space-y-2">
+                    {/* Salad Image Selection & Upload (Multiple Images Supported) */}
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-[#123B2B] block">
-                          Salad Image
-                        </label>
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs font-bold text-[#123B2B] block">
+                            Salad Images
+                          </label>
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            {((currentSalad.images && currentSalad.images.length > 0) ? currentSalad.images.length : (currentSalad.image ? 1 : 0))} {((currentSalad.images && currentSalad.images.length > 0) ? currentSalad.images.length : (currentSalad.image ? 1 : 0)) === 1 ? 'Image' : 'Images'}
+                          </span>
+                        </div>
                         <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg text-[11px] font-bold">
                           <button
                             type="button"
@@ -4788,7 +4864,7 @@ export default function AdminPage() {
                               }`}
                           >
                             <Upload className="w-3 h-3" />
-                            <span>Upload from Device</span>
+                            <span>Upload Files</span>
                           </button>
                           <button
                             type="button"
@@ -4799,7 +4875,7 @@ export default function AdminPage() {
                               }`}
                           >
                             <LinkIcon className="w-3 h-3" />
-                            <span>Image URL</span>
+                            <span>Add by URL</span>
                           </button>
                         </div>
                       </div>
@@ -4816,94 +4892,184 @@ export default function AdminPage() {
                               e.preventDefault();
                               e.stopPropagation();
                               const files = e.dataTransfer.files;
-                              if (files && files[0]) {
-                                processImageFile(files[0]);
+                              if (files && files.length > 0) {
+                                processMultipleImageFiles(files);
                               }
                             }}
-                            className="border-2 border-dashed border-greesal-emerald/40 hover:border-[#123B2B] bg-[#FAF6F0]/60 hover:bg-[#FAF6F0] p-4 rounded-2xl transition-all cursor-pointer text-center group flex flex-col items-center justify-center min-h-[120px]"
+                            className="border-2 border-dashed border-greesal-emerald/40 hover:border-[#123B2B] bg-[#FAF6F0]/60 hover:bg-[#FAF6F0] p-4 rounded-2xl transition-all cursor-pointer text-center group flex flex-col items-center justify-center min-h-[110px]"
                           >
                             <input
                               id="salad-image-file-input"
                               type="file"
                               accept="image/*"
+                              multiple
                               onChange={(e) => {
-                                if (e.target.files && e.target.files[0]) {
-                                  processImageFile(e.target.files[0]);
+                                if (e.target.files && e.target.files.length > 0) {
+                                  processMultipleImageFiles(e.target.files);
                                 }
                               }}
                               className="hidden"
                             />
-                            <div className="w-10 h-10 rounded-full bg-greesal-emerald/10 text-[#123B2B] flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                            <div className="w-10 h-10 rounded-full bg-greesal-emerald/10 text-[#123B2B] flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
                               <UploadCloud className="w-5 h-5" />
                             </div>
                             <p className="text-xs font-bold text-[#123B2B]">
-                              Click or drag &amp; drop to upload image from device
+                              Click or drag &amp; drop to upload one or more photos
                             </p>
-                            <p className="text-[11px] text-gray-400 mt-0.5">
-                              Supports PNG, JPG, WEBP (Auto-optimized)
+                            <p className="text-[11px] text-gray-500 mt-0.5">
+                              Select multiple files at once &bull; Supports PNG, JPG, WEBP (Auto-optimized)
                             </p>
                           </div>
-
-                          {currentSalad.image && (
-                            <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-200 shadow-2xs">
-                              <img
-                                src={currentSalad.image}
-                                alt="Selected Salad Preview"
-                                className="w-16 h-16 rounded-lg object-cover border border-gray-100 flex-shrink-0"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] font-bold border border-emerald-200">
-                                  Image Ready
-                                </span>
-                                <p className="text-xs text-gray-500 font-medium truncate mt-1">
-                                  {currentSalad.image.startsWith('data:')
-                                    ? 'Custom image uploaded from device'
-                                    : currentSalad.image}
-                                </p>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setCurrentSalad({ ...currentSalad, image: '' });
-                                }}
-                                className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer"
-                                title="Remove Image"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          )}
                         </div>
                       ) : (
-                        <div className="space-y-3">
-                          <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                               <ImageIcon className="w-4 h-4" />
                             </div>
                             <input
                               type="url"
-                              value={currentSalad.image}
-                              onChange={(e) => setCurrentSalad({ ...currentSalad, image: e.target.value })}
-                              placeholder="https://images.unsplash.com/..."
-                              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#123B2B]/40 focus:border-[#123B2B]"
+                              value={newSaladImageUrl}
+                              onChange={(e) => setNewSaladImageUrl(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (newSaladImageUrl.trim()) {
+                                    setCurrentSalad(prev => {
+                                      const currentList = Array.isArray(prev.images) && prev.images.length > 0
+                                        ? prev.images
+                                        : (prev.image ? [prev.image] : []);
+                                      const merged = [...currentList, newSaladImageUrl.trim()];
+                                      return { ...prev, images: merged, image: merged[0] || prev.image };
+                                    });
+                                    setNewSaladImageUrl('');
+                                  }
+                                }
+                              }}
+                              placeholder="Paste image URL (e.g. https://...) and click Add"
+                              className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-300 bg-white text-gray-800 text-xs focus:outline-none focus:ring-1 focus:ring-[#123B2B]"
                             />
                           </div>
-                          {currentSalad.image && (
-                            <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-200 shadow-2xs">
-                              <img
-                                src={currentSalad.image}
-                                alt="URL Salad Preview"
-                                className="w-16 h-16 rounded-lg object-cover border border-gray-100 flex-shrink-0"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-[#123B2B]">Live Preview</p>
-                                <p className="text-[11px] text-gray-500 truncate mt-0.5">{currentSalad.image}</p>
-                              </div>
-                            </div>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (newSaladImageUrl.trim()) {
+                                setCurrentSalad(prev => {
+                                  const currentList = Array.isArray(prev.images) && prev.images.length > 0
+                                    ? prev.images
+                                    : (prev.image ? [prev.image] : []);
+                                  const merged = [...currentList, newSaladImageUrl.trim()];
+                                  return { ...prev, images: merged, image: merged[0] || prev.image };
+                                });
+                                setNewSaladImageUrl('');
+                              }
+                            }}
+                            className="px-3.5 py-2 bg-[#123B2B] text-white rounded-xl text-xs font-bold hover:bg-[#0e2e21] transition-all cursor-pointer whitespace-nowrap"
+                          >
+                            + Add Image
+                          </button>
                         </div>
                       )}
+
+                      {/* Uploaded Multiple Images Gallery / Thumbnail Grid */}
+                      {(() => {
+                        const allImgs = Array.isArray(currentSalad.images) && currentSalad.images.length > 0
+                          ? currentSalad.images
+                          : (currentSalad.image ? [currentSalad.image] : []);
+                        if (allImgs.length === 0) return null;
+
+                        return (
+                          <div className="space-y-2 pt-1">
+                            <div className="flex items-center justify-between text-[11px] text-gray-500 font-semibold px-0.5">
+                              <span>Uploaded Photos ({allImgs.length}): Click &ldquo;Make Cover&rdquo; to choose primary</span>
+                              <button
+                                type="button"
+                                onClick={() => setCurrentSalad(prev => ({ ...prev, images: [], image: '' }))}
+                                className="text-red-500 hover:text-red-700 text-[10px] font-bold cursor-pointer"
+                              >
+                                Clear All
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                              {allImgs.map((imgUrl, imgIdx) => {
+                                const isCover = imgIdx === 0;
+                                return (
+                                  <div
+                                    key={imgIdx}
+                                    className={`relative rounded-2xl border overflow-hidden bg-white shadow-2xs group transition-all ${isCover ? 'ring-2 ring-emerald-600 border-emerald-500' : 'border-gray-200 hover:border-gray-300'
+                                      }`}
+                                  >
+                                    <div className="aspect-[4/3] w-full bg-gray-100 overflow-hidden relative">
+                                      <img
+                                        src={imgUrl}
+                                        alt={`Salad Image ${imgIdx + 1}`}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src = '/images/salad_bowl_hero.jpg';
+                                        }}
+                                      />
+                                      {/* Cover Badge */}
+                                      {isCover ? (
+                                        <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-extrabold shadow-sm">
+                                          Cover
+                                        </span>
+                                      ) : null}
+
+                                      {/* Remove Button */}
+                                      <button
+                                        type="button"
+                                        title="Delete photo"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setCurrentSalad(prev => {
+                                            const updated = allImgs.filter((_, i) => i !== imgIdx);
+                                            return {
+                                              ...prev,
+                                              images: updated,
+                                              image: updated[0] || '',
+                                            };
+                                          });
+                                        }}
+                                        className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center text-xs font-black transition-colors cursor-pointer"
+                                      >
+                                        &times;
+                                      </button>
+                                    </div>
+
+                                    {/* Action row */}
+                                    <div className="p-1.5 bg-gray-50 flex items-center justify-between text-[10px]">
+                                      <span className="text-gray-500 font-bold px-1">#{imgIdx + 1}</span>
+                                      {!isCover ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setCurrentSalad(prev => {
+                                              const reordered = [
+                                                allImgs[imgIdx],
+                                                ...allImgs.filter((_, i) => i !== imgIdx),
+                                              ];
+                                              return {
+                                                ...prev,
+                                                images: reordered,
+                                                image: reordered[0],
+                                              };
+                                            });
+                                          }}
+                                          className="text-emerald-800 hover:text-emerald-950 font-bold bg-white px-2 py-0.5 rounded-md border border-gray-200 hover:border-emerald-300 transition-colors cursor-pointer"
+                                        >
+                                          Make Cover
+                                        </button>
+                                      ) : (
+                                        <span className="text-emerald-700 font-extrabold text-[10px] px-1">Main Cover</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="space-y-1.5">

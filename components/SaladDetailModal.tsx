@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Salad, slugify, SaladPortion, getSaladPortions, getSaladPriceForPortion, getSaladIngredients, getSaladDressing, getSaladCrunch } from '@/lib/salads';
+import { Salad, slugify, SaladPortion, getSaladPortions, getSaladPriceForPortion, getSaladIngredients, getSaladDressing, getSaladCrunch, getSaladImages } from '@/lib/salads';
 import { 
   X, 
   Flame, 
@@ -15,7 +15,9 @@ import {
   Phone, 
   Sparkles, 
   ExternalLink,
-  Utensils
+  Utensils,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface SaladDetailModalProps {
@@ -39,6 +41,8 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
 
   const saladId = salad.id || salad._id || salad.slug || salad.name;
   const portions = getSaladPortions(salad);
+  const allSaladImages = getSaladImages(salad);
+  const [activeImageIdx, setActiveImageIdx] = useState<number>(0);
   const [removedItems, setRemovedItems] = useState<string[]>([]);
 
   const toggleRemoveItem = (item: string) => {
@@ -56,6 +60,7 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
       const pList = getSaladPortions(salad);
       setSelectedPortion(pList.find((p) => p.isDefault) || pList[0]);
       setRemovedItems([]);
+      setActiveImageIdx(0);
     }
   }, [salad]);
 
@@ -98,18 +103,66 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
             <X className="w-5 h-5" />
           </button>
 
-          {/* Modal Hero Image */}
-          <div className="relative h-64 sm:h-72 w-full bg-gray-100 flex-shrink-0">
+          {/* Modal Hero Image (Multiple Images Carousel) */}
+          <div className="relative h-64 sm:h-72 w-full bg-gray-100 flex-shrink-0 group">
             <img
-              src={salad.image}
+              src={allSaladImages[activeImageIdx] || salad.image}
               alt={salad.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-all duration-200"
               onError={(e) => {
                 (e.target as HTMLImageElement).src =
                   '/images/salad_bowl_hero.jpg';
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
+
+            {/* Left / Right Carousel Controls if multiple images */}
+            {allSaladImages.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIdx((prev) => (prev > 0 ? prev - 1 : allSaladImages.length - 1));
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center transition-all shadow-md cursor-pointer z-10"
+                  title="Previous image"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIdx((prev) => (prev < allSaladImages.length - 1 ? prev + 1 : 0));
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center transition-all shadow-md cursor-pointer z-10"
+                  title="Next image"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+
+                {/* Image Count & Dots */}
+                <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold">
+                    {activeImageIdx + 1} / {allSaladImages.length}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {allSaladImages.map((_, dotIdx) => (
+                      <button
+                        key={dotIdx}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveImageIdx(dotIdx);
+                        }}
+                        className={'h-1.5 rounded-full transition-all cursor-pointer ' + (dotIdx === activeImageIdx ? 'w-4 bg-white' : 'w-1.5 bg-white/50')}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="absolute bottom-4 left-6 right-6 text-white">
               <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#fbce45] text-[#20493c] text-[11px] font-extrabold uppercase tracking-wider mb-1.5">

@@ -48,6 +48,18 @@ export function getSaladDressing(salad: Salad | null | undefined): string[] {
   return [];
 }
 
+export function getSaladImages(salad: Salad | null | undefined): string[] {
+  if (!salad) return [];
+  if (Array.isArray(salad.images) && salad.images.length > 0) {
+    const valid = salad.images.filter((img) => typeof img === 'string' && img.trim().length > 0);
+    if (valid.length > 0) return valid;
+  }
+  if (salad.image && salad.image.trim().length > 0) {
+    return [salad.image];
+  }
+  return ['/images/salad_bowl_hero.jpg'];
+}
+
 export function getSaladCrunch(salad: Salad | null | undefined): string[] {
   if (!salad || !Array.isArray(salad.crunch)) return [];
   return salad.crunch;
@@ -64,6 +76,7 @@ export interface Salad {
   tag: string;
   category?: string;
   image: string;
+  images?: string[];
   ingredients?: string[];
   dressing?: string[];
   crunch?: string[];

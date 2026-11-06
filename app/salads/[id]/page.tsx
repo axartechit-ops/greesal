@@ -12,7 +12,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { GoogleMapPickerModal } from '@/components/GoogleMapPickerModal';
 import { getLiveDetailedLocation } from '@/lib/geolocation';
 import { sendOrderToWhatsApp } from '@/lib/whatsapp';
-import { DEFAULT_SALAD_ADDONS, getSaladByIdOrSlug, Salad, SaladAddOn, SaladPortion, getSaladPortions, getSaladIngredients, getSaladDressing, getSaladCrunch, slugify, isGenericAllCategory, inferSaladCategory } from '@/lib/salads';
+import { DEFAULT_SALAD_ADDONS, getSaladByIdOrSlug, getSaladImages, Salad, SaladAddOn, SaladPortion, getSaladPortions, getSaladIngredients, getSaladDressing, getSaladCrunch, slugify, isGenericAllCategory, inferSaladCategory } from '@/lib/salads';
 import {
   Sparkles,
   Leaf,
@@ -39,6 +39,7 @@ import {
   Star,
   Clock,
   ArrowLeft,
+  ChevronLeft,
   ChevronRight,
   Truck,
   Check,
@@ -89,10 +90,12 @@ export default function SaladDetailPage() {
   const [selectedAddOns, setSelectedAddOns] = useState<Array<{ name: string; price: number }>>([]);
   const [isAddedAnimation, setIsAddedAnimation] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [removedItems, setRemovedItems] = useState<string[]>([]);
 
   useEffect(() => {
     setRemovedItems([]);
+    setActiveImageIndex(0);
   }, [salad?.id, salad?._id, salad?.name]);
 
   const toggleRemoveItem = (item: string) => {
@@ -602,6 +605,7 @@ export default function SaladDetailPage() {
     );
   }
 
+  const allSaladImages = getSaladImages(salad);
   const rawPrice = parseInt(salad.price.replace(/[^\d]/g, '')) || 299;
   const originalPrice = Math.round(rawPrice * 1.15);
   const discountAmount = originalPrice - rawPrice;
@@ -742,17 +746,43 @@ export default function SaladDetailPage() {
           {/* Left Column: Product Visuals, Ingredients & Dressing (7 Cols) */}
           <div className="lg:col-span-7 space-y-6">
 
-            {/* Main Showcase Hero Image Card */}
-            <div className="relative rounded-[32px] overflow-hidden bg-white border border-[#E8E1D5] shadow-lg">
+            {/* Main Showcase Hero Image Card (Multiple Images Gallery) */}
+            <div className="relative rounded-[32px] overflow-hidden bg-white border border-[#E8E1D5] shadow-lg group">
               <div className="relative aspect-[4/3] sm:aspect-[16/11] w-full bg-[#FAF6F0] overflow-hidden">
                 <img
-                  src={salad.image}
+                  src={allSaladImages[activeImageIndex] || salad.image}
                   alt={salad.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-all duration-300"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/images/salad_bowl_hero.jpg';
                   }}
                 />
+
+                {/* Gallery Navigation Arrows if multiple photos */}
+                {allSaladImages.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : allSaladImages.length - 1))}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/55 hover:bg-black/85 text-white flex items-center justify-center transition-all shadow-md z-10 cursor-pointer"
+                      title="Previous photo"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveImageIndex((prev) => (prev < allSaladImages.length - 1 ? prev + 1 : 0))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/55 hover:bg-black/85 text-white flex items-center justify-center transition-all shadow-md z-10 cursor-pointer"
+                      title="Next photo"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+
+                    <div className="absolute top-4 right-16 z-10 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xs text-white text-[11px] font-bold">
+                      {activeImageIndex + 1} / {allSaladImages.length} Photos
+                    </div>
+                  </>
+                )}
 
                 {/* Top Badges */}
                 <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
@@ -813,6 +843,35 @@ export default function SaladDetailPage() {
                   <p className="text-xs text-gray-600 mt-0.5">Retains natural cellular vitamins, rich crunch, and authentic flavors without artificial preservatives.</p>
                 </div>
               </div>
+
+              {/* Multiple Photos Thumbnail Strip */}
+              {allSaladImages.length > 1 && (
+                <div className="p-3 bg-white border-t border-[#E8E1D5] flex items-center gap-2.5 overflow-x-auto">
+                  {allSaladImages.map((tImg: string, tIdx: number) => {
+                    const isSelected = tIdx === activeImageIndex;
+                    return (
+                      <button
+                        key={tIdx}
+                        type="button"
+                        onClick={() => setActiveImageIndex(tIdx)}
+                        className={`relative w-16 h-14 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 cursor-pointer ${isSelected
+                          ? 'border-[#123B2B] ring-2 ring-[#123B2B]/30 scale-105'
+                          : 'border-gray-200 hover:border-gray-300 opacity-70 hover:opacity-100'
+                          }`}
+                      >
+                        <img
+                          src={tImg}
+                          alt={`Thumbnail ${tIdx + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/images/salad_bowl_hero.jpg';
+                          }}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* 3-Part Architecture Container: Ingredients, Dressing, Crunch */}
