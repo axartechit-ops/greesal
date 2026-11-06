@@ -22,7 +22,6 @@ import { InvoiceModal, InvoiceOrder } from '@/components/InvoiceModal';
 import { TermsModal } from '@/components/TermsModal';
 import { SaladProjectHero } from '@/components/SaladProjectHero';
 import { SaladDetailModal } from '@/components/SaladDetailModal';
-import { SaladMenuSection } from '@/components/SaladMenuSection';
 
 import { DEFAULT_SITE_SETTINGS, SiteSettings } from '@/lib/siteSettings';
 
@@ -285,12 +284,7 @@ export default function SaladIndiaHome() {
   const isLoggedIn = isMounted && (status === 'authenticated' || Boolean(customName || customMobile));
 
   const navigateToSalads = () => {
-    const el = document.getElementById('menu');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      router.push('/salads');
-    }
+    router.push('/salads');
   };
 
   return (
@@ -381,23 +375,6 @@ export default function SaladIndiaHome() {
           ctaLink="/salads"
           onExploreMenu={navigateToSalads}
           onSubscribeClick={() => setIsSubscriptionModalOpen(true)}
-        />
-
-        {/* 4. Fresh Handcrafted Salad Menu with Admin Categories & Portion Selection */}
-        <SaladMenuSection
-          salads={salads}
-          isLoading={isLoadingSalads}
-          categories={siteSettings.categories}
-          cartItems={cartAggregatedQuantities}
-          onAddToCart={handleAddToCart}
-          onRemoveFromCart={handleRemoveFromCart}
-          onSelectSaladForModal={(salad) => setSelectedSalad(salad)}
-          onSubscriptionClick={() => setIsSubscriptionModalOpen(true)}
-          onCateringClick={() => setIsCateringModalOpen(true)}
-          isOpen={siteSettings.isOpen}
-          openingTime={siteSettings.openingTime}
-          closingTime={siteSettings.closingTime}
-          closedMessage={siteSettings.closedMessage}
         />
 
         {/* 5. What Makes The Difference? Section (Up to 4 Images Showcase) */}
