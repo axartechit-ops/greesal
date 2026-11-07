@@ -100,7 +100,7 @@ export const HomeSubscriptionSection: React.FC<HomeSubscriptionSectionProps> = (
             Weekly salad subscription
           </span>
           <h2 className="mt-3 text-2xl font-black tracking-tight text-[#123B2B] sm:text-4xl">
-            Pick a fresh salad for every day
+            Subscriptions
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Choose one of the two salads uploaded by our team for Monday through Saturday. Sunday is a holiday.

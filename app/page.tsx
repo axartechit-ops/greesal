@@ -22,7 +22,6 @@ import { InvoiceModal, InvoiceOrder } from '@/components/InvoiceModal';
 import { TermsModal } from '@/components/TermsModal';
 import { SaladProjectHero } from '@/components/SaladProjectHero';
 import { SaladDetailModal } from '@/components/SaladDetailModal';
-import { HomeSubscriptionSection } from '@/components/HomeSubscriptionSection';
 
 import { DEFAULT_SITE_SETTINGS, SiteSettings } from '@/lib/siteSettings';
 
@@ -48,10 +47,6 @@ export default function SaladIndiaHome() {
   // Modals state
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
-  const [subscriptionPrefill, setSubscriptionPrefill] = useState<{
-    startDate: string;
-    selections: Record<string, string>;
-  } | null>(null);
   const [isCateringModalOpen, setIsCateringModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -362,16 +357,6 @@ export default function SaladIndiaHome() {
           howToOrderBtnLink={siteSettings.howToOrderBtnLink}
         />
 
-        <HomeSubscriptionSection
-          dailyMenus={siteSettings.subscriptionDailyMenus || []}
-          salads={salads}
-          isLoadingSalads={isLoadingSalads || isLoadingSettings}
-          onContinue={(startDate, selections) => {
-            setSubscriptionPrefill({ startDate, selections });
-            setIsSubscriptionModalOpen(true);
-          }}
-        />
-
         {/* 3. Hero Section ("Farm-Fresh Organic Salad Bowls" & Story) */}
         <SaladHeroSection
           badge={siteSettings.heroBadge || siteSettings.badgeText}
@@ -473,10 +458,7 @@ export default function SaladIndiaHome() {
 
       <SubscriptionModal
         isOpen={isSubscriptionModalOpen}
-        onClose={() => {
-          setIsSubscriptionModalOpen(false);
-          setSubscriptionPrefill(null);
-        }}
+        onClose={() => setIsSubscriptionModalOpen(false)}
         defaultPlan="weekly"
         plans={siteSettings.subscriptionPlans}
         modalBadge={siteSettings.subscriptionModalBadge}
@@ -485,8 +467,6 @@ export default function SaladIndiaHome() {
         dailyMenus={siteSettings.subscriptionDailyMenus}
         salads={salads}
         isLoadingSalads={isLoadingSalads}
-        initialStartDate={subscriptionPrefill?.startDate}
-        initialSaladSelections={subscriptionPrefill?.selections}
       />
 
       <EventCateringModal
