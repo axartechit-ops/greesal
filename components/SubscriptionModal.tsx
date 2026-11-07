@@ -2,7 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Check, Sparkles, Phone, MapPin, Navigation, Loader2, CheckCircle2 } from 'lucide-react';
 import { GoogleMapPickerModal } from './GoogleMapPickerModal';
 import { OrderConfirmationModal, ConfirmedOrderData } from './OrderConfirmationModal';
-import { SubscriptionDailyMenu, SubscriptionPlan, DEFAULT_SUBSCRIPTION_PLANS } from '@/lib/siteSettings';
+import {
+  SubscriptionDailyMenu,
+  SubscriptionPlan,
+  SubscriptionSaladSelection,
+  DEFAULT_SUBSCRIPTION_PLANS,
+} from '@/lib/siteSettings';
 import { getSaladImages, Salad } from '@/lib/salads';
 
 interface SubscriptionModalProps {
@@ -16,10 +21,29 @@ interface SubscriptionModalProps {
   dailyMenus?: SubscriptionDailyMenu[];
   salads?: Salad[];
   isLoadingSalads?: boolean;
+  initialStartDate?: string;
+  initialSaladSelections?: Record<string, string>;
 }
 
 const getSaladId = (salad: Salad) => salad.id || salad._id || salad.slug || salad.name;
 const EMPTY_SUBSCRIPTION_DAILY_MENUS: SubscriptionDailyMenu[] = [];
+
+const getWeekStartDate = (dateString: string) => {
+  const date = new Date(`${dateString}T00:00:00`);
+  date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const getNextDeliveryDates = (startDate: string, dayCount: number) => {
+  const date = new Date(`${startDate}T00:00:00`);
+  const dates: string[] = [];
+  while (dates.length < dayCount) {
+    if (date.getDay() === 0) date.setDate(date.getDate() + 1);
+    dates.push(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`);
+    date.setDate(date.getDate() + 1);
+  }
+  return dates;
+};
 
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   isOpen,
@@ -32,6 +56,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   dailyMenus = EMPTY_SUBSCRIPTION_DAILY_MENUS,
   salads = [],
   isLoadingSalads = false,
+  initialStartDate,
+  initialSaladSelections,
 }) => {
   const [loadedPlans, setLoadedPlans] = useState<SubscriptionPlan[]>(plans || DEFAULT_SUBSCRIPTION_PLANS);
   const [loadedDailyMenus, setLoadedDailyMenus] = useState<SubscriptionDailyMenu[]>(dailyMenus);
@@ -90,13 +116,21 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   }, [plansList, selectedPlanId]);
 
   const activePlan = plansList.find((p) => p.id === selectedPlanId) || plansList[0];
+  const planDayCount = Math.max(
+    1,
+    Math.floor(Number(activePlan?.daysCount) || Number.parseInt(activePlan?.duration || '', 10) || 1)
+  );
 
   const availableDailyMenus = useMemo(() => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-    const scheduledMenus = loadedDailyMenus
-      .filter((menu) => menu.date >= today && Array.isArray(menu.saladIds))
+    const menusByDate = new Map(
+      loadedDailyMenus
+        .filter((menu) => menu.date >= today && Array.isArray(menu.saladIds))
+        .map((menu) => [menu.date, menu])
+    );
+    return [...menusByDate.values()]
       .map((menu) => ({
         date: menu.date,
         options: menu.saladIds
@@ -105,31 +139,71 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       }))
       .filter((menu) => menu.options.length === 2 && getSaladId(menu.options[0]) !== getSaladId(menu.options[1]))
       .sort((a, b) => a.date.localeCompare(b.date));
-    if (scheduledMenus.length > 0 || salads.length === 0) return scheduledMenus;
-
-    return [{ date: today, options: salads }];
   }, [loadedDailyMenus, salads]);
 
-  const [selectedSubscriptionDate, setSelectedSubscriptionDate] = useState('');
-  const [selectedSubscriptionSaladId, setSelectedSubscriptionSaladId] = useState('');
+  const menusByDate = useMemo(
+    () => new Map(availableDailyMenus.map((menu) => [menu.date, menu])),
+    [availableDailyMenus]
+  );
+  const eligibleStartDates = useMemo(
+    () => availableDailyMenus
+      .filter((menu) => new Date(`${menu.date}T00:00:00`).getDay() === 1)
+      .filter((menu) => getNextDeliveryDates(menu.date, planDayCount).every((date) => menusByDate.has(date)))
+      .map((menu) => menu.date),
+    [availableDailyMenus, menusByDate, planDayCount]
+  );
+  const [selectedSubscriptionStartDate, setSelectedSubscriptionStartDate] = useState('');
+  const [selectedSubscriptionSalads, setSelectedSubscriptionSalads] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!isOpen) return;
-    if (!availableDailyMenus.some((menu) => menu.date === selectedSubscriptionDate)) {
-      setSelectedSubscriptionDate(availableDailyMenus[0]?.date || '');
-      setSelectedSubscriptionSaladId('');
+    if (initialStartDate && eligibleStartDates.includes(initialStartDate)) {
+      setSelectedSubscriptionStartDate(initialStartDate);
+      setSelectedSubscriptionSalads(initialSaladSelections || {});
+      return;
     }
-  }, [availableDailyMenus, isOpen, selectedSubscriptionDate]);
+    if (!eligibleStartDates.includes(selectedSubscriptionStartDate)) {
+      setSelectedSubscriptionStartDate(eligibleStartDates[0] || '');
+      setSelectedSubscriptionSalads({});
+    }
+  }, [
+    eligibleStartDates,
+    initialSaladSelections,
+    initialStartDate,
+    isOpen,
+  ]);
 
-  const selectedDailyMenu = availableDailyMenus.find((menu) => menu.date === selectedSubscriptionDate);
-  const selectedSubscriptionSalad = selectedDailyMenu?.options.find(
-    (salad) => getSaladId(salad) === selectedSubscriptionSaladId
+  const subscriptionMenus = eligibleStartDates.includes(selectedSubscriptionStartDate)
+    ? getNextDeliveryDates(selectedSubscriptionStartDate, planDayCount)
+        .map((date) => menusByDate.get(date))
+        .filter((menu): menu is (typeof availableDailyMenus)[number] => Boolean(menu))
+    : [];
+  const subscriptionWeeks = subscriptionMenus.reduce<Array<{
+    weekStart: string;
+    menus: Array<(typeof availableDailyMenus)[number]>;
+  }>>(
+    (weeks, menu) => {
+      const weekStart = getWeekStartDate(menu.date);
+      const currentWeek = weeks[weeks.length - 1];
+      if (currentWeek?.weekStart === weekStart) currentWeek.menus.push(menu);
+      else weeks.push({ weekStart, menus: [menu] });
+      return weeks;
+    },
+    []
   );
-  const isUsingUnscheduledSalad = Boolean(selectedDailyMenu && selectedSubscriptionSalad && !loadedDailyMenus.some(
-    (menu) => menu.date === selectedDailyMenu.date &&
-      Array.isArray(menu.saladIds) &&
-      menu.saladIds.includes(getSaladId(selectedSubscriptionSalad))
-  ));
+  const selectedSubscriptionSaladsForPlan = subscriptionMenus.flatMap((menu) => {
+    const salad = menu.options.find((option) => getSaladId(option) === selectedSubscriptionSalads[menu.date]);
+    return salad
+      ? [{
+          date: menu.date,
+          saladId: getSaladId(salad),
+          saladName: salad.name,
+          salad,
+        }]
+      : [];
+  });
+  const isSubscriptionSelectionComplete =
+    subscriptionMenus.length === planDayCount && selectedSubscriptionSaladsForPlan.length === planDayCount;
 
   const [deliverySlot, setDeliverySlot] = useState<'lunch' | 'evening' | 'pickup'>('lunch');
   const [fullName, setFullName] = useState('');
@@ -243,8 +317,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       setSubmitError('Enter your name, a valid 10-digit mobile number, and delivery address to continue.');
       return;
     }
-    if (!selectedDailyMenu || !selectedSubscriptionSalad) {
-      setSubmitError('Select a salad before placing your subscription.');
+    if (!isSubscriptionSelectionComplete) {
+      setSubmitError(`Choose one scheduled salad for each of the ${planDayCount} delivery days.`);
       return;
     }
 
@@ -267,15 +341,24 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     };
 
     const orderNumber = `SUB-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-    const formattedSubscriptionDate = new Date(`${selectedSubscriptionDate}T00:00:00`).toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
+    const subscriptionSelections: SubscriptionSaladSelection[] = selectedSubscriptionSaladsForPlan.map(
+      ({ date, saladId, saladName }) => ({ date, saladId, saladName })
+    );
+    const formattedSelections = subscriptionSelections.map(({ date, saladName }) => {
+      const formattedDate = new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+      return `${formattedDate}: ${saladName}`;
     });
     const subscriptionId = orderNumber;
     const subscriptionNotes =
-      `Plan: ${activePlan.name}; Salad for ${formattedSubscriptionDate}: ${selectedSubscriptionSalad.name}; ` +
+      `Plan: ${activePlan.name}; Daily choices: ${formattedSelections.join('; ')}; ` +
       `Preference: ${dietPreference}`;
+    const totalPrice = Math.round(activePlan.totalPrice);
+    const dailyPrice = Math.floor(totalPrice / planDayCount);
+    const extraRupees = totalPrice - dailyPrice * planDayCount;
 
     const mapsLink = locationCoords
       ? `https://maps.google.com/?q=${locationCoords.lat},${locationCoords.lng}`
@@ -286,23 +369,26 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       orderType: 'subscription',
       subscriptionId,
       subscriptionPlan: activePlan.name,
-      subscriptionDate: selectedSubscriptionDate,
-      subscriptionSalad: selectedSubscriptionSalad.name,
+      subscriptionDate: subscriptionSelections[0].date,
+      subscriptionSalad: subscriptionSelections[0].saladName,
+      subscriptionSelections,
       customerName: fullName.trim(),
       customerMobile: phone.trim(),
       deliveryAddress: deliveryAddress.trim(),
       deliverySlot: slotNames[deliverySlot],
       mapsUrl: mapsLink,
       notes: subscriptionNotes,
-      items: [
-        {
-          name: `${selectedSubscriptionSalad.name} (${activePlan.name})`,
-          price: `₹${activePlan.totalPrice}`,
-          image: getSaladImages(selectedSubscriptionSalad)[0],
-          quantity: 1,
-        },
-      ],
-      total: activePlan.totalPrice,
+      items: selectedSubscriptionSaladsForPlan.map(({ date, salad }, index) => ({
+        name: `${salad.name} (${new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })})`,
+        price: `₹${dailyPrice + (index < extraRupees ? 1 : 0)}`,
+        image: getSaladImages(salad)[0],
+        quantity: 1,
+      })),
+      total: totalPrice,
       paymentMethod: 'Pre-Booking / Cash or UPI',
     };
 
@@ -315,8 +401,9 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
           orderNumber,
           subscriptionId,
           subscriptionPlan: activePlan.name,
-          subscriptionDate: selectedSubscriptionDate,
-          subscriptionSalad: selectedSubscriptionSalad.name,
+          subscriptionDate: subscriptionSelections[0].date,
+          subscriptionSalad: subscriptionSelections[0].saladName,
+          subscriptionSelections,
           customerName: fullName.trim(),
           customerMobile: phone.trim(),
           deliveryAddress: deliveryAddress.trim(),
@@ -325,9 +412,9 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
           locationCoords,
           notes: subscriptionNotes,
           items: orderPayload.items,
-          subtotal: activePlan.totalPrice,
+          subtotal: totalPrice,
           deliveryFee: 0,
-          total: activePlan.totalPrice,
+          total: totalPrice,
           orderType: 'subscription',
           dietPreference,
           paymentMethod: 'Subscription / Post Delivery',
@@ -356,15 +443,16 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
         subscriptionId,
         orderType: 'subscription',
         subscriptionPlan: activePlan.name,
-        subscriptionDate: selectedSubscriptionDate,
-        subscriptionSalad: selectedSubscriptionSalad.name,
+        subscriptionDate: subscriptionSelections[0].date,
+        subscriptionSalad: subscriptionSelections[0].saladName,
+        subscriptionSelections,
         date: `Today, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
         timestamp: Date.now(),
         status: 'Placed',
         items: orderPayload.items,
-        subtotal: activePlan.totalPrice,
+        subtotal: totalPrice,
         deliveryFee: 0,
-        total: activePlan.totalPrice,
+        total: totalPrice,
         deliveryAddress: deliveryAddress.trim(),
         paymentMethod: 'Subscription / Post Delivery',
       };
@@ -381,8 +469,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       `🆔 *Subscription ID:* ${orderNumber}\n` +
       `👤 *Customer Name:* ${fullName.trim()}\n` +
       `📞 *WhatsApp Mobile:* ${phone.trim()}\n` +
-      `📋 *Plan Selected:* ${activePlan.name} (₹${activePlan.pricePerSalad}/salad - Total: ₹${activePlan.totalPrice})\n` +
-      `🥗 *Salad for ${formattedSubscriptionDate}:* ${selectedSubscriptionSalad.name}\n` +
+      `📋 *Plan Selected:* ${activePlan.name} (₹${activePlan.pricePerSalad}/salad - Total: ₹${totalPrice})\n` +
+      `🥗 *Daily salad choices:*\n${formattedSelections.map((selection) => `• ${selection}`).join('\n')}\n` +
       `⏰ *Delivery Slot:* ${slotNames[deliverySlot]}\n` +
       `🥗 *Diet Preference:* ${dietPreference}\n` +
       `📍 *Delivery Address:* ${deliveryAddress.trim()}\n` +
@@ -440,7 +528,10 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                   <button
                     key={plan.id}
                     type="button"
-                    onClick={() => setSelectedPlanId(plan.id)}
+                    onClick={() => {
+                      setSelectedPlanId(plan.id);
+                      setSelectedSubscriptionSalads({});
+                    }}
                     className={`p-4 rounded-2xl border-2 text-left relative transition-all cursor-pointer ${
                       isSelected
                         ? 'border-[#20493c] bg-[#e8f7f2] shadow-sm'
@@ -474,27 +565,27 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
             <section className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
               <div className="mb-3">
-                <h4 className="text-sm font-extrabold text-[#20493c]">Choose your subscription salad</h4>
+                <h4 className="text-sm font-extrabold text-[#20493c]">Your weekly salad schedule</h4>
                 <p className="text-xs text-[#20493c]/75 mt-1">
-                  Select a salad scheduled by Greesal. If no daily choices are published, choose from the current menu.
+                  Starts Monday. Choose one of the two salads for each delivery day, Monday to Saturday. Sunday is a holiday.
                 </p>
               </div>
-              {availableDailyMenus.length > 0 ? (
+              {eligibleStartDates.length > 0 ? (
                 <>
-                  {availableDailyMenus.length > 1 && (
+                  {eligibleStartDates.length > 1 && (
                     <label className="block text-xs font-bold text-[#20493c] mb-3">
-                      Delivery date
+                      Start date
                       <select
-                        value={selectedSubscriptionDate}
+                        value={selectedSubscriptionStartDate}
                         onChange={(event) => {
-                          setSelectedSubscriptionDate(event.target.value);
-                          setSelectedSubscriptionSaladId('');
+                          setSelectedSubscriptionStartDate(event.target.value);
+                          setSelectedSubscriptionSalads({});
                         }}
                         className="mt-1 w-full rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm"
                       >
-                        {availableDailyMenus.map((menu) => (
-                          <option key={menu.date} value={menu.date}>
-                            {new Date(`${menu.date}T00:00:00`).toLocaleDateString('en-IN', {
+                        {eligibleStartDates.map((date) => (
+                          <option key={date} value={date}>
+                            {new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', {
                               weekday: 'long',
                               day: 'numeric',
                               month: 'short',
@@ -505,42 +596,102 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                       </select>
                     </label>
                   )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {selectedDailyMenu?.options.map((salad) => {
-                      const saladId = getSaladId(salad);
-                      const isSelected = selectedSubscriptionSaladId === saladId;
-                      return (
-                        <button
-                          key={saladId}
-                          type="button"
-                          onClick={() => setSelectedSubscriptionSaladId(saladId)}
-                          aria-pressed={isSelected}
-                          className={`flex items-center justify-between gap-3 rounded-xl border-2 px-3 py-3 text-left transition-colors ${
-                            isSelected
-                              ? 'border-[#20493c] bg-white shadow-sm'
-                              : 'border-transparent bg-white/70 hover:border-emerald-200'
-                          }`}
-                        >
-                          <span className="min-w-0">
-                            <span className="block text-sm font-bold text-[#20493c]">{salad.name}</span>
-                            <span className="block text-[11px] text-gray-500 mt-0.5">{salad.tag}</span>
+                  <div className="space-y-4">
+                    {subscriptionWeeks.map((week, weekIndex) => (
+                      <section key={week.weekStart} className="overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm">
+                        <div className="flex items-center justify-between gap-3 bg-[#20493c] px-4 py-3 text-white">
+                          <div>
+                            <h5 className="text-sm font-black">Week {weekIndex + 1}</h5>
+                            <p className="mt-0.5 text-[11px] text-white/75">
+                              {new Date(`${week.weekStart}T00:00:00`).toLocaleDateString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                              })} – {new Date(`${week.menus[week.menus.length - 1].date}T00:00:00`).toLocaleDateString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-bold">
+                            {week.menus.length} delivery days
                           </span>
-                          {isSelected && <Check className="h-4 w-4 shrink-0 text-[#20493c]" />}
-                        </button>
-                      );
-                    })}
+                        </div>
+                        <div className="space-y-3 p-3">
+                          {week.menus.map((menu) => {
+                            const dayDate = new Date(`${menu.date}T00:00:00`);
+                            const dayName = dayDate.toLocaleDateString('en-IN', { weekday: 'long' });
+                            return (
+                              <div key={menu.date} className="rounded-xl border border-gray-100 bg-gray-50/80 p-3">
+                                <div className="mb-2 flex items-center justify-between gap-2">
+                                  <p className="text-xs font-extrabold text-[#20493c]">
+                                    {dayName} · {dayDate.toLocaleDateString('en-IN', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      year: 'numeric',
+                                    })}
+                                  </p>
+                                  {selectedSubscriptionSalads[menu.date] && (
+                                    <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800">
+                                      Selected
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                  {menu.options.map((salad, optionIndex) => {
+                                    const saladId = getSaladId(salad);
+                                    const isSelected = selectedSubscriptionSalads[menu.date] === saladId;
+                                    return (
+                                      <button
+                                        key={saladId}
+                                        type="button"
+                                        onClick={() => setSelectedSubscriptionSalads((current) => ({
+                                          ...current,
+                                          [menu.date]: saladId,
+                                        }))}
+                                        aria-pressed={isSelected}
+                                        className={`flex items-center justify-between gap-3 rounded-xl border-2 px-3 py-3 text-left transition-colors ${
+                                          isSelected
+                                            ? 'border-[#20493c] bg-emerald-50 shadow-sm'
+                                            : 'border-gray-100 bg-white hover:border-emerald-200'
+                                        }`}
+                                      >
+                                        <span className="flex min-w-0 items-center gap-2.5">
+                                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-black text-[#20493c]">
+                                            {optionIndex + 1}
+                                          </span>
+                                          <span className="min-w-0">
+                                            <span className="block text-sm font-bold text-[#20493c]">{salad.name}</span>
+                                            <span className="mt-0.5 block text-[11px] text-gray-500">{salad.tag}</span>
+                                          </span>
+                                        </span>
+                                        {isSelected && <Check className="h-4 w-4 shrink-0 text-[#20493c]" />}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-bold text-amber-900">
+                            <span aria-hidden="true">☀️</span>
+                            Sunday · Holiday — no delivery
+                          </div>
+                        </div>
+                      </section>
+                    ))}
                   </div>
                 </>
               ) : (
                 <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-semibold text-amber-800">
                   {isLoadingSalads
                     ? 'Loading the daily salad choices...'
-                    : 'No salads are available right now. Please try again later.'}
+                    : `Greesal has not published two salad choices for every day of an upcoming Monday–Saturday week yet. Sunday is a holiday. Please try again after the admin publishes the full week.`}
                 </p>
               )}
-              {isUsingUnscheduledSalad && selectedDailyMenu && (
-                <p className="mt-2 text-[11px] font-medium text-amber-800">
-                  No daily menu is scheduled yet. You can still subscribe with a salad from the current menu.
+              {eligibleStartDates.length > 0 && (
+                <p className="mt-3 text-[11px] font-semibold text-[#20493c]/75">
+                  {selectedSubscriptionSaladsForPlan.length} of {planDayCount} delivery days selected.
                 </p>
               )}
             </section>
@@ -718,7 +869,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={!selectedSubscriptionSalad || isSubmitting}
+                  disabled={!isSubscriptionSelectionComplete || isSubmitting}
                   className="w-full py-3.5 px-6 rounded-2xl bg-[#20493c] hover:bg-[#15342a] active:scale-95 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg transition-all disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Phone className="w-4 h-4 text-[#fbce45]" />

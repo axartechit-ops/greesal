@@ -229,6 +229,9 @@ async def create_order(request: Request):
         "subscriptionPlan": str(data.get("subscriptionPlan") or "").strip(),
         "subscriptionDate": str(data.get("subscriptionDate") or "").strip(),
         "subscriptionSalad": str(data.get("subscriptionSalad") or "").strip(),
+        "subscriptionSelections": data.get("subscriptionSelections", [])
+        if isinstance(data.get("subscriptionSelections"), list)
+        else [],
         "dietPreference": data.get("dietPreference", ""),
         "paymentMethod": data.get("paymentMethod", "Cash on Delivery / UPI on Delivery"),
         "createdAt": now

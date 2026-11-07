@@ -6,6 +6,10 @@ import { getLiveDetailedLocation } from '@/lib/geolocation';
 import { InvoiceModal, InvoiceOrder } from './InvoiceModal';
 import { sendOrderToWhatsApp } from '@/lib/whatsapp';
 import { WhatsAppIcon } from './WhatsAppIcon';
+import { DEFAULT_SITE_SETTINGS, SiteSettings, SubscriptionSaladSelection } from '@/lib/siteSettings';
+import { Salad } from '@/lib/salads';
+import { HomeSubscriptionSection } from './HomeSubscriptionSection';
+import { SubscriptionModal } from './SubscriptionModal';
 import { 
   User, 
   ShoppingBag, 
@@ -59,6 +63,7 @@ export interface Order {
   subscriptionPlan?: string;
   subscriptionDate?: string;
   subscriptionSalad?: string;
+  subscriptionSelections?: SubscriptionSaladSelection[];
   date: string;
   timestamp: number;
   status: 'Delivered' | 'On the Way' | 'Preparing' | 'Placed';
@@ -84,6 +89,23 @@ interface ProfileModalProps {
 // No demo orders (deleted GRS-84920, GRS-79214, GRS-61803)
 const INITIAL_DEMO_ORDERS: Order[] = [];
 
+const getSubscriptionWeekStart = (dateString: string) => {
+  const date = new Date(`${dateString}T00:00:00`);
+  date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const groupSubscriptionSelections = (selections: SubscriptionSaladSelection[]) =>
+  [...selections]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .reduce<Array<{ weekStart: string; selections: SubscriptionSaladSelection[] }>>((weeks, selection) => {
+      const weekStart = getSubscriptionWeekStart(selection.date);
+      const currentWeek = weeks[weeks.length - 1];
+      if (currentWeek?.weekStart === weekStart) currentWeek.selections.push(selection);
+      else weeks.push({ weekStart, selections: [selection] });
+      return weeks;
+    }, []);
+
 export function ProfileModal({
   isOpen,
   onClose,
@@ -94,8 +116,17 @@ export function ProfileModal({
   onUpdateProfile,
   onReorder
 }: ProfileModalProps) {
-  const [activeTab, setActiveTab] = useState<'orders' | 'profile' | 'nutrition' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'subscriptions' | 'profile' | 'nutrition' | 'settings'>('orders');
   const [orders, setOrders] = useState<Order[]>([]);
+  const [subscriptionSettings, setSubscriptionSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
+  const [subscriptionSalads, setSubscriptionSalads] = useState<Salad[]>([]);
+  const [isLoadingSubscriptionData, setIsLoadingSubscriptionData] = useState(false);
+  const [subscriptionLoadError, setSubscriptionLoadError] = useState<string | null>(null);
+  const [isSubscriptionCheckoutOpen, setIsSubscriptionCheckoutOpen] = useState(false);
+  const [subscriptionPrefill, setSubscriptionPrefill] = useState<{
+    startDate: string;
+    selections: Record<string, string>;
+  } | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -215,6 +246,50 @@ export function ProfileModal({
     };
     fetchLiveOrders();
   }, [isOpen, displayName, displayMobile]);
+
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'subscriptions') return;
+    let cancelled = false;
+    const loadSubscriptionData = async () => {
+      setIsLoadingSubscriptionData(true);
+      setSubscriptionLoadError(null);
+      try {
+        const [settingsResponse, saladsResponse] = await Promise.all([
+          fetch('/api/settings'),
+          fetch('/api/salads'),
+        ]);
+        if (!settingsResponse.ok || !saladsResponse.ok) {
+          throw new Error('Could not load subscription schedules. Please try again.');
+        }
+        const [settingsData, saladsData] = await Promise.all([
+          settingsResponse.json(),
+          saladsResponse.json(),
+        ]);
+        if (!Array.isArray(saladsData)) {
+          throw new Error('The salad menu could not be loaded. Please try again.');
+        }
+        if (cancelled) return;
+        setSubscriptionSettings((current) => ({ ...current, ...settingsData }));
+        setSubscriptionSalads(
+          saladsData.filter((salad: Salad) =>
+            !String(salad.id || '').startsWith('fallback-') &&
+            !String(salad._id || '').startsWith('fallback-')
+          )
+        );
+      } catch (error) {
+        if (cancelled) return;
+        setSubscriptionLoadError(
+          error instanceof Error ? error.message : 'Could not load subscription schedules.'
+        );
+      } finally {
+        if (!cancelled) setIsLoadingSubscriptionData(false);
+      }
+    };
+    void loadSubscriptionData();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, isOpen]);
 
   if (!isOpen) return null;
 
@@ -407,6 +482,18 @@ export function ProfileModal({
             </button>
 
             <button
+              onClick={() => { setActiveTab('subscriptions'); setSelectedOrder(null); }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'subscriptions'
+                  ? 'bg-white text-[#123B2B] shadow-md scale-100'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              <span>Subscriptions</span>
+            </button>
+
+            <button
               onClick={() => { setActiveTab('profile'); setSelectedOrder(null); }}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === 'profile'
@@ -447,6 +534,32 @@ export function ProfileModal({
         {/* Modal Body Container */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-7 bg-[#FAF6F0]/70">
           
+          {activeTab === 'subscriptions' && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-emerald-100 bg-white p-4 text-left">
+                <h3 className="text-sm font-black text-[#123B2B]">Build your weekly salad subscription</h3>
+                <p className="mt-1 text-xs text-gray-600">
+                  Select one of the two salads uploaded by Greesal for every day, Monday to Saturday. Sunday is a holiday.
+                </p>
+              </div>
+              {subscriptionLoadError ? (
+                <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
+                  {subscriptionLoadError}
+                </p>
+              ) : (
+                <HomeSubscriptionSection
+                  dailyMenus={subscriptionSettings.subscriptionDailyMenus || []}
+                  salads={subscriptionSalads}
+                  isLoadingSalads={isLoadingSubscriptionData}
+                  onContinue={(startDate, selections) => {
+                    setSubscriptionPrefill({ startDate, selections });
+                    setIsSubscriptionCheckoutOpen(true);
+                  }}
+                />
+              )}
+            </div>
+          )}
+
           {/* TAB 1: ORDER HISTORY & TRACKING */}
           {activeTab === 'orders' && (
             <div className="space-y-5">
@@ -497,24 +610,54 @@ export function ProfileModal({
                           <span className="block text-[10px] font-bold text-emerald-700">Plan</span>
                           <span className="font-bold text-[#123B2B]">{selectedOrder.subscriptionPlan || 'Subscription plan'}</span>
                         </div>
-                        <div>
-                          <span className="block text-[10px] font-bold text-emerald-700">Salad</span>
-                          <span className="font-bold text-[#123B2B]">
-                            {selectedOrder.subscriptionSalad || selectedOrder.items[0]?.name || 'Not specified'}
-                          </span>
-                        </div>
                         <div className="col-span-2">
-                          <span className="block text-[10px] font-bold text-emerald-700">First delivery date</span>
-                          <span className="font-bold text-[#123B2B]">
-                            {selectedOrder.subscriptionDate
-                              ? new Date(`${selectedOrder.subscriptionDate}T00:00:00`).toLocaleDateString('en-IN', {
-                                  weekday: 'long',
-                                  day: 'numeric',
-                                  month: 'long',
-                                  year: 'numeric',
-                                })
-                              : 'To be confirmed'}
-                          </span>
+                          <span className="block text-[10px] font-bold text-emerald-700">Daily salad selections</span>
+                          {selectedOrder.subscriptionSelections?.length ? (
+                            <div className="mt-2 space-y-3">
+                              {groupSubscriptionSelections(selectedOrder.subscriptionSelections).map((week, index) => {
+                                const lastSelection = week.selections[week.selections.length - 1];
+                                const endsSaturday = new Date(`${lastSelection.date}T00:00:00`).getDay() === 6;
+                                return (
+                                  <section key={week.weekStart} className="overflow-hidden rounded-xl border border-emerald-100 bg-white">
+                                    <h5 className="bg-emerald-100/70 px-3 py-2 text-[10px] font-black uppercase tracking-wide text-emerald-900">
+                                      Week {index + 1}
+                                    </h5>
+                                    <ul className="space-y-2 p-3">
+                                      {week.selections.map((selection) => (
+                                        <li key={`${selection.date}-${selection.saladId}`} className="flex items-start justify-between gap-3 text-xs">
+                                          <span className="font-semibold text-gray-600">
+                                            {new Date(`${selection.date}T00:00:00`).toLocaleDateString('en-IN', {
+                                              weekday: 'long',
+                                              day: 'numeric',
+                                              month: 'short',
+                                            })}
+                                          </span>
+                                          <span className="text-right font-bold text-[#123B2B]">{selection.saladName}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                    {endsSaturday && (
+                                      <p className="border-t border-amber-100 bg-amber-50 px-3 py-2 text-[10px] font-bold text-amber-900">
+                                        Sunday · Holiday — no delivery
+                                      </p>
+                                    )}
+                                  </section>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <span className="font-bold text-[#123B2B]">
+                              {selectedOrder.subscriptionSalad || selectedOrder.items[0]?.name || 'Not specified'}
+                              {selectedOrder.subscriptionDate
+                                ? ` · ${new Date(`${selectedOrder.subscriptionDate}T00:00:00`).toLocaleDateString('en-IN', {
+                                    weekday: 'long',
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
+                                  })}`
+                                : ''}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -724,7 +867,9 @@ export function ProfileModal({
                                 </p>
                                 {order.orderType === 'subscription' && (
                                   <p className="mt-1 text-[10px] font-semibold text-emerald-800">
-                                    {order.subscriptionPlan} · {order.subscriptionSalad}
+                                    {order.subscriptionPlan} · {order.subscriptionSelections?.length
+                                      ? `${order.subscriptionSelections.length} daily salad choices`
+                                      : order.subscriptionSalad}
                                   </p>
                                 )}
                               </div>
@@ -1166,6 +1311,23 @@ export function ProfileModal({
         isOpen={isInvoiceOpen}
         onClose={() => setIsInvoiceOpen(false)}
         order={invoiceOrder}
+      />
+      <SubscriptionModal
+        isOpen={isSubscriptionCheckoutOpen}
+        onClose={() => {
+          setIsSubscriptionCheckoutOpen(false);
+          setSubscriptionPrefill(null);
+        }}
+        defaultPlan="weekly"
+        plans={subscriptionSettings.subscriptionPlans}
+        modalBadge={subscriptionSettings.subscriptionModalBadge}
+        modalTitle={subscriptionSettings.subscriptionModalTitle}
+        modalSubtitle={subscriptionSettings.subscriptionModalSubtitle}
+        dailyMenus={subscriptionSettings.subscriptionDailyMenus}
+        salads={subscriptionSalads}
+        isLoadingSalads={isLoadingSubscriptionData}
+        initialStartDate={subscriptionPrefill?.startDate}
+        initialSaladSelections={subscriptionPrefill?.selections}
       />
     </div>
   );

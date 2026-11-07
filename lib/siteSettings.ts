@@ -28,6 +28,12 @@ export interface SubscriptionDailyMenu {
   saladIds: string[];
 }
 
+export interface SubscriptionSaladSelection {
+  date: string;
+  saladId: string;
+  saladName: string;
+}
+
 export interface SiteSettings {
   // Top Featured Slider (placed between Navbar and Hero Section)
   showTopSlider?: boolean;

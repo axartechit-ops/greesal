@@ -11,7 +11,7 @@ import { AdminSiteTextsTab } from '@/components/admin/AdminSiteTextsTab';
 import { AdminReviewsTab } from '@/components/admin/AdminReviewsTab';
 import { AdminSubscriptionsTab } from '@/components/admin/AdminSubscriptionsTab';
 import { AdminSliderTab } from '@/components/admin/AdminSliderTab';
-import { SiteCategory, SiteSettings, DEFAULT_CATEGORIES, DEFAULT_SITE_SETTINGS } from '@/lib/siteSettings';
+import { SiteCategory, SiteSettings, SubscriptionSaladSelection, DEFAULT_CATEGORIES, DEFAULT_SITE_SETTINGS } from '@/lib/siteSettings';
 import { SaladPortion, getSaladPortions, getSaladPriceForPortion, DEFAULT_SALADS, matchesSaladCategory, normalizeCategoryString, isGenericAllCategory, inferSaladCategory } from '@/lib/salads';
 import {
   Save,
@@ -136,6 +136,7 @@ interface AdminOrder {
   subscriptionPlan?: string;
   subscriptionDate?: string;
   subscriptionSalad?: string;
+  subscriptionSelections?: SubscriptionSaladSelection[];
   dietPreference?: string;
   paymentMethod: string;
 }
@@ -585,9 +586,9 @@ export default function AdminPage() {
       }
     };
 
-    // Poll orders when on Orders tab & fetch immediately upon tab switch
+    // Poll orders when viewing either order surface.
     useEffect(() => {
-      if (activeTab === 'orders') {
+      if (activeTab === 'orders' || activeTab === 'subscriptions') {
         fetchOrdersOnly(false);
         const interval = setInterval(() => {
           fetchOrdersOnly(true);
@@ -1001,12 +1002,13 @@ export default function AdminPage() {
           body: JSON.stringify(updatedSettings)
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to save site texts');
+        if (!res.ok) throw new Error(data.detail || data.error || 'Failed to save site texts');
         setFullSiteSettings(prev => ({ ...prev, ...updatedSettings }));
         setSuccessMessage('Website content, texts & sections saved! Live website updated.');
         setTimeout(() => setSuccessMessage(null), 4000);
       } catch (err: any) {
         setErrorMessage(err.message || 'Failed to save site texts');
+        throw err;
       } finally {
         setIsActionLoading(false);
       }
@@ -1385,7 +1387,9 @@ export default function AdminPage() {
                 }`}
             >
               <Calendar className="w-4 h-4 text-emerald-600" />
-              <span>Subscriptions ({fullSiteSettings.subscriptionPlans?.length ?? 2})</span>
+              <span>
+                Subscriptions ({orders.filter((order) => order.orderType === 'subscription' || Boolean(order.subscriptionId)).length})
+              </span>
             </button>
             <button
               onClick={() => setActiveTab('slider')}
@@ -2644,22 +2648,34 @@ export default function AdminPage() {
                                         <span className="block text-[10px] font-bold text-emerald-700">Plan</span>
                                         <span className="font-bold text-[#123B2B]">{sel.subscriptionPlan || 'Subscription plan'}</span>
                                       </div>
-                                      <div>
-                                        <span className="block text-[10px] font-bold text-emerald-700">Selected salad</span>
-                                        <span className="font-bold text-[#123B2B]">{sel.subscriptionSalad || sel.items?.[0]?.name || 'Not specified'}</span>
-                                      </div>
-                                      <div>
-                                        <span className="block text-[10px] font-bold text-emerald-700">First delivery date</span>
-                                        <span className="font-bold text-[#123B2B]">
-                                          {sel.subscriptionDate
-                                            ? new Date(`${sel.subscriptionDate}T00:00:00`).toLocaleDateString('en-IN', {
-                                                weekday: 'short',
-                                                day: 'numeric',
-                                                month: 'short',
-                                                year: 'numeric',
-                                              })
-                                            : 'To be confirmed'}
-                                        </span>
+                                      <div className="col-span-2">
+                                        <span className="block text-[10px] font-bold text-emerald-700">Daily salad selections</span>
+                                        {sel.subscriptionSelections?.length ? (
+                                          <ul className="mt-1 space-y-1">
+                                            {sel.subscriptionSelections.map((selection) => (
+                                              <li key={`${selection.date}-${selection.saladId}`} className="font-bold text-[#123B2B]">
+                                                {new Date(`${selection.date}T00:00:00`).toLocaleDateString('en-IN', {
+                                                  weekday: 'short',
+                                                  day: 'numeric',
+                                                  month: 'short',
+                                                  year: 'numeric',
+                                                })}: {selection.saladName}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        ) : (
+                                          <span className="font-bold text-[#123B2B]">
+                                            {sel.subscriptionSalad || sel.items?.[0]?.name || 'Not specified'}
+                                            {sel.subscriptionDate
+                                              ? ` · ${new Date(`${sel.subscriptionDate}T00:00:00`).toLocaleDateString('en-IN', {
+                                                  weekday: 'short',
+                                                  day: 'numeric',
+                                                  month: 'short',
+                                                  year: 'numeric',
+                                                })}`
+                                              : ''}
+                                          </span>
+                                        )}
                                       </div>
                                       {sel.dietPreference && (
                                         <div className="col-span-2">
@@ -4638,6 +4654,7 @@ export default function AdminPage() {
             <AdminSubscriptionsTab
               settings={fullSiteSettings}
               salads={salads}
+              subscriptionOrders={orders}
               onSaveSettings={handleSaveSiteTexts}
               isSaving={isActionLoading}
             />

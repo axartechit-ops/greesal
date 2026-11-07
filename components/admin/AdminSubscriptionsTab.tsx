@@ -20,21 +20,80 @@ import {
   ShieldCheck,
   X
 } from 'lucide-react';
-import { SubscriptionPlan, DEFAULT_SUBSCRIPTION_PLANS, SiteSettings } from '@/lib/siteSettings';
+import {
+  SubscriptionPlan,
+  SubscriptionSaladSelection,
+  DEFAULT_SUBSCRIPTION_PLANS,
+  SiteSettings,
+} from '@/lib/siteSettings';
 import { Salad } from '@/lib/salads';
 
 interface AdminSubscriptionsTabProps {
   settings: SiteSettings;
   salads: Salad[];
+  subscriptionOrders?: AdminSubscriptionOrder[];
   onSaveSettings: (updated: Partial<SiteSettings>) => Promise<void>;
   isSaving?: boolean;
 }
 
+interface AdminSubscriptionOrder {
+  id: string;
+  orderNumber?: string;
+  orderType?: string;
+  subscriptionId?: string;
+  subscriptionPlan?: string;
+  subscriptionDate?: string;
+  subscriptionSalad?: string;
+  subscriptionSelections?: SubscriptionSaladSelection[];
+  customerName?: string;
+  customerEmail?: string;
+  customerMobile?: string;
+  date?: string;
+  timestamp?: number;
+  status?: string;
+  total?: number;
+  deliveryAddress?: string;
+  deliverySlot?: string;
+  dietPreference?: string;
+  notes?: string;
+  paymentMethod?: string;
+}
+
 const getSaladId = (salad: Salad) => salad.id || salad._id || salad.slug || salad.name;
+
+const toDateString = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getMondayDateString = (date: Date) => {
+  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return toDateString(monday);
+};
+
+const getNextDeliveryWeekStart = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + ((8 - date.getDay()) % 7));
+  return toDateString(date);
+};
+
+const getDeliveryWeekDates = (weekStart: string) => {
+  const [year, month, day] = weekStart.split('-').map(Number);
+  const monday = new Date(year, month - 1, day);
+  return Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + index);
+    return toDateString(date);
+  });
+};
 
 export const AdminSubscriptionsTab: React.FC<AdminSubscriptionsTabProps> = ({
   settings,
   salads,
+  subscriptionOrders = [],
   onSaveSettings,
   isSaving = false,
 }) => {
@@ -56,24 +115,31 @@ export const AdminSubscriptionsTab: React.FC<AdminSubscriptionsTabProps> = ({
       'Daily rotation of 21+ varieties • 100% handmade dressings • Free delivery in Surat'
   );
   const [dailyMenus, setDailyMenus] = useState(settings.subscriptionDailyMenus || []);
-  const [dailyMenuDate, setDailyMenuDate] = useState(() => {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  });
-  const [firstDailySaladId, setFirstDailySaladId] = useState('');
-  const [secondDailySaladId, setSecondDailySaladId] = useState('');
+  const [weekStartDate, setWeekStartDate] = useState(getNextDeliveryWeekStart);
+  const [weeklySaladPairs, setWeeklySaladPairs] = useState(() =>
+    Array.from({ length: 6 }, () => ({ first: '', second: '' }))
+  );
+  const deliveryWeekDates = getDeliveryWeekDates(weekStartDate);
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [dailyMenuError, setDailyMenuError] = useState<string | null>(null);
+  const [isDailyMenuSaving, setIsDailyMenuSaving] = useState(false);
+  const savedSubscriptionOrders = subscriptionOrders
+    .filter((order) => order.orderType === 'subscription' || Boolean(order.subscriptionId))
+    .sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
 
   React.useEffect(() => {
     setDailyMenus(settings.subscriptionDailyMenus || []);
   }, [settings.subscriptionDailyMenus]);
 
   React.useEffect(() => {
-    const currentMenu = dailyMenus.find((menu) => menu.date === dailyMenuDate);
-    setFirstDailySaladId(currentMenu?.saladIds[0] || '');
-    setSecondDailySaladId(currentMenu?.saladIds[1] || '');
-  }, [dailyMenuDate, dailyMenus]);
+    setWeeklySaladPairs(
+      deliveryWeekDates.map((date) => {
+        const menu = dailyMenus.find((item) => item.date === date);
+        return { first: menu?.saladIds[0] || '', second: menu?.saladIds[1] || '' };
+      })
+    );
+  }, [weekStartDate, dailyMenus]);
 
   // Edit / Create Plan Modal State
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
@@ -219,27 +285,54 @@ export const AdminSubscriptionsTab: React.FC<AdminSubscriptionsTabProps> = ({
     }
   };
 
-  const handleSaveDailyMenu = () => {
-    if (!firstDailySaladId || !secondDailySaladId) {
-      alert('Select two salads for this date.');
-      return;
+  const persistDailyMenus = async (updatedMenus: typeof dailyMenus) => {
+    setDailyMenuError(null);
+    setIsDailyMenuSaving(true);
+    try {
+      await onSaveSettings({ subscriptionDailyMenus: updatedMenus });
+      setDailyMenus(updatedMenus);
+      setSuccessMessage('Subscription salad schedule published successfully.');
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to publish the subscription salad schedule.';
+      setDailyMenuError(message);
+      throw err;
+    } finally {
+      setIsDailyMenuSaving(false);
     }
-    if (firstDailySaladId === secondDailySaladId) {
-      alert('Choose two different salads.');
-      return;
-    }
-
-    setDailyMenus((current) => [
-      ...current.filter((menu) => menu.date !== dailyMenuDate),
-      { date: dailyMenuDate, saladIds: [firstDailySaladId, secondDailySaladId] },
-    ].sort((a, b) => a.date.localeCompare(b.date)));
   };
 
-  const handleDeleteDailyMenu = (date: string) => {
-    setDailyMenus((current) => current.filter((menu) => menu.date !== date));
-    if (date === dailyMenuDate) {
-      setFirstDailySaladId('');
-      setSecondDailySaladId('');
+  const handleSaveWeeklyMenus = async () => {
+    if (weeklySaladPairs.some((pair) => !pair.first || !pair.second)) {
+      alert('Select two salads for every delivery day from Monday to Saturday.');
+      return;
+    }
+    if (weeklySaladPairs.some((pair) => pair.first === pair.second)) {
+      alert('Choose two different salads for every delivery day.');
+      return;
+    }
+
+    const updatedMenus = [
+      ...dailyMenus.filter((menu) => !deliveryWeekDates.includes(menu.date)),
+      ...deliveryWeekDates.map((date, index) => ({
+        date,
+        saladIds: [weeklySaladPairs[index].first, weeklySaladPairs[index].second],
+      })),
+    ].sort((a, b) => a.date.localeCompare(b.date));
+    try {
+      await persistDailyMenus(updatedMenus);
+    } catch {
+      return;
+    }
+  };
+
+  const handleDeleteDailyMenu = async (date: string) => {
+    if (!confirm(`Remove the published salad choices for ${date}?`)) return;
+    const updatedMenus = dailyMenus.filter((menu) => menu.date !== date);
+    try {
+      await persistDailyMenus(updatedMenus);
+    } catch {
+      return;
     }
   };
 
@@ -351,13 +444,13 @@ export const AdminSubscriptionsTab: React.FC<AdminSubscriptionsTabProps> = ({
             <div>
               <h3 className="text-sm font-black text-[#123B2B] flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-emerald-600" />
-                Daily Subscription Salad Choices
+                Weekly Subscription Salad Schedule
               </h3>
               <p className="text-xs text-gray-500 mt-1">
-                Set two different salads for each date. Customers choose one when placing a subscription request.
+                Choose two different salads for each day, Monday to Saturday. Customers choose one salad per day in weekly and monthly plans.
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                Add dates here, then click “Save All Changes” above to publish the schedule.
+                Publishing adds or updates all six delivery dates for the selected week.
               </p>
             </div>
             <span className="text-xs font-bold text-emerald-800 bg-emerald-50 rounded-full px-3 py-1">
@@ -365,56 +458,91 @@ export const AdminSubscriptionsTab: React.FC<AdminSubscriptionsTabProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
-            <label className="space-y-1 text-xs font-bold text-gray-700">
-              <span>Delivery date</span>
-              <input
-                type="date"
-                value={dailyMenuDate}
-                onChange={(event) => setDailyMenuDate(event.target.value)}
-                className="w-full rounded-xl border border-gray-300 px-3 py-2.5 font-medium"
-              />
-            </label>
-            {[firstDailySaladId, secondDailySaladId].map((selectedId, index) => (
-              <label key={index} className="space-y-1 text-xs font-bold text-gray-700">
-                <span>Salad option {index + 1}</span>
-                <select
-                  value={selectedId}
-                  onChange={(event) => {
-                    if (index === 0) setFirstDailySaladId(event.target.value);
-                    else setSecondDailySaladId(event.target.value);
-                  }}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 font-medium"
-                >
-                  <option value="">Select a salad</option>
-                  {salads.map((salad) => {
-                    const id = getSaladId(salad);
+          <label className="block max-w-sm space-y-1 text-xs font-bold text-gray-700">
+            <span>Choose a date in the week (schedule starts Monday)</span>
+            <input
+              type="date"
+              value={weekStartDate}
+              onChange={(event) => {
+                if (event.target.value) {
+                  setWeekStartDate(getMondayDateString(new Date(`${event.target.value}T00:00:00`)));
+                }
+              }}
+              className="w-full rounded-xl border border-gray-300 px-3 py-2.5 font-medium"
+            />
+          </label>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {deliveryWeekDates.map((date, dayIndex) => (
+              <div key={date} className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <p className="mb-2 text-xs font-black text-[#123B2B]">
+                  {new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[0, 1].map((optionIndex) => {
+                    const selectedId = optionIndex === 0
+                      ? weeklySaladPairs[dayIndex].first
+                      : weeklySaladPairs[dayIndex].second;
+                    const otherSelectedId = optionIndex === 0
+                      ? weeklySaladPairs[dayIndex].second
+                      : weeklySaladPairs[dayIndex].first;
                     return (
-                      <option
-                        key={id}
-                        value={id}
-                        disabled={id === (index === 0 ? secondDailySaladId : firstDailySaladId)}
-                      >
-                        {salad.name}
-                      </option>
+                      <label key={optionIndex} className="space-y-1 text-xs font-bold text-gray-700">
+                        <span>Salad option {optionIndex + 1}</span>
+                        <select
+                          value={selectedId}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setWeeklySaladPairs((current) => current.map((pair, index) => {
+                              if (index !== dayIndex) return pair;
+                              return optionIndex === 0
+                                ? { ...pair, first: value }
+                                : { ...pair, second: value };
+                            }));
+                          }}
+                          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 font-medium"
+                        >
+                          <option value="">Select a salad</option>
+                          {salads.map((salad) => {
+                            const id = getSaladId(salad);
+                            return (
+                              <option key={id} value={id} disabled={id === otherSelectedId}>
+                                {salad.name}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </label>
                     );
                   })}
-                </select>
-              </label>
+                </div>
+              </div>
             ))}
-            <button
-              type="button"
-              onClick={handleSaveDailyMenu}
-              disabled={!dailyMenuDate || salads.length < 2}
-              className="px-4 py-2.5 rounded-xl bg-[#123B2B] text-white text-xs font-bold disabled:opacity-50"
-            >
-              Add / Update Date
-            </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => void handleSaveWeeklyMenus()}
+            disabled={salads.length < 2 || isDailyMenuSaving}
+            className="px-4 py-2.5 rounded-xl bg-[#123B2B] text-white text-xs font-bold disabled:opacity-50"
+          >
+            {isDailyMenuSaving ? 'Publishing...' : 'Publish Week'}
+          </button>
+
+          {dailyMenuError && (
+            <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
+              {dailyMenuError}
+            </p>
+          )}
 
           {salads.length < 2 && (
             <p className="text-xs text-amber-700 font-semibold">
-              Add at least two salads to the menu before scheduling daily choices.
+              Add at least two salads to the menu before scheduling weekly choices.
             </p>
           )}
 
@@ -437,9 +565,10 @@ export const AdminSubscriptionsTab: React.FC<AdminSubscriptionsTabProps> = ({
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleDeleteDailyMenu(menu.date)}
+                    onClick={() => void handleDeleteDailyMenu(menu.date)}
+                    disabled={isDailyMenuSaving}
                     aria-label={`Remove menu for ${menu.date}`}
-                    className="text-red-600 hover:bg-red-50 rounded-lg p-1.5"
+                    className="text-red-600 hover:bg-red-50 rounded-lg p-1.5 disabled:opacity-50"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -447,7 +576,128 @@ export const AdminSubscriptionsTab: React.FC<AdminSubscriptionsTabProps> = ({
               ))}
             </div>
           ) : (
-            <p className="text-xs text-gray-500">No daily salad choices scheduled yet.</p>
+            <p className="text-xs text-gray-500">No subscription salad choices scheduled yet.</p>
+          )}
+        </section>
+
+        <section className="space-y-4 rounded-3xl border border-greesal-beige/60 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-2 border-b border-gray-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="flex items-center gap-2 text-sm font-black text-[#123B2B]">
+                <Layers className="h-4 w-4 text-emerald-600" />
+                Subscription Orders
+              </h3>
+              <p className="mt-1 text-xs text-gray-500">
+                Customer details, status, and every selected salad date are shown here.
+              </p>
+            </div>
+            <span className="w-fit rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
+              {savedSubscriptionOrders.length} order{savedSubscriptionOrders.length === 1 ? '' : 's'}
+            </span>
+          </div>
+
+          {savedSubscriptionOrders.length > 0 ? (
+            <div className="space-y-3">
+              {savedSubscriptionOrders.map((order) => {
+                const selections = order.subscriptionSelections?.length
+                  ? order.subscriptionSelections
+                  : order.subscriptionDate
+                    ? [{
+                        date: order.subscriptionDate,
+                        saladId: '',
+                        saladName: order.subscriptionSalad || 'Salad not recorded',
+                      }]
+                    : [];
+                return (
+                  <article key={order.id || order.orderNumber} className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4">
+                    <div className="flex flex-col gap-3 border-b border-gray-200 pb-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="font-mono text-xs font-black text-[#123B2B]">
+                          {order.subscriptionId || order.orderNumber || order.id}
+                        </p>
+                        <p className="mt-1 text-sm font-extrabold text-gray-900">
+                          {order.customerName || 'Customer'}
+                          {order.customerMobile ? ` · ${order.customerMobile}` : ''}
+                        </p>
+                        {order.customerEmail && <p className="mt-0.5 text-xs text-gray-600">{order.customerEmail}</p>}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-800">
+                          {order.status || 'Placed'}
+                        </span>
+                        <span className="text-sm font-black text-[#123B2B]">
+                          ₹{Number(order.total || 0).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
+                      <div>
+                        <span className="block text-[10px] font-bold uppercase text-gray-500">Plan</span>
+                        <span className="font-bold text-gray-900">{order.subscriptionPlan || 'Subscription plan'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-bold uppercase text-gray-500">Placed</span>
+                        <span className="font-semibold text-gray-800">{order.date || 'Date not recorded'}</span>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <span className="block text-[10px] font-bold uppercase text-gray-500">Daily salad selections</span>
+                        {selections.length > 0 ? (
+                          <ul className="mt-1 space-y-1">
+                            {selections.map((selection) => (
+                              <li key={`${order.id}-${selection.date}`} className="font-semibold text-gray-800">
+                                {new Date(`${selection.date}T00:00:00`).toLocaleDateString('en-IN', {
+                                  weekday: 'long',
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })}: {selection.saladName}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <span className="mt-1 block font-semibold text-amber-700">Daily selections not recorded</span>
+                        )}
+                      </div>
+                      {order.deliverySlot && (
+                        <div>
+                          <span className="block text-[10px] font-bold uppercase text-gray-500">Delivery slot</span>
+                          <span className="font-semibold text-gray-800">{order.deliverySlot}</span>
+                        </div>
+                      )}
+                      {order.paymentMethod && (
+                        <div>
+                          <span className="block text-[10px] font-bold uppercase text-gray-500">Payment</span>
+                          <span className="font-semibold text-gray-800">{order.paymentMethod}</span>
+                        </div>
+                      )}
+                      {order.deliveryAddress && (
+                        <div className="sm:col-span-2">
+                          <span className="block text-[10px] font-bold uppercase text-gray-500">Delivery address</span>
+                          <span className="font-semibold text-gray-800">{order.deliveryAddress}</span>
+                        </div>
+                      )}
+                      {order.dietPreference && (
+                        <div className="sm:col-span-2">
+                          <span className="block text-[10px] font-bold uppercase text-gray-500">Diet preference</span>
+                          <span className="font-semibold text-gray-800">{order.dietPreference}</span>
+                        </div>
+                      )}
+                      {order.notes && (
+                        <div className="sm:col-span-2">
+                          <span className="block text-[10px] font-bold uppercase text-gray-500">Notes</span>
+                          <span className="font-medium text-gray-700">{order.notes}</span>
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center text-xs font-medium text-gray-500">
+              No subscription orders have been placed yet.
+            </p>
           )}
         </section>
 

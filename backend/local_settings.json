@@ -166,7 +166,92 @@
       "isPopular": true
     }
   ],
-  "subscriptionDailyMenus": [],
+  "subscriptionDailyMenus": [
+    {
+      "date": "2026-11-02",
+      "saladIds": [
+        "6ae38527ac6a3df30a3713be",
+        "6ae6ff5b4e37c42387f7383b"
+      ]
+    },
+    {
+      "date": "2026-11-03",
+      "saladIds": [
+        "6ae7026c4e37c42387f7383c",
+        "6ae70a71f60b77b443dcd06d"
+      ]
+    },
+    {
+      "date": "2026-11-04",
+      "saladIds": [
+        "6ae7026c4e37c42387f7383c",
+        "6ae38527ac6a3df30a3713be"
+      ]
+    },
+    {
+      "date": "2026-11-05",
+      "saladIds": [
+        "6ae6ff5b4e37c42387f7383b",
+        "6ae7026c4e37c42387f7383c"
+      ]
+    },
+    {
+      "date": "2026-11-06",
+      "saladIds": [
+        "6ae6ff5b4e37c42387f7383b",
+        "6ae38527ac6a3df30a3713be"
+      ]
+    },
+    {
+      "date": "2026-11-07",
+      "saladIds": [
+        "6ae7026c4e37c42387f7383c",
+        "6ae70a71f60b77b443dcd06d"
+      ]
+    },
+    {
+      "date": "2026-11-09",
+      "saladIds": [
+        "6ae38527ac6a3df30a3713be",
+        "6ae6ff5b4e37c42387f7383b"
+      ]
+    },
+    {
+      "date": "2026-11-10",
+      "saladIds": [
+        "6ae6ff5b4e37c42387f7383b",
+        "6ae7026c4e37c42387f7383c"
+      ]
+    },
+    {
+      "date": "2026-11-11",
+      "saladIds": [
+        "6ae70a71f60b77b443dcd06d",
+        "6ae38527ac6a3df30a3713be"
+      ]
+    },
+    {
+      "date": "2026-11-12",
+      "saladIds": [
+        "6ae6ff5b4e37c42387f7383b",
+        "6ae70a71f60b77b443dcd06d"
+      ]
+    },
+    {
+      "date": "2026-11-13",
+      "saladIds": [
+        "6ae6ff5b4e37c42387f7383b",
+        "6ae38527ac6a3df30a3713be"
+      ]
+    },
+    {
+      "date": "2026-11-14",
+      "saladIds": [
+        "6ae7026c4e37c42387f7383c",
+        "6ae70a71f60b77b443dcd06d"
+      ]
+    }
+  ],
   "title": "Farm-Fresh Organic Salad Bowls",
   "badgeText": "100% Certified Organic • Hydroponic Greens",
   "description": "Handcrafted clean nutrition made with 100% pesticide-free greens, organic protein, and freeze-dried superfoods. Delivered fresh across Surat in 30 mins.",

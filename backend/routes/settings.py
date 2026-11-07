@@ -1,4 +1,6 @@
 import logging
+import json
+from pathlib import Path
 from typing import Dict, Any
 from fastapi import APIRouter, HTTPException, Request
 from backend.database import get_db
@@ -222,6 +224,21 @@ from typing import Optional
 _settings_cache: Optional[Dict[str, Any]] = None
 _settings_cache_time: float = 0.0
 SETTINGS_CACHE_TTL: float = 60.0
+LOCAL_SETTINGS_FILE = Path(__file__).resolve().parents[1] / "local_settings.json"
+
+def load_local_settings() -> Dict[str, Any]:
+    if not LOCAL_SETTINGS_FILE.exists():
+        return {}
+    try:
+        with LOCAL_SETTINGS_FILE.open("r", encoding="utf-8") as settings_file:
+            data = json.load(settings_file)
+        if isinstance(data, dict):
+            return data
+        logger.error("Local settings file must contain a JSON object")
+        raise HTTPException(status_code=500, detail="Local site settings are invalid")
+    except (OSError, json.JSONDecodeError) as error:
+        logger.error("Failed to load local settings file: %s", error, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to load local site settings") from error
 
 def invalidate_settings_cache():
     global _settings_cache
@@ -239,8 +256,9 @@ def get_settings():
 
     db = get_db()
     if db is None:
-        logger.warning("MongoDB not available — returning default settings")
-        sanitized = sanitize_settings(DEFAULT_SITE_SETTINGS)
+        logger.warning("MongoDB not available — loading settings from local file")
+        settings = {**DEFAULT_SITE_SETTINGS, **load_local_settings()}
+        sanitized = sanitize_settings(settings)
         _settings_cache = sanitized
         _settings_cache_time = now
         return sanitized
@@ -271,8 +289,9 @@ def get_settings():
     except Exception as e:
         logger.error(f"Error reading settings from MongoDB: {e}", exc_info=True)
 
-    logger.warning("Returning hardcoded default settings (MongoDB read failed)")
-    sanitized = sanitize_settings(DEFAULT_SITE_SETTINGS)
+    logger.warning("MongoDB read failed — falling back to local settings file")
+    settings = {**DEFAULT_SITE_SETTINGS, **load_local_settings()}
+    sanitized = sanitize_settings(settings)
     _settings_cache = sanitized
     _settings_cache_time = now
     return sanitized
@@ -294,8 +313,11 @@ async def update_settings(request: Request):
                 if "_id" in stored:
                     del stored["_id"]
                 existing_settings.update(stored)
-        except Exception:
-            pass
+        except Exception as error:
+            logger.error("Failed to read existing settings before update: %s", error, exc_info=True)
+            raise HTTPException(status_code=500, detail="Failed to read existing site settings")
+    else:
+        existing_settings.update(load_local_settings())
 
     # Deep merge incoming updates
     updated_data = {**existing_settings, **body}
@@ -362,7 +384,13 @@ async def update_settings(request: Request):
             logger.error(f"❌ Failed to save settings to MongoDB: {e}")
             raise HTTPException(status_code=500, detail=str(e))
     else:
-        logger.warning("MongoDB not available — settings NOT persisted to database!")
+        try:
+            with LOCAL_SETTINGS_FILE.open("w", encoding="utf-8") as settings_file:
+                json.dump(updated_data, settings_file, ensure_ascii=False, indent=2)
+            logger.info("Settings saved to local file: %s", LOCAL_SETTINGS_FILE)
+        except OSError as error:
+            logger.error("Failed to save local settings file: %s", error, exc_info=True)
+            raise HTTPException(status_code=500, detail="Failed to persist site settings")
 
     invalidate_settings_cache()
     return {

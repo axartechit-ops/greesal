@@ -14,6 +14,7 @@ import {
   ReceiptText
 } from 'lucide-react';
 import { InvoiceModal, InvoiceOrder } from './InvoiceModal';
+import { SubscriptionSaladSelection } from '@/lib/siteSettings';
 
 export interface ConfirmedOrderData {
   orderNumber: string;
@@ -22,6 +23,7 @@ export interface ConfirmedOrderData {
   subscriptionPlan?: string;
   subscriptionDate?: string;
   subscriptionSalad?: string;
+  subscriptionSelections?: SubscriptionSaladSelection[];
   customerName: string;
   customerMobile: string;
   items: Array<{
@@ -52,6 +54,19 @@ interface OrderConfirmationModalProps {
   onClose: () => void;
   order: ConfirmedOrderData | null;
 }
+
+const groupSubscriptionSelections = (selections: SubscriptionSaladSelection[]) =>
+  [...selections]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .reduce<Array<{ weekStart: string; selections: SubscriptionSaladSelection[] }>>((weeks, selection) => {
+      const date = new Date(`${selection.date}T00:00:00`);
+      date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+      const weekStart = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const currentWeek = weeks[weeks.length - 1];
+      if (currentWeek?.weekStart === weekStart) currentWeek.selections.push(selection);
+      else weeks.push({ weekStart, selections: [selection] });
+      return weeks;
+    }, []);
 
 export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   isOpen,
@@ -171,22 +186,54 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                       <span className="block text-[10px] font-bold text-emerald-700">Plan</span>
                       <span className="font-bold text-[#123B2B]">{order.subscriptionPlan}</span>
                     </div>
-                    <div>
-                      <span className="block text-[10px] font-bold text-emerald-700">Salad</span>
-                      <span className="font-bold text-[#123B2B]">{order.subscriptionSalad}</span>
-                    </div>
                     <div className="col-span-2">
-                      <span className="block text-[10px] font-bold text-emerald-700">First delivery date</span>
-                      <span className="font-bold text-[#123B2B]">
-                        {order.subscriptionDate
-                          ? new Date(`${order.subscriptionDate}T00:00:00`).toLocaleDateString('en-IN', {
-                              weekday: 'long',
-                              day: 'numeric',
-                              month: 'long',
-                              year: 'numeric',
-                            })
-                          : 'To be confirmed'}
-                      </span>
+                      <span className="block text-[10px] font-bold text-emerald-700">Daily salad selections</span>
+                      {order.subscriptionSelections?.length ? (
+                        <div className="mt-2 space-y-2">
+                          {groupSubscriptionSelections(order.subscriptionSelections).map((week, index) => {
+                            const lastSelection = week.selections[week.selections.length - 1];
+                            const endsSaturday = new Date(`${lastSelection.date}T00:00:00`).getDay() === 6;
+                            return (
+                              <section key={week.weekStart} className="overflow-hidden rounded-xl border border-emerald-100 bg-white">
+                                <h5 className="bg-emerald-100/70 px-3 py-2 text-[10px] font-black uppercase tracking-wide text-emerald-900">
+                                  Week {index + 1}
+                                </h5>
+                                <ul className="space-y-1.5 p-3">
+                                  {week.selections.map((selection) => (
+                                    <li key={`${selection.date}-${selection.saladId}`} className="flex items-start justify-between gap-2">
+                                      <span className="font-semibold text-gray-600">
+                                        {new Date(`${selection.date}T00:00:00`).toLocaleDateString('en-IN', {
+                                          weekday: 'long',
+                                          day: 'numeric',
+                                          month: 'short',
+                                        })}
+                                      </span>
+                                      <span className="text-right font-bold text-[#123B2B]">{selection.saladName}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                                {endsSaturday && (
+                                  <p className="border-t border-amber-100 bg-amber-50 px-3 py-2 text-[10px] font-bold text-amber-900">
+                                    Sunday · Holiday — no delivery
+                                  </p>
+                                )}
+                              </section>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="font-bold text-[#123B2B]">
+                          {order.subscriptionSalad || 'To be confirmed'}
+                          {order.subscriptionDate
+                            ? ` · ${new Date(`${order.subscriptionDate}T00:00:00`).toLocaleDateString('en-IN', {
+                                weekday: 'long',
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                              })}`
+                            : ''}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
