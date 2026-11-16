@@ -70,7 +70,8 @@ import {
   Receipt,
   LayoutGrid,
   Table,
-  Printer
+  Printer,
+  Info
 } from 'lucide-react';
 
 interface Salad {
@@ -94,6 +95,7 @@ interface Salad {
   perfectFor?: string[];
   addOns?: Array<{ name: string; price: number }>;
   portions?: SaladPortion[];
+  portionNote?: string;
   nutritionItems?: Array<{ name: string; value: string }>;
   nutrition?: any;
 }
@@ -319,6 +321,7 @@ export default function AdminPage() {
     protein: '',
     price: '',
     tag: 'Chef Choice',
+    portionNote: '',
     image: '',
     images: [],
     ingredients: [],
@@ -1113,6 +1116,7 @@ export default function AdminPage() {
         price: '₹240',
         tag: defaultCat,
         category: defaultCat,
+        portionNote: '',
         image: '',
         images: [],
         ingredients: [],
@@ -1188,6 +1192,7 @@ export default function AdminPage() {
         additionalBenefits: salad.additionalBenefits || [],
         perfectFor: salad.perfectFor || ['Diet', 'Fitness', 'Healthy'],
         portions: saladPortions,
+        portionNote: salad.portionNote || '',
         addOns: Array.isArray(salad.addOns) ? salad.addOns : [
           { name: 'Extra Organic Paneer / Tofu', price: 40 },
           { name: 'Extra Cold-Blended Herb Dressing', price: 30 },
@@ -4656,6 +4661,26 @@ export default function AdminPage() {
                                 </span>
                               ))}
                             </div>
+
+                            {/* Salad Item Portion Note Preview */}
+                            <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-gray-600 bg-[#FAF6F0] px-3 py-1.5 rounded-xl border border-[#E8E1D5]">
+                              <Info className="w-3.5 h-3.5 text-[#C89D4B] flex-shrink-0" />
+                              <span className="font-bold text-[#123B2B] flex-shrink-0">Note:</span>
+                              <span className="truncate italic text-gray-700">
+                                {salad.portionNote && salad.portionNote.trim() !== ''
+                                  ? salad.portionNote
+                                  : (fullSiteSettings.portionNote ? `${fullSiteSettings.portionNote} (Global Site Default)` : 'Net bowl weight is approximate and includes fresh greens...')}
+                              </span>
+                              {salad.portionNote && salad.portionNote.trim() !== '' ? (
+                                <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded ml-auto flex-shrink-0">
+                                  Custom
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-semibold text-gray-400 ml-auto flex-shrink-0">
+                                  Default
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -5232,12 +5257,62 @@ export default function AdminPage() {
                         })}
                       </div>
                     </div>
+
+                    {/* Bowl Weight & Portion Note */}
+                    <div className="space-y-1.5 bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#E8E1D5]">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-[#123B2B] flex items-center gap-1.5">
+                          <Info className="w-3.5 h-3.5 text-[#C89D4B]" />
+                          <span>Bowl Weight Note</span>
+                        </label>
+                        <span className="text-[10px] text-gray-500 font-semibold">
+                          Between weight options &amp; price
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        value={currentSalad.portionNote || ''}
+                        onChange={(e) => setCurrentSalad(prev => ({ ...prev, portionNote: e.target.value }))}
+                        placeholder={fullSiteSettings.portionNote ? `Default: "${fullSiteSettings.portionNote}"` : 'e.g. Note: Net bowl weight is approximate and includes fresh greens, handcrafted dressing & crunch.'}
+                        className="w-full px-3.5 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#123B2B]/30"
+                      />
+                    </div>
                   </div>
                 )}
 
                 {/* Tab: Grams & Custom Portions Pricing */}
                 {formTab === 'portions' && (
                   <div className="space-y-5 animate-in fade-in duration-150 max-h-[50vh] overflow-y-auto pr-1">
+
+                    {/* Bowl Weight & Portion Note for this Salad */}
+                    <div className="space-y-2 bg-[#FAF6F0] p-4 rounded-2xl border border-[#E8E1D5]">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                        <label className="text-xs font-bold text-[#123B2B] flex items-center gap-1.5">
+                          <Info className="w-4 h-4 text-[#C89D4B]" />
+                          <span>Bowl Weight &amp; Portion Note (Shown on Customer Salad Page)</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentSalad(prev => ({
+                            ...prev,
+                            portionNote: fullSiteSettings.portionNote || 'Note: Net bowl weight is approximate and includes fresh greens, handcrafted dressing & crunch.'
+                          }))}
+                          className="text-[11px] font-bold text-[#123B2B] hover:underline cursor-pointer flex items-center gap-1"
+                        >
+                          <span>Copy from Site Texts</span>
+                        </button>
+                      </div>
+                      <textarea
+                        rows={2}
+                        value={currentSalad.portionNote || ''}
+                        onChange={(e) => setCurrentSalad(prev => ({ ...prev, portionNote: e.target.value }))}
+                        placeholder={fullSiteSettings.portionNote ? `Leave empty to use global default: "${fullSiteSettings.portionNote}"` : 'e.g. Note: Net bowl weight is approximate and includes fresh greens, handcrafted dressing & crunch.'}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#123B2B]/30"
+                      />
+                      <p className="text-[11px] text-gray-500">
+                        💡 This note appears between the bowl gram options and price card on customer pages. Leave blank to automatically use the default note configured in <strong>Site Texts &amp; Sections</strong>.
+                      </p>
+                    </div>
                     <div className="bg-[#E8F3EE] p-3.5 rounded-2xl border border-[#237357]/20 flex flex-col sm:flex-row items-start justify-between gap-3">
                       <div className="space-y-1">
                         <p className="text-xs font-bold text-[#144C38] flex items-center gap-1.5">

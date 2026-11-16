@@ -1143,14 +1143,18 @@ export default function SaladDetailPage() {
               </div>
 
               {/* Admin Portion Note between weight options and price */}
-              {portionNote && portionNote.trim() !== '' && (
-                <div className="p-3 sm:p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/90 flex items-start gap-2.5 text-amber-950 shadow-2xs">
-                  <Info className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs font-semibold leading-relaxed">
-                    {portionNote}
-                  </p>
-                </div>
-              )}
+              {(() => {
+                const activeNote = (salad?.portionNote && salad.portionNote.trim() !== '') ? salad.portionNote : portionNote;
+                if (!activeNote || activeNote.trim() === '') return null;
+                return (
+                  <div className="p-3 sm:p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/90 flex items-start gap-2.5 text-amber-950 shadow-2xs">
+                    <Info className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs font-semibold leading-relaxed">
+                      {activeNote}
+                    </p>
+                  </div>
+                );
+              })()}
 
               {/* Price Row */}
               <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-[#EBE2D3] flex items-center justify-between">

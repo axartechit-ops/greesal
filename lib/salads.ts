@@ -91,6 +91,7 @@ export interface Salad {
   addOns?: SaladAddOn[];
   portions?: SaladPortion[];
   selectedPortion?: SaladPortion;
+  portionNote?: string;
 }
 
 /**
