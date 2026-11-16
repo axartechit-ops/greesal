@@ -27,6 +27,7 @@ interface SaladDetailModalProps {
   quantityInCart: number;
   onAddToCart: (salad: Salad) => void;
   onRemoveFromCart: (saladId: string) => void;
+  portionNote?: string;
 }
 
 export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
@@ -36,6 +37,7 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
   quantityInCart,
   onAddToCart,
   onRemoveFromCart,
+  portionNote,
 }) => {
   if (!isOpen || !salad) return null;
 

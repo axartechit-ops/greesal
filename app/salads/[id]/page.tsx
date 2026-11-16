@@ -12,6 +12,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { GoogleMapPickerModal } from '@/components/GoogleMapPickerModal';
 import { getLiveDetailedLocation } from '@/lib/geolocation';
 import { sendOrderToWhatsApp } from '@/lib/whatsapp';
+import { DEFAULT_SITE_SETTINGS } from '@/lib/siteSettings';
 import { DEFAULT_SALAD_ADDONS, getSaladByIdOrSlug, getSaladImages, Salad, SaladAddOn, SaladPortion, getSaladPortions, getSaladIngredients, getSaladDressing, getSaladCrunch, slugify, isGenericAllCategory, inferSaladCategory } from '@/lib/salads';
 import {
   Sparkles,
@@ -172,6 +173,9 @@ export default function SaladDetailPage() {
   const [showNotice, setShowNotice] = useState<boolean>(true);
   const [noticeType, setNoticeType] = useState<'announcement' | 'info' | 'alert' | 'discount'>('announcement');
   const [closedMessage, setClosedMessage] = useState<string>('Our kitchen is currently closed. Opening again at 08:00 AM. Pre-orders are welcome!');
+  const [portionNote, setPortionNote] = useState<string>(
+    DEFAULT_SITE_SETTINGS.portionNote || 'Note: Net bowl weight is approximate and includes fresh greens, handcrafted dressing & crunch.'
+  );
 
   // Fetch / Sync Salads & Settings from API if modified in admin
   useEffect(() => {
@@ -202,6 +206,7 @@ export default function SaladDetailPage() {
           if (settingsData.showNotice !== undefined) setShowNotice(Boolean(settingsData.showNotice));
           if (settingsData.noticeType) setNoticeType(settingsData.noticeType);
           if (settingsData.closedMessage) setClosedMessage(settingsData.closedMessage);
+          if (settingsData.portionNote !== undefined) setPortionNote(settingsData.portionNote);
         }
       })
       .catch(() => { });
@@ -1136,6 +1141,16 @@ export default function SaladDetailPage() {
                   })}
                 </div>
               </div>
+
+              {/* Admin Portion Note between weight options and price */}
+              {portionNote && portionNote.trim() !== '' && (
+                <div className="p-3 sm:p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/90 flex items-start gap-2.5 text-amber-950 shadow-2xs">
+                  <Info className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs font-semibold leading-relaxed">
+                    {portionNote}
+                  </p>
+                </div>
+              )}
 
               {/* Price Row */}
               <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-[#EBE2D3] flex items-center justify-between">

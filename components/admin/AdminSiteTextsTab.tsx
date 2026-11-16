@@ -23,7 +23,8 @@ import {
   Play,
   Pause,
   Video,
-  ExternalLink
+  ExternalLink,
+  Info
 } from 'lucide-react';
 import { SiteSettings, DEFAULT_SITE_SETTINGS } from '@/lib/siteSettings';
 
@@ -53,7 +54,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
   }, [settings]);
 
   const [activeSection, setActiveSection] = useState<
-    'sticky' | 'hero' | 'howToOrder' | 'difference' | 'stats' | 'services' | 'contact'
+    'sticky' | 'hero' | 'howToOrder' | 'difference' | 'stats' | 'services' | 'contact' | 'portionNote'
   >('hero');
 
   const [isHowToOrderUploading, setIsHowToOrderUploading] = useState(false);
@@ -167,6 +168,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
           { id: 'stats', label: 'Stats Counters', icon: Award },
           { id: 'services', label: 'Our Services', icon: Truck },
           { id: 'contact', label: 'Contact & Kitchen', icon: Phone },
+          { id: 'portionNote', label: 'Bowl & Portions Note', icon: Info },
         ].map((sec) => {
           const Icon = sec.icon;
           const active = activeSection === sec.id;
@@ -1506,6 +1508,101 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                 placeholder="Within 30-45 Mins"
                 className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SECTION 8: BOWL & PORTIONS NOTE (SHOWN ON ALL PRODUCT PAGES & MODAL) */}
+      {activeSection === 'portionNote' && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200 space-y-6 animate-fadeIn">
+          <div className="border-b border-gray-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 text-[11px] font-black uppercase tracking-wider mb-1 border border-amber-200">
+                <Sparkles className="w-3 h-3 text-amber-600" />
+                <span>Global Product Page Note</span>
+              </div>
+              <h3 className="text-base font-extrabold text-[#123B2B]">8. Bowl Gram Weight &amp; Portions Note</h3>
+              <p className="text-xs text-gray-500">
+                This note appears on every salad bowl page and quick-view modal, right between the gram weight options (200g, 300g, etc.) and the price card.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleChange('portionNote', 'Note: Net bowl weight is approximate and includes fresh greens, handcrafted dressing & crunch.')}
+              className="text-xs font-bold text-[#123B2B] hover:underline self-start sm:self-auto cursor-pointer"
+            >
+              Reset to Default Note
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-700 block">Note Text (Same for all salad pages)</label>
+              <textarea
+                rows={3}
+                value={formData.portionNote || ''}
+                onChange={(e) => handleChange('portionNote', e.target.value)}
+                placeholder="e.g. Note: Net bowl weight is approximate and includes fresh greens, handcrafted dressing & crunch."
+                className="w-full px-4 py-3 rounded-2xl border border-gray-300 text-xs font-medium focus:ring-2 focus:ring-[#123B2B]/20 focus:border-[#123B2B] leading-relaxed"
+              />
+              <p className="text-[11px] text-gray-400">
+                Leave empty if you do not want to display any note between the gram weight options and price.
+              </p>
+            </div>
+
+            {/* Live Visual Preview */}
+            <div className="p-4 sm:p-6 bg-[#FAF6F0] rounded-3xl border border-[#E8E1D5] space-y-3">
+              <span className="text-[11px] font-black uppercase tracking-wider text-[#123B2B] block">
+                Live Customer Preview (How it looks on product pages):
+              </span>
+
+              {/* Fake bowl buttons */}
+              <div className="space-y-2 max-w-md">
+                <div className="flex items-center justify-between text-xs font-bold text-[#123B2B]">
+                  <span>✨ SELECT BOWL GRAM WEIGHT</span>
+                  <span className="text-[10px] bg-[#E8F3EE] text-[#237357] px-2 py-0.5 rounded-full font-black">
+                    300g Selected (₹299)
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2.5 rounded-xl border border-gray-200 bg-white text-center">
+                    <div className="text-xs font-black text-gray-800">200g</div>
+                    <div className="text-xs font-bold text-emerald-700">₹199</div>
+                    <div className="text-[10px] text-gray-400">200g Bowl</div>
+                  </div>
+                  <div className="p-2.5 rounded-xl border border-[#123B2B] bg-[#123B2B] text-white text-center shadow-xs">
+                    <div className="text-xs font-black text-[#fbce45]">300g</div>
+                    <div className="text-xs font-bold text-white">₹299</div>
+                    <div className="text-[10px] text-gray-200">300g Bowl</div>
+                  </div>
+                </div>
+
+                {/* THE NOTE PREVIEW */}
+                {formData.portionNote ? (
+                  <div className="p-3 rounded-2xl bg-amber-50/90 border border-amber-200/90 flex items-start gap-2.5 text-amber-950 shadow-2xs">
+                    <Info className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs font-semibold leading-relaxed">
+                      {formData.portionNote}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-xl border border-dashed border-gray-300 text-center text-xs text-gray-400">
+                    (Note is empty &bull; Nothing will be shown)
+                  </div>
+                )}
+
+                {/* Fake price box */}
+                <div className="p-3.5 rounded-2xl bg-white border border-[#EBE2D3] flex items-center justify-between shadow-2xs">
+                  <div>
+                    <div className="text-xl font-black text-[#123B2B]">₹299</div>
+                    <div className="text-[10px] text-emerald-700 font-extrabold">SAVE ₹45 &bull; 100% ORGANIC BOWL</div>
+                  </div>
+                  <div className="px-3 py-1 bg-gray-100 rounded-lg text-xs font-bold text-gray-700">
+                    &minus; 1 +
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

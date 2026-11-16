@@ -481,6 +481,7 @@ export default function SaladIndiaHome() {
         quantityInCart={selectedSalad ? cartAggregatedQuantities[selectedSalad.id || selectedSalad._id || selectedSalad.slug || selectedSalad.name] || 0 : 0}
         onAddToCart={handleAddToCart}
         onRemoveFromCart={(id) => handleRemoveFromCart(id)}
+        portionNote={siteSettings.portionNote}
       />
 
       <ProfileModal

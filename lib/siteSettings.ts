@@ -153,6 +153,7 @@ export interface SiteSettings {
   subscriptionModalSubtitle?: string;
   subscriptionPlans?: SubscriptionPlan[];
   subscriptionDailyMenus?: SubscriptionDailyMenu[];
+  portionNote?: string;
 }
 
 export interface SubscriptionPlan {
@@ -353,4 +354,5 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   subscriptionModalSubtitle: 'Daily rotation of 21+ varieties • 100% handmade dressings • Free delivery in Surat',
   subscriptionPlans: DEFAULT_SUBSCRIPTION_PLANS,
   subscriptionDailyMenus: [],
+  portionNote: 'Note: Net bowl weight is approximate and includes fresh greens, handcrafted dressing & crunch.',
 };

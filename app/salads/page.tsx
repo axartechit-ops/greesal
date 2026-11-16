@@ -390,6 +390,7 @@ export default function SaladsPage() {
         }
         onAddToCart={handleAddToCart}
         onRemoveFromCart={handleRemoveFromCart}
+        portionNote={siteSettings.portionNote}
       />
 
       {/* Profile Modal */}
