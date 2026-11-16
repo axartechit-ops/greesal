@@ -18,6 +18,15 @@ export const OurServicesSection: React.FC<OurServicesSectionProps> = ({
   onOrderSingle,
   onSubscribeClick,
 }) => {
+  const getCardImage = (item: ServiceCard) => {
+    if (item.id === 3 || (item.title && item.title.toLowerCase().includes('subscription'))) {
+      if (!item.image || item.image.includes('unsplash.com') || item.image.includes('salad_bowl_hero')) {
+        return '/images/salad_subscriptions.jpg';
+      }
+    }
+    return item.image || item.fallbackImage || '/images/salad_subscriptions.jpg';
+  };
+
   const getActionForCard = (id: number) => {
     if (id === 1) return { action: onOrderSingle, isExternal: false };
     if (id === 3) return { action: onSubscribeClick, isExternal: false };
@@ -63,11 +72,11 @@ export const OurServicesSection: React.FC<OurServicesSectionProps> = ({
               {/* Card Image */}
               <div className="relative w-full h-56 sm:h-64 bg-gray-100 overflow-hidden">
                 <img
-                  src={item.image}
+                  src={getCardImage(item)}
                   alt={item.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = item.fallbackImage || '/images/salad_single_order.jpg';
+                    (e.target as HTMLImageElement).src = item.fallbackImage || (item.id === 3 ? '/images/salad_subscriptions.jpg' : '/images/salad_single_order.jpg');
                   }}
                 />
                 <div className="absolute top-4 left-4 bg-[#20493c]/90 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-bold text-[#fbce45] shadow-md">

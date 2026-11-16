@@ -119,7 +119,8 @@ DEFAULT_SITE_SETTINGS: Dict[str, Any] = {
         },
         {
             "id": 3,
-            "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80",
+            "image": "/images/salad_subscriptions.jpg",
+            "fallbackImage": "/images/salad_subscriptions.jpg",
             "title": "Salad - Subscriptions",
             "desc": "21 Different Types of Salad with Free Delivery! (Weekly & Monthly Plans)",
             "btnText": "Book Now",

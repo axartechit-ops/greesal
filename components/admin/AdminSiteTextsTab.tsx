@@ -1420,6 +1420,26 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                   placeholder="Button Text"
                   className="w-full px-3 py-1.5 rounded-lg border border-gray-300 text-xs font-bold"
                 />
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 block">Card Image</label>
+                  {srv.image && (
+                    <img
+                      src={srv.image}
+                      alt={srv.title}
+                      className="w-full h-24 object-cover rounded-lg border border-gray-200 mb-1"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/images/salad_subscriptions.jpg';
+                      }}
+                    />
+                  )}
+                  <input
+                    type="text"
+                    value={srv.image || ''}
+                    onChange={(e) => handleServiceCardChange(idx, 'image', e.target.value)}
+                    placeholder="/images/... or URL"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs font-mono"
+                  />
+                </div>
               </div>
             ))}
           </div>
