@@ -293,6 +293,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     {
       id: 1,
       image: '/images/salad_single_order.jpg',
+      fallbackImage: '/images/salad_single_order.jpg',
       title: 'Salad - Single Order',
       desc: '10 Different Types of Fresh Handcrafted Salads with Free Delivery in Surat!',
       btnText: 'Order Now',

@@ -217,6 +217,19 @@ def sanitize_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
     phone = str(res.get("contactPhone", ""))
     if not phone or "98251" in phone or "95958" in phone:
         res["contactPhone"] = "+91 99258 36117"
+
+    cards = res.get("servicesCards")
+    if isinstance(cards, list):
+        for c in cards:
+            if isinstance(c, dict):
+                if c.get("id") == 1 or "Single" in str(c.get("title", "")):
+                    if not c.get("image") or "unsplash.com" in str(c.get("image", "")) or "salad_bowl_hero" in str(c.get("image", "")):
+                        c["image"] = "/images/salad_single_order.jpg"
+                        c["fallbackImage"] = "/images/salad_single_order.jpg"
+                elif c.get("id") == 3 or "Subscription" in str(c.get("title", "")):
+                    if not c.get("image") or "unsplash.com" in str(c.get("image", "")) or "salad_bowl_hero" in str(c.get("image", "")):
+                        c["image"] = "/images/salad_subscriptions.jpg"
+                        c["fallbackImage"] = "/images/salad_subscriptions.jpg"
     return res
 
 import time

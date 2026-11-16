@@ -19,12 +19,19 @@ export const OurServicesSection: React.FC<OurServicesSectionProps> = ({
   onSubscribeClick,
 }) => {
   const getCardImage = (item: ServiceCard) => {
+    if (item.id === 1 || (item.title && item.title.toLowerCase().includes('single'))) {
+      if (!item.image || item.image.includes('unsplash.com') || item.image.includes('salad_bowl_hero')) {
+        return '/images/salad_single_order.jpg';
+      }
+      return item.image;
+    }
     if (item.id === 3 || (item.title && item.title.toLowerCase().includes('subscription'))) {
       if (!item.image || item.image.includes('unsplash.com') || item.image.includes('salad_bowl_hero')) {
         return '/images/salad_subscriptions.jpg';
       }
+      return item.image;
     }
-    return item.image || item.fallbackImage || '/images/salad_subscriptions.jpg';
+    return item.image || item.fallbackImage || '/images/salad_single_order.jpg';
   };
 
   const getActionForCard = (id: number) => {
