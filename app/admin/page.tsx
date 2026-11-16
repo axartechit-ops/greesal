@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { GreesalLogo } from '@/components/GreesalLogo';
@@ -40,6 +40,7 @@ import {
   MapPin,
   RotateCcw,
   Check,
+  ChevronLeft,
   ChevronRight,
   Filter,
   ShoppingBag,
@@ -163,6 +164,40 @@ export default function AdminPage() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Admin Top Tab Bar Slider State & Ref
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false);
+  const [canScrollTabsRight, setCanScrollTabsRight] = useState(true);
+
+  const checkTabsScroll = () => {
+    if (!tabsContainerRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = tabsContainerRef.current;
+    setCanScrollTabsLeft(scrollLeft > 8);
+    setCanScrollTabsRight(scrollLeft + clientWidth < scrollWidth - 8);
+  };
+
+  const handleSlideTabs = (direction: 'left' | 'right') => {
+    if (!tabsContainerRef.current) return;
+    const distance = 280;
+    tabsContainerRef.current.scrollBy({
+      left: direction === 'left' ? -distance : distance,
+      behavior: 'smooth'
+    });
+  };
+
+  useEffect(() => {
+    checkTabsScroll();
+    const el = tabsContainerRef.current;
+    if (el) {
+      el.addEventListener('scroll', checkTabsScroll, { passive: true });
+      window.addEventListener('resize', checkTabsScroll);
+      return () => {
+        el.removeEventListener('scroll', checkTabsScroll);
+        window.removeEventListener('resize', checkTabsScroll);
+      };
+    }
+  }, []);
 
   // Orders State
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -1357,9 +1392,43 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* Tab switchers */}
-          <div className="flex border-b border-gray-200 mb-8 gap-2 sm:gap-6 font-semibold text-sm overflow-x-auto no-scrollbar">
-            <button
+          {/* Tab switchers with Left & Right Side Sliders */}
+          <div className="relative mb-8 group">
+            {/* Left Side Slider Arrow Button */}
+            {canScrollTabsLeft && (
+              <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-6 pl-0.5 bg-gradient-to-r from-[#FAF6F0] via-[#FAF6F0]/95 to-transparent pointer-events-none animate-fadeIn">
+                <button
+                  type="button"
+                  onClick={() => handleSlideTabs('left')}
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white hover:bg-emerald-50 text-[#123B2B] shadow-md border border-gray-200 hover:border-[#123B2B] flex items-center justify-center transition-all cursor-pointer pointer-events-auto hover:scale-110 active:scale-95"
+                  title="Slide left to view previous options"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+
+            {/* Right Side Slider Arrow Button */}
+            {canScrollTabsRight && (
+              <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-6 pr-0.5 bg-gradient-to-l from-[#FAF6F0] via-[#FAF6F0]/95 to-transparent pointer-events-none animate-fadeIn">
+                <button
+                  type="button"
+                  onClick={() => handleSlideTabs('right')}
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white hover:bg-emerald-50 text-[#123B2B] shadow-md border border-gray-200 hover:border-[#123B2B] flex items-center justify-center transition-all cursor-pointer pointer-events-auto hover:scale-110 active:scale-95"
+                  title="Slide right to view more options"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+
+            {/* Scrollable Tabs Bar */}
+            <div
+              ref={tabsContainerRef}
+              onScroll={checkTabsScroll}
+              className="flex border-b border-gray-200 gap-2 sm:gap-6 font-semibold text-sm overflow-x-auto no-scrollbar scroll-smooth px-1"
+            >
+<button
               onClick={() => setActiveTab('orders')}
               className={`pb-4 px-2 transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'orders'
                 ? 'border-b-2 border-[#123B2B] text-[#123B2B] font-black'
@@ -1452,6 +1521,7 @@ export default function AdminPage() {
               <Star className="w-4 h-4 text-[#fbce45] fill-[#fbce45]" />
               <span>Customer Experiences</span>
             </button>
+            </div>
           </div>
 
           {/* Tab Content */}
