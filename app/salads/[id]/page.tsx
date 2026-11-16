@@ -176,6 +176,9 @@ export default function SaladDetailPage() {
   const [portionNote, setPortionNote] = useState<string>(
     DEFAULT_SITE_SETTINGS.portionNote || 'Note: Net bowl weight is approximate and includes fresh greens, handcrafted dressing & crunch.'
   );
+  const [nutritionNote, setNutritionNote] = useState<string>(
+    DEFAULT_SITE_SETTINGS.nutritionNote || 'Note: All nutritional values are handcrafted and verified per serving bowl based on fresh seasonal produce.'
+  );
 
   // Fetch / Sync Salads & Settings from API if modified in admin
   useEffect(() => {
@@ -207,6 +210,7 @@ export default function SaladDetailPage() {
           if (settingsData.noticeType) setNoticeType(settingsData.noticeType);
           if (settingsData.closedMessage) setClosedMessage(settingsData.closedMessage);
           if (settingsData.portionNote !== undefined) setPortionNote(settingsData.portionNote);
+          if (settingsData.nutritionNote !== undefined) setNutritionNote(settingsData.nutritionNote);
         }
       })
       .catch(() => { });
@@ -1326,59 +1330,81 @@ export default function SaladDetailPage() {
 
             {/* Official Nutrition Facts Panel */}
             {hasNutrition && (
-              <div className="border-[3px] border-black rounded-2xl p-5 bg-white font-sans text-black leading-tight select-none shadow-sm">
-                <h3 className="font-black text-2xl tracking-tighter border-b-8 border-black pb-1 uppercase text-center">
-                  Nutrition Facts
-                </h3>
-                <div className="text-xs py-1.5 border-b-4 border-black font-semibold flex justify-between">
-                  <span>Serving Size</span>
-                  <span>1 Salad Bowl ({salad.name})</span>
-                </div>
+              <>
+                <div className="border-[3px] border-black rounded-2xl p-5 bg-white font-sans text-black leading-tight select-none shadow-sm">
+                  <h3 className="font-black text-2xl tracking-tighter border-b-8 border-black pb-1 uppercase text-center">
+                    Nutrition Facts
+                  </h3>
+                  <div className="text-xs py-1.5 border-b-4 border-black font-semibold flex justify-between">
+                    <span>Serving Size</span>
+                    <span>1 Salad Bowl ({salad.name})</span>
+                  </div>
 
-                <div className="font-extrabold text-sm py-1 border-b-2 border-black flex justify-between uppercase">
-                  <span>Amount Per Serving</span>
-                </div>
+                  <div className="font-extrabold text-sm py-1 border-b-2 border-black flex justify-between uppercase">
+                    <span>Amount Per Serving</span>
+                  </div>
 
-                <div className="flex justify-between items-end border-b-8 border-black py-1">
-                  <span className="font-black text-2xl leading-none">Calories</span>
-                  <span className="font-black text-3xl leading-none">{(salad.calories || '0').replace(/\D/g, '') || '0'}</span>
-                </div>
+                  <div className="flex justify-between items-end border-b-8 border-black py-1">
+                    <span className="font-black text-2xl leading-none">Calories</span>
+                    <span className="font-black text-3xl leading-none">{(salad.calories || '0').replace(/\D/g, '') || '0'}</span>
+                  </div>
 
-                {/* Nutrition Parameter Rows — completely admin controlled */}
-                <div className="space-y-1 text-xs border-b-8 border-black pb-1 pt-1">
-                  {salad.protein ? (
-                    <div className="border-b border-gray-200 py-1 flex justify-between">
-                      <span><strong className="font-bold">Protein</strong></span>
-                      <span className="font-bold">{salad.protein}</span>
-                    </div>
-                  ) : null}
-                  {Array.isArray(salad.nutritionItems) && salad.nutritionItems.length > 0 ? (
-                    salad.nutritionItems
-                      .filter(item => item.name && item.value && String(item.value).trim())
-                      .map((item, nIdx) => (
-                        <div key={nIdx} className="border-b border-gray-200 py-1 flex justify-between">
-                          <span><strong className="font-bold">{item.name}</strong></span>
-                          <span className="font-bold text-[#123B2B]">{item.value}</span>
-                        </div>
-                      ))
-                  ) : (
-                    salad.nutrition ? (
-                      Object.entries(salad.nutrition)
-                        .filter(([_, v]) => v && String(v).trim())
-                        .map(([k, v], nIdx) => (
-                          <div key={nIdx} className="border-b border-gray-200 py-1 flex justify-between capitalize">
-                            <span><strong className="font-bold">{k.replace(/([A-Z])/g, ' $1')}</strong></span>
-                            <span className="font-bold text-[#123B2B]">{String(v)}</span>
+                  {/* Nutrition Parameter Rows — completely admin controlled */}
+                  <div className="space-y-1 text-xs border-b-8 border-black pb-1 pt-1">
+                    {salad.protein ? (
+                      <div className="border-b border-gray-200 py-1 flex justify-between">
+                        <span><strong className="font-bold">Protein</strong></span>
+                        <span className="font-bold">{salad.protein}</span>
+                      </div>
+                    ) : null}
+                    {Array.isArray(salad.nutritionItems) && salad.nutritionItems.length > 0 ? (
+                      salad.nutritionItems
+                        .filter(item => item.name && item.value && String(item.value).trim())
+                        .map((item, nIdx) => (
+                          <div key={nIdx} className="border-b border-gray-200 py-1 flex justify-between">
+                            <span><strong className="font-bold">{item.name}</strong></span>
+                            <span className="font-bold text-[#123B2B]">{item.value}</span>
                           </div>
                         ))
-                    ) : null
-                  )}
+                    ) : (
+                      salad.nutrition ? (
+                        Object.entries(salad.nutrition)
+                          .filter(([_, v]) => v && String(v).trim())
+                          .map(([k, v], nIdx) => (
+                            <div key={nIdx} className="border-b border-gray-200 py-1 flex justify-between capitalize">
+                              <span><strong className="font-bold">{k.replace(/([A-Z])/g, ' $1')}</strong></span>
+                              <span className="font-bold text-[#123B2B]">{String(v)}</span>
+                            </div>
+                          ))
+                      ) : null
+                    )}
+                  </div>
+
+                  {(() => {
+                    const activeNutNote = (salad?.nutritionNote && salad.nutritionNote.trim() !== '') ? salad.nutritionNote : nutritionNote;
+                    if (!activeNutNote || activeNutNote.trim() === '') return null;
+                    return (
+                      <div className="text-[10px] text-gray-600 mt-2 text-left leading-normal italic font-medium pt-2 border-t border-gray-200">
+                        * {activeNutNote}
+                      </div>
+                    );
+                  })()}
                 </div>
 
-                <div className="text-[9px] text-gray-500 mt-2 text-left leading-normal">
-                  * All nutritional values are handcrafted and verified per serving bowl.
-                </div>
-              </div>
+                {/* Note banner under Nutrition Facts panel */}
+                {(() => {
+                  const activeNutNote = (salad?.nutritionNote && salad.nutritionNote.trim() !== '') ? salad.nutritionNote : nutritionNote;
+                  if (!activeNutNote || activeNutNote.trim() === '') return null;
+                  return (
+                    <div className="p-3 sm:p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/90 flex items-start gap-2.5 text-amber-950 shadow-2xs">
+                      <Info className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs font-semibold leading-relaxed">
+                        {activeNutNote}
+                      </p>
+                    </div>
+                  );
+                })()}
+              </>
             )}
 
           </div>

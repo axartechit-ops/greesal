@@ -391,6 +391,7 @@ export default function SaladsPage() {
         onAddToCart={handleAddToCart}
         onRemoveFromCart={handleRemoveFromCart}
         portionNote={siteSettings.portionNote}
+        nutritionNote={siteSettings.nutritionNote}
       />
 
       {/* Profile Modal */}

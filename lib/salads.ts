@@ -92,6 +92,7 @@ export interface Salad {
   portions?: SaladPortion[];
   selectedPortion?: SaladPortion;
   portionNote?: string;
+  nutritionNote?: string;
 }
 
 /**

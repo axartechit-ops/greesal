@@ -96,6 +96,7 @@ interface Salad {
   addOns?: Array<{ name: string; price: number }>;
   portions?: SaladPortion[];
   portionNote?: string;
+  nutritionNote?: string;
   nutritionItems?: Array<{ name: string; value: string }>;
   nutrition?: any;
 }
@@ -322,6 +323,7 @@ export default function AdminPage() {
     price: '',
     tag: 'Chef Choice',
     portionNote: '',
+    nutritionNote: '',
     image: '',
     images: [],
     ingredients: [],
@@ -1117,6 +1119,7 @@ export default function AdminPage() {
         tag: defaultCat,
         category: defaultCat,
         portionNote: '',
+        nutritionNote: '',
         image: '',
         images: [],
         ingredients: [],
@@ -1193,6 +1196,7 @@ export default function AdminPage() {
         perfectFor: salad.perfectFor || ['Diet', 'Fitness', 'Healthy'],
         portions: saladPortions,
         portionNote: salad.portionNote || '',
+        nutritionNote: salad.nutritionNote || '',
         addOns: Array.isArray(salad.addOns) ? salad.addOns : [
           { name: 'Extra Organic Paneer / Tofu', price: 40 },
           { name: 'Extra Cold-Blended Herb Dressing', price: 30 },
@@ -4681,6 +4685,26 @@ export default function AdminPage() {
                                 </span>
                               )}
                             </div>
+
+                            {/* Nutrition Note Badge Preview */}
+                            <div className="mt-1 flex items-center gap-1.5 text-[11px] text-gray-600 bg-white px-3 py-1.5 rounded-xl border border-gray-200">
+                              <HeartPulse className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                              <span className="font-bold text-[#123B2B] flex-shrink-0">Nutrition Note:</span>
+                              <span className="truncate italic text-gray-700">
+                                {salad.nutritionNote && salad.nutritionNote.trim() !== ''
+                                  ? salad.nutritionNote
+                                  : (fullSiteSettings.nutritionNote ? `${fullSiteSettings.nutritionNote} (Global Site Default)` : 'All values handcrafted & verified...')}
+                              </span>
+                              {salad.nutritionNote && salad.nutritionNote.trim() !== '' ? (
+                                <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded ml-auto flex-shrink-0">
+                                  Custom
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-semibold text-gray-400 ml-auto flex-shrink-0">
+                                  Default
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -5917,6 +5941,36 @@ export default function AdminPage() {
                 {/* Tab 4: Nutritional Facts — fully dynamic, admin editable */}
                 {formTab === 'nutrition' && (
                   <div className="space-y-4 animate-in fade-in duration-150 max-h-[55vh] overflow-y-auto pr-1">
+                    {/* Nutrition Note for this Salad */}
+                    <div className="space-y-2 bg-[#FAF6F0] p-4 rounded-2xl border border-[#E8E1D5]">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                        <label className="text-xs font-bold text-[#123B2B] flex items-center gap-1.5">
+                          <Info className="w-4 h-4 text-[#C89D4B]" />
+                          <span>Nutrition Note / Disclaimer (Shown on Food Label &amp; Page)</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentSalad(prev => ({
+                            ...prev,
+                            nutritionNote: fullSiteSettings.nutritionNote || 'Note: All nutritional values are handcrafted and verified per serving bowl based on fresh seasonal produce.'
+                          }))}
+                          className="text-[11px] font-bold text-[#123B2B] hover:underline cursor-pointer flex items-center gap-1"
+                        >
+                          <span>Copy from Site Texts</span>
+                        </button>
+                      </div>
+                      <textarea
+                        rows={2}
+                        value={currentSalad.nutritionNote || ''}
+                        onChange={(e) => setCurrentSalad(prev => ({ ...prev, nutritionNote: e.target.value }))}
+                        placeholder={fullSiteSettings.nutritionNote ? `Leave empty to use global default: "${fullSiteSettings.nutritionNote}"` : 'e.g. Note: All nutritional values are handcrafted and verified per serving bowl.'}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#123B2B]/30"
+                      />
+                      <p className="text-[11px] text-gray-500">
+                        💡 Appears below the official Nutrition Facts label. Leave blank to automatically use the default note from <strong>Site Texts &amp; Sections</strong>.
+                      </p>
+                    </div>
+
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-xs text-greesal-muted leading-relaxed">
                         Edit nutrient names &amp; values freely. Add new nutrients or delete any row. Only filled rows appear to customers.

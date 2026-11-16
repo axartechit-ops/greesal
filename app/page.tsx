@@ -482,6 +482,7 @@ export default function SaladIndiaHome() {
         onAddToCart={handleAddToCart}
         onRemoveFromCart={(id) => handleRemoveFromCart(id)}
         portionNote={siteSettings.portionNote}
+        nutritionNote={siteSettings.nutritionNote}
       />
 
       <ProfileModal

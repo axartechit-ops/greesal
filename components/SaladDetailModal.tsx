@@ -29,6 +29,7 @@ interface SaladDetailModalProps {
   onAddToCart: (salad: Salad) => void;
   onRemoveFromCart: (saladId: string) => void;
   portionNote?: string;
+  nutritionNote?: string;
 }
 
 export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
@@ -39,6 +40,7 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
   onAddToCart,
   onRemoveFromCart,
   portionNote,
+  nutritionNote,
 }) => {
   if (!isOpen || !salad) return null;
 
@@ -523,6 +525,20 @@ export const SaladDetailModal: React.FC<SaladDetailModalProps> = ({
                       </div>
                     ))}
                   </div>
+
+                  {/* Nutrition Note in modal */}
+                  {(() => {
+                    const activeNutNote = (salad.nutritionNote && salad.nutritionNote.trim() !== '') ? salad.nutritionNote : nutritionNote;
+                    if (!activeNutNote || activeNutNote.trim() === '') return null;
+                    return (
+                      <div className="p-2.5 rounded-xl bg-amber-50/90 border border-amber-200/90 flex items-start gap-2 text-amber-950 shadow-2xs mt-2">
+                        <Info className="w-3.5 h-3.5 text-amber-700 flex-shrink-0 mt-0.5" />
+                        <p className="text-[11px] font-semibold leading-relaxed">
+                          {activeNutNote}
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })()}

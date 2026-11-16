@@ -24,7 +24,8 @@ import {
   Pause,
   Video,
   ExternalLink,
-  Info
+  Info,
+  HeartPulse
 } from 'lucide-react';
 import { SiteSettings, DEFAULT_SITE_SETTINGS } from '@/lib/siteSettings';
 
@@ -54,7 +55,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
   }, [settings]);
 
   const [activeSection, setActiveSection] = useState<
-    'sticky' | 'hero' | 'howToOrder' | 'difference' | 'stats' | 'services' | 'contact' | 'portionNote'
+    'sticky' | 'hero' | 'howToOrder' | 'difference' | 'stats' | 'services' | 'contact' | 'portionNote' | 'nutritionNote'
   >('hero');
 
   const [isHowToOrderUploading, setIsHowToOrderUploading] = useState(false);
@@ -169,6 +170,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
           { id: 'services', label: 'Our Services', icon: Truck },
           { id: 'contact', label: 'Contact & Kitchen', icon: Phone },
           { id: 'portionNote', label: 'Bowl & Portions Note', icon: Info },
+          { id: 'nutritionNote', label: 'Nutrition Facts Note', icon: HeartPulse },
         ].map((sec) => {
           const Icon = sec.icon;
           const active = activeSection === sec.id;
@@ -1603,6 +1605,68 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* SECTION 9: NUTRITION FACTS NOTE (SHOWN ON ALL PRODUCT PAGES & MODAL) */}
+      {activeSection === 'nutritionNote' && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200 space-y-6 animate-fadeIn">
+          <div className="border-b border-gray-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-black uppercase tracking-wider mb-1 border border-emerald-200">
+                <HeartPulse className="w-3 h-3 text-emerald-600" />
+                <span>Global Nutrition Note &amp; Disclaimer</span>
+              </div>
+              <h3 className="text-base font-extrabold text-[#123B2B]">9. Nutrition Facts Note / Notice</h3>
+              <p className="text-xs text-gray-500">
+                This note appears on every salad product page under the official Nutrition Facts panel and in the quick-view modal.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleChange('nutritionNote', 'Note: All nutritional values are handcrafted and verified per serving bowl based on fresh seasonal produce.')}
+              className="text-xs font-bold text-[#123B2B] hover:underline self-start sm:self-auto cursor-pointer"
+            >
+              Reset to Default Note
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-700 block">Nutrition Note Text (Fallback for all salad pages)</label>
+              <textarea
+                rows={3}
+                value={formData.nutritionNote || ''}
+                onChange={(e) => handleChange('nutritionNote', e.target.value)}
+                placeholder="e.g. Note: All nutritional values are handcrafted and verified per serving bowl based on fresh seasonal produce."
+                className="w-full px-4 py-3 rounded-2xl border border-gray-300 text-xs font-medium focus:ring-2 focus:ring-[#123B2B]/20 focus:border-[#123B2B] leading-relaxed"
+              />
+              <p className="text-[11px] text-gray-400">
+                Salads can use this global note, or you can customize an individual note per salad under Salad Menu List &rarr; Edit Salad &rarr; Nutrition.
+              </p>
+            </div>
+
+            {/* Live Visual Preview */}
+            <div className="p-4 sm:p-6 bg-[#FAF6F0] rounded-3xl border border-[#E8E1D5] space-y-3">
+              <span className="text-[11px] font-black uppercase tracking-wider text-[#123B2B] block">
+                Live Customer Preview (Under Nutrition Facts):
+              </span>
+
+              {formData.nutritionNote ? (
+                <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/90 flex items-start gap-2.5 text-amber-950 shadow-2xs max-w-md">
+                  <Info className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs font-semibold leading-relaxed">
+                    {formData.nutritionNote}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl border border-dashed border-gray-300 text-center text-xs text-gray-400 max-w-md">
+                  (Nutrition Note is empty &bull; Nothing will be shown)
+                </div>
+              )}
             </div>
           </div>
         </div>

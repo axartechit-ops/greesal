@@ -154,6 +154,7 @@ export interface SiteSettings {
   subscriptionPlans?: SubscriptionPlan[];
   subscriptionDailyMenus?: SubscriptionDailyMenu[];
   portionNote?: string;
+  nutritionNote?: string;
 }
 
 export interface SubscriptionPlan {
@@ -355,4 +356,5 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   subscriptionPlans: DEFAULT_SUBSCRIPTION_PLANS,
   subscriptionDailyMenus: [],
   portionNote: 'Note: Net bowl weight is approximate and includes fresh greens, handcrafted dressing & crunch.',
+  nutritionNote: 'Note: All nutritional values are handcrafted and verified per serving bowl based on fresh seasonal produce.',
 };
