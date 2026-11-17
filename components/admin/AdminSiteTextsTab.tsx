@@ -28,15 +28,13 @@ import {
   HeartPulse
 } from 'lucide-react';
 import { SiteSettings, DEFAULT_SITE_SETTINGS } from '@/lib/siteSettings';
+import { uploadMediaFileInChunks, MAX_IMAGE_SIZE, MAX_VIDEO_SIZE } from '@/lib/mediaUpload';
 
 interface AdminSiteTextsTabProps {
   settings: SiteSettings;
   onSaveSettings: (updatedSettings: Partial<SiteSettings>) => Promise<void>;
   isSaving: boolean;
 }
-
-const MAX_IMAGE_SIZE = 1.5 * 1024 * 1024; // 1.5 MB
-const MAX_VIDEO_SIZE = 10 * 1024 * 1024;  // 10 MB
 
 const compressImageFile = (
   file: File,
@@ -118,6 +116,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
   >('hero');
 
   const [isHowToOrderUploading, setIsHowToOrderUploading] = useState(false);
+  const [uploadProgressText, setUploadProgressText] = useState('');
   const isGifOrImageHowToOrder = (url?: string) => {
     if (!url) return false;
     const l = url.toLowerCase();
@@ -188,10 +187,27 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
     // Prevent multi-megabyte base64 payloads by replacing any legacy difference images with clean static paths
     (['differenceImage1', 'differenceImage2', 'differenceImage3', 'differenceImage4'] as const).forEach((key, idx) => {
       const val = cleanData[key];
-      if (typeof val === 'string' && (val.startsWith('data:image/') || val.length > 20000)) {
+      if (typeof val === 'string' && (val.startsWith('data:') || val.length > 20000)) {
         cleanData[key] = idx === 0 ? '/images/premium_fresh_ingredients.png' : `/images/difference_${idx + 1}.png`;
       }
     });
+
+    if (typeof cleanData.howToOrderVideoUrl === 'string' && (cleanData.howToOrderVideoUrl.startsWith('data:') || cleanData.howToOrderVideoUrl.length > 20000)) {
+      cleanData.howToOrderVideoUrl = DEFAULT_SITE_SETTINGS.howToOrderVideoUrl;
+    }
+    if (typeof cleanData.howToOrderVideoPoster === 'string' && (cleanData.howToOrderVideoPoster.startsWith('data:') || cleanData.howToOrderVideoPoster.length > 50000)) {
+      cleanData.howToOrderVideoPoster = DEFAULT_SITE_SETTINGS.howToOrderVideoPoster;
+    }
+    if (typeof cleanData.tableVideoUrl === 'string' && (cleanData.tableVideoUrl.startsWith('data:') || cleanData.tableVideoUrl.length > 20000)) {
+      cleanData.tableVideoUrl = '/videos/hero-table-salad.mp4';
+    }
+    if (typeof cleanData.tableVideoPoster === 'string' && (cleanData.tableVideoPoster.startsWith('data:') || cleanData.tableVideoPoster.length > 50000)) {
+      cleanData.tableVideoPoster = '/images/salad_bowl_hero.jpg';
+    }
+    if (typeof cleanData.heroImage === 'string' && (cleanData.heroImage.startsWith('data:') || cleanData.heroImage.length > 90000)) {
+      cleanData.heroImage = '/images/salad_bowl_hero.jpg';
+    }
+
     onSaveSettings(cleanData);
   };
 
@@ -603,35 +619,21 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                           return;
                         }
                         setIsHowToOrderUploading(true);
-                        // Upload via high-performance static upload endpoint
-                        try {
-                          const fd = new FormData();
-                          fd.append('file', file);
-                          const upRes = await fetch('/api/admin/upload', {
-                            method: 'POST',
-                            body: fd,
-                          });
-                          if (upRes.ok) {
-                            const upData = await upRes.json();
-                            if (upData.url) {
-                              handleChange('howToOrderVideoUrl', upData.url);
-                              setIsHowToOrderUploading(false);
-                              return;
-                            }
-                          }
-                        } catch (err) {
-                          console.warn('API upload fallback to data URL:', err);
-                        }
+                        setUploadProgressText('Uploading: 0%');
 
-                        // Fallback to data URL
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                          if (ev.target?.result) {
-                            handleChange('howToOrderVideoUrl', ev.target.result as string);
-                          }
+                        try {
+                          // Chunked upload in 512KB pieces to never exceed reverse proxy limits
+                          const uploadedUrl = await uploadMediaFileInChunks(file, (percent, status) => {
+                            setUploadProgressText(status);
+                          });
+                          handleChange('howToOrderVideoUrl', uploadedUrl);
+                        } catch (err: any) {
+                          console.error('Video upload failed:', err);
+                          alert(err.message || 'Failed to upload video');
+                        } finally {
                           setIsHowToOrderUploading(false);
-                        };
-                        reader.readAsDataURL(file);
+                          setUploadProgressText('');
+                        }
                       }
                     }}
                     className="hidden"
@@ -639,7 +641,10 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                   {isHowToOrderUploading ? (
                     <div className="flex flex-col items-center">
                       <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mb-2" />
-                      <p className="text-xs font-bold text-[#123B2B]">Uploading &amp; processing video file...</p>
+                      <p className="text-xs font-bold text-[#123B2B]">
+                        {uploadProgressText || 'Uploading & processing video file...'}
+                      </p>
+                      <p className="text-[10px] text-gray-500 mt-1">Chunked upload in progress • Safe for live server</p>
                     </div>
                   ) : (
                     <>

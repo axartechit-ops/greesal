@@ -1063,14 +1063,30 @@ export default function AdminPage() {
       setSuccessMessage(null);
       setErrorMessage(null);
       try {
-        // Sanitize any large base64 difference images to static paths before sending
+        // Sanitize any large base64 difference images and videos to clean paths before sending
         const sanitized: Partial<SiteSettings> = { ...updatedSettings };
         (['differenceImage1', 'differenceImage2', 'differenceImage3', 'differenceImage4'] as const).forEach((key, idx) => {
           const val = sanitized[key];
-          if (typeof val === 'string' && (val.startsWith('data:image/') || val.length > 20000)) {
+          if (typeof val === 'string' && (val.startsWith('data:') || val.length > 20000)) {
             sanitized[key] = idx === 0 ? '/images/premium_fresh_ingredients.png' : `/images/difference_${idx + 1}.png`;
           }
         });
+
+        if (typeof sanitized.howToOrderVideoUrl === 'string' && (sanitized.howToOrderVideoUrl.startsWith('data:') || sanitized.howToOrderVideoUrl.length > 20000)) {
+          sanitized.howToOrderVideoUrl = DEFAULT_SITE_SETTINGS.howToOrderVideoUrl;
+        }
+        if (typeof sanitized.howToOrderVideoPoster === 'string' && (sanitized.howToOrderVideoPoster.startsWith('data:') || sanitized.howToOrderVideoPoster.length > 50000)) {
+          sanitized.howToOrderVideoPoster = DEFAULT_SITE_SETTINGS.howToOrderVideoPoster;
+        }
+        if (typeof sanitized.tableVideoUrl === 'string' && (sanitized.tableVideoUrl.startsWith('data:') || sanitized.tableVideoUrl.length > 20000)) {
+          sanitized.tableVideoUrl = '/videos/hero-table-salad.mp4';
+        }
+        if (typeof sanitized.tableVideoPoster === 'string' && (sanitized.tableVideoPoster.startsWith('data:') || sanitized.tableVideoPoster.length > 50000)) {
+          sanitized.tableVideoPoster = '/images/salad_bowl_hero.jpg';
+        }
+        if (typeof sanitized.heroImage === 'string' && (sanitized.heroImage.startsWith('data:') || sanitized.heroImage.length > 90000)) {
+          sanitized.heroImage = '/images/salad_bowl_hero.jpg';
+        }
 
         const res = await fetch('/api/admin/settings', {
           method: 'POST',

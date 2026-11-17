@@ -252,10 +252,19 @@ def sanitize_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
             res[img_key] = clean_url
             dirty_fields[img_key] = clean_url
 
+    # Sanitize any legacy multi-megabyte base64 videos
+    default_video = "https://www.saladproject.co.uk/cdn/shop/videos/c/vp/ac39289fd8c543e9a83c9a7f8fcb0ad6/ac39289fd8c543e9a83c9a7f8fcb0ad6.HD-1080p-7.2Mbps-90049490.mp4?v=0"
+    for v_key in ["howToOrderVideoUrl", "tableVideoUrl"]:
+        v_val = str(res.get(v_key, "") or "")
+        if v_val.startswith("data:") or len(v_val) > 20000:
+            target_v = default_video if v_key == "howToOrderVideoUrl" else "/videos/hero-table-salad.mp4"
+            res[v_key] = target_v
+            dirty_fields[v_key] = target_v
+
     # Auto-compress any remaining heavy images (e.g. heroImage, poster)
-    for img_key in ["heroImage", "howToOrderVideoPoster"]:
+    for img_key in ["heroImage", "howToOrderVideoPoster", "tableVideoPoster"]:
         val = res.get(img_key)
-        if val and isinstance(val, str) and len(val) > 90000:
+        if val and isinstance(val, str) and (val.startswith("data:") and len(val) > 90000):
             opt = optimize_base64_image(val, max_dim=900, quality=75)
             if opt != val:
                 res[img_key] = opt
@@ -391,9 +400,16 @@ async def update_settings(request: Request):
             if val.startswith("data:image/") or len(val) > 20000:
                 body[img_key] = "/images/premium_fresh_ingredients.png" if idx == 1 else f"/images/difference_{idx}.png"
 
+    # Sanitize any incoming base64 video (should be static uploaded file URL)
+    default_video = "https://www.saladproject.co.uk/cdn/shop/videos/c/vp/ac39289fd8c543e9a83c9a7f8fcb0ad6/ac39289fd8c543e9a83c9a7f8fcb0ad6.HD-1080p-7.2Mbps-90049490.mp4?v=0"
+    for v_key in ["howToOrderVideoUrl", "tableVideoUrl"]:
+        if v_key in body and isinstance(body[v_key], str):
+            if body[v_key].startswith("data:") or len(body[v_key]) > 20000:
+                body[v_key] = default_video if v_key == "howToOrderVideoUrl" else "/videos/hero-table-salad.mp4"
+
     # Auto-compress other incoming images (hero, poster) before saving to MongoDB
-    for img_key in ["heroImage", "howToOrderVideoPoster"]:
-        if img_key in body and isinstance(body[img_key], str):
+    for img_key in ["heroImage", "howToOrderVideoPoster", "tableVideoPoster"]:
+        if img_key in body and isinstance(body[img_key], str) and body[img_key].startswith("data:"):
             body[img_key] = optimize_base64_image(body[img_key], max_dim=900, quality=75)
 
     # Deep merge incoming updates
