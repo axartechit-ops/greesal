@@ -35,13 +35,24 @@ interface AdminSiteTextsTabProps {
   isSaving: boolean;
 }
 
+const MAX_IMAGE_SIZE = 1.5 * 1024 * 1024; // 1.5 MB
+const MAX_VIDEO_SIZE = 10 * 1024 * 1024;  // 10 MB
+
 const compressImageFile = (
   file: File,
   maxWidth: number,
   quality: number,
   callback: (dataUrl: string) => void
 ) => {
-  if (!file || !file.type.startsWith('image/')) {
+  if (!file) return;
+
+  if (file.size > MAX_IMAGE_SIZE) {
+    const mb = (file.size / (1024 * 1024)).toFixed(2);
+    alert(`Image file is too large (${mb} MB). Maximum allowed image size is 1.5 MB.`);
+    return;
+  }
+
+  if (!file.type.startsWith('image/')) {
     const reader = new FileReader();
     reader.onload = (e) => callback(e.target?.result as string);
     reader.readAsDataURL(file);
@@ -583,13 +594,36 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                     id="how-to-order-video-file"
                     type="file"
                     accept="video/mp4,video/webm,video/quicktime,video/*,image/gif,image/webp"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       if (e.target.files && e.target.files[0]) {
                         const file = e.target.files[0];
-                        if (file.size > 50 * 1024 * 1024) {
-                          alert('Video is larger than 50MB. For faster customer playback, compress or host on a CDN/Cloud storage.');
+                        if (file.size > MAX_VIDEO_SIZE) {
+                          const mb = (file.size / (1024 * 1024)).toFixed(2);
+                          alert(`Video file is too large (${mb} MB). Maximum allowed video size is 10 MB.`);
+                          return;
                         }
                         setIsHowToOrderUploading(true);
+                        // Upload via high-performance static upload endpoint
+                        try {
+                          const fd = new FormData();
+                          fd.append('file', file);
+                          const upRes = await fetch('/api/admin/upload', {
+                            method: 'POST',
+                            body: fd,
+                          });
+                          if (upRes.ok) {
+                            const upData = await upRes.json();
+                            if (upData.url) {
+                              handleChange('howToOrderVideoUrl', upData.url);
+                              setIsHowToOrderUploading(false);
+                              return;
+                            }
+                          }
+                        } catch (err) {
+                          console.warn('API upload fallback to data URL:', err);
+                        }
+
+                        // Fallback to data URL
                         const reader = new FileReader();
                         reader.onload = (ev) => {
                           if (ev.target?.result) {
@@ -605,7 +639,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                   {isHowToOrderUploading ? (
                     <div className="flex flex-col items-center">
                       <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mb-2" />
-                      <p className="text-xs font-bold text-[#123B2B]">Processing video file...</p>
+                      <p className="text-xs font-bold text-[#123B2B]">Uploading &amp; processing video file...</p>
                     </div>
                   ) : (
                     <>
@@ -613,7 +647,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                         <UploadCloud className="w-5 h-5 text-emerald-700" />
                       </div>
                       <p className="text-xs font-bold text-[#123B2B]">Click to browse &amp; upload video file</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">Supports MP4, WEBM, MOV, GIF (Auto-preview)</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">Supports MP4, WEBM, MOV, GIF &bull; Max 10 MB</p>
                     </>
                   )}
                 </div>
@@ -1009,7 +1043,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                   />
                   <UploadCloud className="w-6 h-6 text-[#20493c] mb-1 group-hover:scale-110 transition-transform" />
                   <p className="text-xs font-bold text-[#123B2B]">Click to browse Image 1</p>
-                  <p className="text-[10px] text-gray-400">PNG, JPG, WEBP</p>
+                  <p className="text-[10px] text-gray-400">PNG, JPG, WEBP &bull; Max 1.5 MB</p>
                 </div>
 
                 <div className="space-y-1">
@@ -1070,7 +1104,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                   />
                   <UploadCloud className="w-6 h-6 text-[#20493c] mb-1 group-hover:scale-110 transition-transform" />
                   <p className="text-xs font-bold text-[#123B2B]">Click to browse Image 2</p>
-                  <p className="text-[10px] text-gray-400">PNG, JPG, WEBP</p>
+                  <p className="text-[10px] text-gray-400">PNG, JPG, WEBP &bull; Max 1.5 MB</p>
                 </div>
 
                 <div className="space-y-1">
@@ -1131,7 +1165,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                   />
                   <UploadCloud className="w-6 h-6 text-[#20493c] mb-1 group-hover:scale-110 transition-transform" />
                   <p className="text-xs font-bold text-[#123B2B]">Click to browse Image 3</p>
-                  <p className="text-[10px] text-gray-400">PNG, JPG, WEBP</p>
+                  <p className="text-[10px] text-gray-400">PNG, JPG, WEBP &bull; Max 1.5 MB</p>
                 </div>
 
                 <div className="space-y-1">
@@ -1192,7 +1226,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                   />
                   <UploadCloud className="w-6 h-6 text-[#20493c] mb-1 group-hover:scale-110 transition-transform" />
                   <p className="text-xs font-bold text-[#123B2B]">Click to browse Image 4</p>
-                  <p className="text-[10px] text-gray-400">PNG, JPG, WEBP</p>
+                  <p className="text-[10px] text-gray-400">PNG, JPG, WEBP &bull; Max 1.5 MB</p>
                 </div>
 
                 <div className="space-y-1">

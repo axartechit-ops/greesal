@@ -304,7 +304,7 @@ export async function proxyToFastAPI(req: NextRequest, path: string) {
       method,
       headers,
       cache: 'no-store',
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(30000),
     };
     if (bodyText) {
       init.body = bodyText;

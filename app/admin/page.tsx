@@ -302,6 +302,13 @@ export default function AdminPage() {
       return;
     }
 
+    const MAX_IMAGE_SIZE = 1.5 * 1024 * 1024; // 1.5 MB
+    if (file.size > MAX_IMAGE_SIZE) {
+      const mb = (file.size / (1024 * 1024)).toFixed(2);
+      setErrorMessage(`Hero image exceeds 1.5 MB limit (${mb} MB). Please select an image under 1.5 MB.`);
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
@@ -387,6 +394,15 @@ export default function AdminPage() {
     const fileList = Array.from(files).filter(f => f.type.startsWith('image/'));
     if (fileList.length === 0) {
       setErrorMessage('Please select valid image files (PNG, JPG, WEBP, etc.)');
+      return;
+    }
+
+    const MAX_IMAGE_SIZE = 1.5 * 1024 * 1024; // 1.5 MB
+    const oversized = fileList.filter(f => f.size > MAX_IMAGE_SIZE);
+    if (oversized.length > 0) {
+      setErrorMessage(
+        `One or more images exceed the 1.5 MB limit: ${oversized.map(f => `${f.name} (${(f.size / (1024 * 1024)).toFixed(2)} MB)`).join(', ')}. Please choose images under 1.5 MB.`
+      );
       return;
     }
     setErrorMessage(null);
@@ -4164,7 +4180,7 @@ export default function AdminPage() {
                             Click to browse or drop hero image here
                           </p>
                           <p className="text-[11px] text-gray-400 mt-0.5">
-                            PNG, JPG, WEBP • Automatically optimized
+                            PNG, JPG, WEBP &bull; Max 1.5 MB &bull; Automatically optimized
                           </p>
                         </div>
 
@@ -5110,7 +5126,7 @@ export default function AdminPage() {
                               Click or drag &amp; drop to upload one or more photos
                             </p>
                             <p className="text-[11px] text-gray-500 mt-0.5">
-                              Select multiple files at once &bull; Supports PNG, JPG, WEBP (Auto-optimized)
+                              Select multiple files at once &bull; Supports PNG, JPG, WEBP &bull; Max 1.5 MB per image (Auto-optimized)
                             </p>
                           </div>
                         </div>
