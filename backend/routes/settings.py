@@ -1,3 +1,28 @@
+import base64
+import io
+
+def optimize_base64_image(b64_str: str, max_dim: int = 1200, quality: int = 80) -> str:
+    """Non-destructively compresses heavy base64 images into compact WebP, preserving full visual quality."""
+    if not b64_str or not isinstance(b64_str, str) or not b64_str.startswith("data:image"):
+        return b64_str
+    if len(b64_str) < 90000:
+        return b64_str
+    try:
+        from PIL import Image
+        header, data = b64_str.split(",", 1)
+        raw = base64.b64decode(data)
+        img = Image.open(io.BytesIO(raw))
+        if img.width > max_dim or img.height > max_dim:
+            img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+        out = io.BytesIO()
+        img.save(out, format="WEBP", quality=quality, method=4)
+        opt_bytes = out.getvalue()
+        if len(opt_bytes) < len(raw):
+            return f"data:image/webp;base64,{base64.b64encode(opt_bytes).decode()}"
+    except Exception as e:
+        logger.warning(f"Image optimization skipped: {e}")
+    return b64_str
+
 import logging
 import json
 from pathlib import Path
@@ -218,6 +243,24 @@ def sanitize_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
     if not phone or "98251" in phone or "95958" in phone:
         res["contactPhone"] = "+91 99258 36117"
 
+    # Auto-compress any heavy difference images or hero banner images to WebP
+    dirty_fields = {}
+    for img_key in ["differenceImage1", "differenceImage2", "differenceImage3", "differenceImage4", "heroImage", "howToOrderVideoPoster"]:
+        val = res.get(img_key)
+        if val and isinstance(val, str) and len(val) > 90000:
+            opt = optimize_base64_image(val, max_dim=1200, quality=80)
+            if opt != val:
+                res[img_key] = opt
+                dirty_fields[img_key] = opt
+    if dirty_fields:
+        db = get_db()
+        if db is not None:
+            try:
+                db.settings.update_one({"_id": "homepage"}, {"$set": dirty_fields})
+                logger.info(f"Auto-optimized and persisted {len(dirty_fields)} heavy images in MongoDB settings!")
+            except Exception as e:
+                logger.warning(f"Could not persist optimized settings: {e}")
+
     cards = res.get("servicesCards")
     if isinstance(cards, list):
         for c in cards:
@@ -332,6 +375,11 @@ async def update_settings(request: Request):
             raise HTTPException(status_code=500, detail="Failed to read existing site settings")
     else:
         existing_settings.update(load_local_settings())
+
+    # Auto-compress incoming images before saving to MongoDB
+    for img_key in ["differenceImage1", "differenceImage2", "differenceImage3", "differenceImage4", "heroImage", "howToOrderVideoPoster"]:
+        if img_key in body and isinstance(body[img_key], str):
+            body[img_key] = optimize_base64_image(body[img_key], max_dim=1200, quality=80)
 
     # Deep merge incoming updates
     updated_data = {**existing_settings, **body}

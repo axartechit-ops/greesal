@@ -304,7 +304,7 @@ export async function proxyToFastAPI(req: NextRequest, path: string) {
       method,
       headers,
       cache: 'no-store',
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(10000),
     };
     if (bodyText) {
       init.body = bodyText;
@@ -332,6 +332,10 @@ export async function proxyToFastAPI(req: NextRequest, path: string) {
         responseHeaders.set(key, value);
       }
     });
+
+    if (method === 'GET' && (path.includes('/salads') || path.includes('/settings'))) {
+      responseHeaders.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
+    }
 
     const contentType = res.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {

@@ -104,6 +104,23 @@ export default function SaladIndiaHome() {
     const savedMobile = localStorage.getItem('greesal_custom_mobile');
     if (savedMobile) setCustomMobile(savedMobile);
 
+    // 0. Instant Cache Hydration: Load cached settings & salads instantly so UI renders in 0ms with no delay
+    try {
+      const cachedSet = localStorage.getItem('greesal_cached_settings');
+      if (cachedSet) {
+        setSiteSettings(prev => ({ ...prev, ...JSON.parse(cachedSet) }));
+        setIsLoadingSettings(false);
+      }
+      const cachedSal = localStorage.getItem('greesal_cached_salads');
+      if (cachedSal) {
+        const parsed = JSON.parse(cachedSal);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSalads(parsed);
+          setIsLoadingSalads(false);
+        }
+      }
+    } catch (e) {}
+
     // 1. Fetch dynamic site content settings & categories from admin settings API
     const fetchSettings = async () => {
       try {
@@ -113,6 +130,7 @@ export default function SaladIndiaHome() {
           const data = await res.json();
           if (data && typeof data === 'object') {
             setSiteSettings((prev) => ({ ...prev, ...data }));
+            try { localStorage.setItem('greesal_cached_settings', JSON.stringify(data)); } catch (e) {}
           }
         }
       } catch (e) {
@@ -133,6 +151,7 @@ export default function SaladIndiaHome() {
           if (Array.isArray(data)) {
             const realSalads = data.filter((s: any) => !String(s.id || '').startsWith('fallback-') && !String(s._id || '').startsWith('fallback-'));
             setSalads(realSalads);
+            try { localStorage.setItem('greesal_cached_salads', JSON.stringify(realSalads)); } catch (e) {}
           } else {
             setSalads([]);
           }

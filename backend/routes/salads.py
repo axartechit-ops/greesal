@@ -1,3 +1,28 @@
+import base64
+import io
+
+def optimize_base64_image(b64_str: str, max_dim: int = 750, quality: int = 80) -> str:
+    """Non-destructively compresses heavy base64 images into compact WebP, preserving full visual quality."""
+    if not b64_str or not isinstance(b64_str, str) or not b64_str.startswith("data:image"):
+        return b64_str
+    if len(b64_str) < 70000:
+        return b64_str
+    try:
+        from PIL import Image
+        header, data = b64_str.split(",", 1)
+        raw = base64.b64decode(data)
+        img = Image.open(io.BytesIO(raw))
+        if img.width > max_dim or img.height > max_dim:
+            img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+        out = io.BytesIO()
+        img.save(out, format="WEBP", quality=quality, method=4)
+        opt_bytes = out.getvalue()
+        if len(opt_bytes) < len(raw):
+            return f"data:image/webp;base64,{base64.b64encode(opt_bytes).decode()}"
+    except Exception as e:
+        logger.warning(f"Salad image optimization skipped: {e}")
+    return b64_str
+
 import os
 import re
 import json
@@ -379,6 +404,10 @@ def format_salad_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
         tag = cat
     res["category"] = cat
     res["tag"] = tag
+
+    # Auto-compress heavy salad image if needed
+    if "image" in res and isinstance(res["image"], str) and len(res["image"]) > 70000:
+        res["image"] = optimize_base64_image(res["image"], max_dim=750, quality=80)
 
     # 3-Part Ingredients Structure: ingredients, dressing, crunch
     if "ingredients" not in res or not isinstance(res.get("ingredients"), list):

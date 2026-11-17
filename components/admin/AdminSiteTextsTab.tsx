@@ -35,6 +35,54 @@ interface AdminSiteTextsTabProps {
   isSaving: boolean;
 }
 
+const compressImageFile = (
+  file: File,
+  maxWidth: number,
+  quality: number,
+  callback: (dataUrl: string) => void
+) => {
+  if (!file || !file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = (e) => callback(e.target?.result as string);
+    reader.readAsDataURL(file);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth || height > maxWidth) {
+        if (width > height) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        } else {
+          width = Math.round((width * maxWidth) / height);
+          height = maxWidth;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        let dataUrl = canvas.toDataURL('image/webp', quality);
+        if (!dataUrl.startsWith('data:image/webp')) {
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+        callback(dataUrl);
+      } else {
+        callback(e.target?.result as string);
+      }
+    };
+    img.onerror = () => callback(e.target?.result as string);
+    img.src = e.target?.result as string;
+  };
+  reader.readAsDataURL(file);
+};
+
 export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
   settings,
   onSaveSettings,
@@ -587,13 +635,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                       accept="image/*"
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
-                          const reader = new FileReader();
-                          reader.onload = (ev) => {
-                            if (ev.target?.result) {
-                              handleChange('howToOrderVideoPoster', ev.target.result as string);
-                            }
-                          };
-                          reader.readAsDataURL(e.target.files[0]);
+                          compressImageFile(e.target.files[0], 1200, 0.82, (url) => handleChange('howToOrderVideoPoster', url));
                         }
                       }}
                       className="hidden"
@@ -952,11 +994,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                     accept="image/*"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                          if (ev.target?.result) handleChange('differenceImage1', ev.target.result as string);
-                        };
-                        reader.readAsDataURL(e.target.files[0]);
+                        compressImageFile(e.target.files[0], 1200, 0.82, (url) => handleChange('differenceImage1', url));
                       }
                     }}
                     className="hidden"
@@ -1017,11 +1055,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                     accept="image/*"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                          if (ev.target?.result) handleChange('differenceImage2', ev.target.result as string);
-                        };
-                        reader.readAsDataURL(e.target.files[0]);
+                        compressImageFile(e.target.files[0], 1200, 0.82, (url) => handleChange('differenceImage2', url));
                       }
                     }}
                     className="hidden"
@@ -1082,11 +1116,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                     accept="image/*"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                          if (ev.target?.result) handleChange('differenceImage3', ev.target.result as string);
-                        };
-                        reader.readAsDataURL(e.target.files[0]);
+                        compressImageFile(e.target.files[0], 1200, 0.82, (url) => handleChange('differenceImage3', url));
                       }
                     }}
                     className="hidden"
@@ -1147,11 +1177,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                     accept="image/*"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                          if (ev.target?.result) handleChange('differenceImage4', ev.target.result as string);
-                        };
-                        reader.readAsDataURL(e.target.files[0]);
+                        compressImageFile(e.target.files[0], 1200, 0.82, (url) => handleChange('differenceImage4', url));
                       }
                     }}
                     className="hidden"
