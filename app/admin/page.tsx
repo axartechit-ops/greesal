@@ -145,6 +145,30 @@ interface AdminOrder {
   paymentMethod: string;
 }
 
+async function parseJsonResponse<T = any>(res: Response, fallbackError = 'Request failed'): Promise<T> {
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || data.error || fallbackError);
+    }
+    return data;
+  }
+  const text = await res.text();
+  if (!res.ok) {
+    if (res.status === 413) {
+      throw new Error('Payload too large (413). Please upload smaller or compressed images.');
+    }
+    const match = text.match(/<title>(.*?)<\/title>/i);
+    throw new Error(match ? match[1] : `Server error (${res.status}): ${fallbackError}`);
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {} as T;
+  }
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const [isAdminChecking, setIsAdminChecking] = useState(true);
@@ -866,11 +890,7 @@ export default function AdminPage() {
           body: JSON.stringify(updatedSettings),
         });
 
-        if (!res.ok) {
-          throw new Error('Failed to save slider settings');
-        }
-
-        const savedData = await res.json();
+        const savedData = await parseJsonResponse(res, 'Failed to save slider settings');
         setFullSiteSettings(prev => ({ ...prev, ...savedData }));
         setSuccessMessage('Top Slider items & settings published successfully!');
         setTimeout(() => setSuccessMessage(null), 4000);
@@ -917,11 +937,7 @@ export default function AdminPage() {
           }),
         });
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || 'Failed to update store timing and notice settings');
-        }
+        const data = await parseJsonResponse(res, 'Failed to update store timing and notice settings');
 
         setFullSiteSettings((prev) => ({
           ...prev,
@@ -984,11 +1000,7 @@ export default function AdminPage() {
           body: JSON.stringify(payload),
         });
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || 'Failed to update banner settings');
-        }
+        const data = await parseJsonResponse(res, 'Failed to update banner settings');
 
         setFullSiteSettings((prev) => ({
           ...prev,
@@ -1017,8 +1029,7 @@ export default function AdminPage() {
             categories: updatedCategories
           })
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to save categories');
+        const data = await parseJsonResponse(res, 'Failed to save categories');
         setCategoriesState(updatedCategories);
         setFullSiteSettings(prev => ({ ...prev, categories: updatedCategories }));
         setSuccessMessage('Menu categories updated successfully! Live website refreshed.');
@@ -1036,14 +1047,22 @@ export default function AdminPage() {
       setSuccessMessage(null);
       setErrorMessage(null);
       try {
+        // Sanitize any large base64 difference images to static paths before sending
+        const sanitized: Partial<SiteSettings> = { ...updatedSettings };
+        (['differenceImage1', 'differenceImage2', 'differenceImage3', 'differenceImage4'] as const).forEach((key, idx) => {
+          const val = sanitized[key];
+          if (typeof val === 'string' && (val.startsWith('data:image/') || val.length > 20000)) {
+            sanitized[key] = idx === 0 ? '/images/premium_fresh_ingredients.png' : `/images/difference_${idx + 1}.png`;
+          }
+        });
+
         const res = await fetch('/api/admin/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedSettings)
+          body: JSON.stringify(sanitized)
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || data.error || 'Failed to save site texts');
-        setFullSiteSettings(prev => ({ ...prev, ...updatedSettings }));
+        const data = await parseJsonResponse(res, 'Failed to save site texts');
+        setFullSiteSettings(prev => ({ ...prev, ...sanitized }));
         setSuccessMessage('Website content, texts & sections saved! Live website updated.');
         setTimeout(() => setSuccessMessage(null), 4000);
       } catch (err: any) {
@@ -1268,11 +1287,7 @@ export default function AdminPage() {
           body: JSON.stringify(payload),
         });
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || 'Failed to save salad');
-        }
+        const data = await parseJsonResponse(res, 'Failed to save salad');
 
         setSuccessMessage(editingSaladId ? 'Salad updated successfully!' : 'New salad added successfully!');
         setIsModalOpen(false);
@@ -1297,11 +1312,7 @@ export default function AdminPage() {
           method: 'DELETE',
         });
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || 'Failed to delete salad');
-        }
+        const data = await parseJsonResponse(res, 'Failed to delete salad');
 
         setSuccessMessage('Salad deleted successfully!');
         await fetchData(); // refresh list

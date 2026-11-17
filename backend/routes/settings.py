@@ -90,9 +90,9 @@ DEFAULT_SITE_SETTINGS: Dict[str, Any] = {
     "differenceTitle": "what makes the difference?",
     "differenceSubtitle": "Every bowl is handcrafted from farm-to-table with zero shortcuts, zero chemicals, and uncompromised love.",
     "differenceImage1": "/images/premium_fresh_ingredients.png",
-    "differenceImage2": "",
-    "differenceImage3": "",
-    "differenceImage4": "",
+    "differenceImage2": "/images/difference_2.png",
+    "differenceImage3": "/images/difference_3.png",
+    "differenceImage4": "/images/difference_4.png",
     "differenceCards": [
         {
             "id": 1,
@@ -243,12 +243,20 @@ def sanitize_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
     if not phone or "98251" in phone or "95958" in phone:
         res["contactPhone"] = "+91 99258 36117"
 
-    # Auto-compress any heavy difference images or hero banner images to WebP
+    # Replace any giant base64 difference images with clean static images
     dirty_fields = {}
-    for img_key in ["differenceImage1", "differenceImage2", "differenceImage3", "differenceImage4", "heroImage", "howToOrderVideoPoster"]:
+    for idx, img_key in enumerate(["differenceImage1", "differenceImage2", "differenceImage3", "differenceImage4"], start=1):
+        val = str(res.get(img_key, "") or "")
+        if val.startswith("data:image/") or len(val) > 20000:
+            clean_url = "/images/premium_fresh_ingredients.png" if idx == 1 else f"/images/difference_{idx}.png"
+            res[img_key] = clean_url
+            dirty_fields[img_key] = clean_url
+
+    # Auto-compress any remaining heavy images (e.g. heroImage, poster)
+    for img_key in ["heroImage", "howToOrderVideoPoster"]:
         val = res.get(img_key)
         if val and isinstance(val, str) and len(val) > 90000:
-            opt = optimize_base64_image(val, max_dim=1200, quality=80)
+            opt = optimize_base64_image(val, max_dim=900, quality=75)
             if opt != val:
                 res[img_key] = opt
                 dirty_fields[img_key] = opt
@@ -376,10 +384,17 @@ async def update_settings(request: Request):
     else:
         existing_settings.update(load_local_settings())
 
-    # Auto-compress incoming images before saving to MongoDB
-    for img_key in ["differenceImage1", "differenceImage2", "differenceImage3", "differenceImage4", "heroImage", "howToOrderVideoPoster"]:
+    # Sanitize difference images to lightweight static paths if giant base64
+    for idx, img_key in enumerate(["differenceImage1", "differenceImage2", "differenceImage3", "differenceImage4"], start=1):
         if img_key in body and isinstance(body[img_key], str):
-            body[img_key] = optimize_base64_image(body[img_key], max_dim=1200, quality=80)
+            val = body[img_key]
+            if val.startswith("data:image/") or len(val) > 20000:
+                body[img_key] = "/images/premium_fresh_ingredients.png" if idx == 1 else f"/images/difference_{idx}.png"
+
+    # Auto-compress other incoming images (hero, poster) before saving to MongoDB
+    for img_key in ["heroImage", "howToOrderVideoPoster"]:
+        if img_key in body and isinstance(body[img_key], str):
+            body[img_key] = optimize_base64_image(body[img_key], max_dim=900, quality=75)
 
     # Deep merge incoming updates
     updated_data = {**existing_settings, **body}

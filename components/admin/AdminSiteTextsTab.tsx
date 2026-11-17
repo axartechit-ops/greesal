@@ -173,7 +173,15 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSaveSettings(formData);
+    const cleanData = { ...formData };
+    // Prevent multi-megabyte base64 payloads by replacing any legacy difference images with clean static paths
+    (['differenceImage1', 'differenceImage2', 'differenceImage3', 'differenceImage4'] as const).forEach((key, idx) => {
+      const val = cleanData[key];
+      if (typeof val === 'string' && (val.startsWith('data:image/') || val.length > 20000)) {
+        cleanData[key] = idx === 0 ? '/images/premium_fresh_ingredients.png' : `/images/difference_${idx + 1}.png`;
+      }
+    });
+    onSaveSettings(cleanData);
   };
 
   return (
@@ -635,7 +643,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                       accept="image/*"
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
-                          compressImageFile(e.target.files[0], 1200, 0.82, (url) => handleChange('howToOrderVideoPoster', url));
+                          compressImageFile(e.target.files[0], 900, 0.75, (url) => handleChange('howToOrderVideoPoster', url));
                         }
                       }}
                       className="hidden"
@@ -994,7 +1002,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                     accept="image/*"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
-                        compressImageFile(e.target.files[0], 1200, 0.82, (url) => handleChange('differenceImage1', url));
+                        compressImageFile(e.target.files[0], 900, 0.75, (url) => handleChange('differenceImage1', url));
                       }
                     }}
                     className="hidden"
@@ -1055,7 +1063,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                     accept="image/*"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
-                        compressImageFile(e.target.files[0], 1200, 0.82, (url) => handleChange('differenceImage2', url));
+                        compressImageFile(e.target.files[0], 900, 0.75, (url) => handleChange('differenceImage2', url));
                       }
                     }}
                     className="hidden"
@@ -1116,7 +1124,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                     accept="image/*"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
-                        compressImageFile(e.target.files[0], 1200, 0.82, (url) => handleChange('differenceImage3', url));
+                        compressImageFile(e.target.files[0], 900, 0.75, (url) => handleChange('differenceImage3', url));
                       }
                     }}
                     className="hidden"
@@ -1177,7 +1185,7 @@ export const AdminSiteTextsTab: React.FC<AdminSiteTextsTabProps> = ({
                     accept="image/*"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
-                        compressImageFile(e.target.files[0], 1200, 0.82, (url) => handleChange('differenceImage4', url));
+                        compressImageFile(e.target.files[0], 900, 0.75, (url) => handleChange('differenceImage4', url));
                       }
                     }}
                     className="hidden"
